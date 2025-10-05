@@ -1,4 +1,4 @@
-package main.java.in.catalystcare.catalystcare_backend.common.util;
+package in.catalystcare.catalystcare_backend.common.util;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;

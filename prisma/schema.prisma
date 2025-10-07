@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String           @id @default(uuid())
+  firstName        String
+  lastName         String
+  email            String           @unique
+  password         String?
+  role             UserRole         @default(CLIENT)
+  isEmailVerified  Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  therapistProfile TherapistProfile?
+
+  @@index([email])
+}
+
+enum UserRole {
+  CLIENT
+  THERAPIST
+  ADMIN
+}
+
+model TherapistProfile {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id])
+  
+  specialization     String[]
+  educationDocs      String[]  // S3 URLs
+  medicalDocs        String[]
+  experienceYears    Int?
+  about              String?
+  status             TherapistStatus @default(PENDING)
+  rejectionReason    String?
+  approvedAt         DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+enum TherapistStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+
+model OTPVerification {
+  id         String   @id @default(uuid())
+  email      String
+  otp        String
+  expiresAt  DateTime
+  verified   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([email])
+}

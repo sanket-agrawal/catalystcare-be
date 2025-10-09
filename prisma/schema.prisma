@@ -8,18 +8,19 @@ datasource db {
 }
 
 model User {
-  id               String           @id @default(uuid())
+  id               String            @id @default(uuid()) @map("id")
   firstName        String
   lastName         String
-  email            String           @unique
+  email            String            @unique @map("email")
   password         String?
-  role             UserRole         @default(CLIENT)
-  isEmailVerified  Boolean          @default(false)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  role             UserRole          @default(CLIENT) @map("role")
+  isEmailVerified  Boolean           @default(false) @map("is_email_verified")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
 
   therapistProfile TherapistProfile?
 
+  @@map("users")
   @@index([email])
 }
 
@@ -30,20 +31,22 @@ enum UserRole {
 }
 
 model TherapistProfile {
-  id                 String   @id @default(uuid())
-  userId             String   @unique
-  user               User     @relation(fields: [userId], references: [id])
-  
-  specialization     String[]
-  educationDocs      String[]  // S3 URLs
-  medicalDocs        String[]
-  experienceYears    Int?
-  about              String?
-  status             TherapistStatus @default(PENDING)
-  rejectionReason    String?
-  approvedAt         DateTime?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id               String            @id @default(uuid()) @map("id")
+  userId           String            @unique @map("user_id")
+  user             User              @relation(fields: [userId], references: [id])
+
+  specialization   String[]
+  educationDocs    String[]          @map("education_docs") // S3 URLs
+  medicalDocs      String[]          @map("medical_docs")
+  experienceYears  Int?              @map("experience_years")
+  about            String?
+  status           TherapistStatus   @default(PENDING) @map("status")
+  rejectionReason  String?           @map("rejection_reason")
+  approvedAt       DateTime?         @map("approved_at")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  @@map("therapist_profiles")
 }
 
 enum TherapistStatus {
@@ -52,14 +55,14 @@ enum TherapistStatus {
   REJECTED
 }
 
-
 model OTPVerification {
-  id         String   @id @default(uuid())
-  email      String
-  otp        String
-  expiresAt  DateTime
-  verified   Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id         String   @id @default(uuid()) @map("id")
+  email      String   @map("email")
+  otp        String   @map("otp")
+  expiresAt  DateTime @map("expires_at")
+  verified   Boolean  @default(false) @map("verified")
+  createdAt  DateTime @default(now()) @map("created_at")
 
+  @@map("otp_verifications")
   @@index([email])
 }

@@ -1,7 +1,7 @@
 import { prisma } from "../../infrastructure/prisma/client";
 import crypto from "crypto";
 
-export class OTPService {
+export const OTPService =  {
   async generateOTP(email: string): Promise<string> {
     const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
@@ -11,7 +11,7 @@ export class OTPService {
     });
 
     return otp;
-  }
+  },
 
   async verifyOTP(email: string, otp: string) {
     const record = await prisma.oTPVerification.findFirst({

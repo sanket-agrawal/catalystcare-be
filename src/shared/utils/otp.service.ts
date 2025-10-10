@@ -14,7 +14,8 @@ export const OTPService =  {
   },
 
   async verifyOTP(email: string, otp: string) {
-    const record = await prisma.oTPVerification.findFirst({
+    try {
+            const record = await prisma.oTPVerification.findFirst({
       where: { email, otp, verified: false, expiresAt: { gt: new Date() } },
     });
 
@@ -26,5 +27,9 @@ export const OTPService =  {
     });
 
     return true;
+    } catch (error) {
+      throw new Error("Invalid or expired OTP");
+    }
+
   }
 }

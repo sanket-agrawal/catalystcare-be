@@ -18,6 +18,12 @@ export const registerUserSchema = z.object({
     .regex(/[a-z]/, "Must contain at least one lowercase letter")
     .regex(/[0-9]/, "Must contain at least one number")
     .regex(/[@$!%*?&#]/, "Must contain at least one special character"),
+  mobileNumber : z.string().min(10, "Mobile number must be at least 10 digits long").max(10, "Mobile number is too long"),
+});
+
+export const verifyOTPSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  otp: z.string().length(6, "OTP must be 6 digits long"),
 });
 
 export type RegisterUserInput = z.infer<typeof registerUserSchema>;

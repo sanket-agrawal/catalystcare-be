@@ -12,9 +12,11 @@ model User {
   firstName        String
   lastName         String
   email            String            @unique @map("email")
+  mobileNumber     String?           @map("mobile_number")
   password         String?
   role             UserRole          @default(CLIENT) @map("role")
   isEmailVerified  Boolean           @default(false) @map("is_email_verified")
+  isMobileVerified Boolean           @default(false) @map("is_mobile_verified")
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
 

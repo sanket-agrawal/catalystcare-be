@@ -20,6 +20,7 @@ model User {
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
 
+  clientProfile    ClientProfile?
   therapistProfile TherapistProfile?
 
   @@map("users")
@@ -31,6 +32,77 @@ enum UserRole {
   THERAPIST
   ADMIN
 }
+
+model ClientProfile {
+  id                     String     @id @default(uuid()) @map("id")
+  user                   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                 String     @unique @map("user_id")
+
+  ageGroup               AgeGroup
+
+  genderIdentity         GenderIdentity
+
+  occupation             Occupation
+
+  primaryObjective       PrimaryObjective
+
+  priorTherapyExperience  PriorTherapyExperience
+
+  preferredSupportType    PreferredSupportType
+
+  createdAt              DateTime   @default(now()) @map("created_at")
+  updatedAt              DateTime   @updatedAt @map("updated_at")
+
+  @@map("client_profiles")
+}
+
+enum AgeGroup {
+  UNDER_18
+  AGE_18_24
+  AGE_25_34
+  AGE_35_44
+  AGE_45_54
+  AGE_55_PLUS
+}
+
+enum GenderIdentity {
+  MALE
+  FEMALE
+  NON_BINARY
+  PREFER_NOT_TO_SAY
+}
+
+enum Occupation {
+  STUDENT
+  WORKING_PROFESSIONAL
+  SELF_EMPLOYED
+  HOMEMAKER
+  RETIRED
+  NOT_WORKING
+}
+
+enum PrimaryObjective {
+  IMPROVE_EMOTIONAL_WELL_BEING
+  MANAGE_STRESS_OR_ANXIETY
+  BUILD_HEALTHIER_RELATIONSHIPS
+  IMPROVE_FOCUS_AND_MOTIVATION
+  EXPLORE_PERSONAL_GROWTH
+  NOT_SURE_JUST_WANT_TO_TALK
+}
+
+enum PriorTherapyExperience {
+  YES_CURRENTLY
+  YES_NOT_CURRENTLY
+  NO_FIRST_TIME
+}
+
+enum PreferredSupportType {
+  ONE_ON_ONE_COUNSELLING
+  GROUP_WORKSHOPS
+  SELF_HELP_RESOURCES
+  NOT_SURE_OPEN
+}
+
 
 model TherapistProfile {
   id               String            @id @default(uuid()) @map("id")

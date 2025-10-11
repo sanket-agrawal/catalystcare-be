@@ -26,4 +26,5 @@ export const verifyOTPSchema = z.object({
   otp: z.string().length(6, "OTP must be 6 digits long"),
 });
 
+
 export type RegisterUserInput = z.infer<typeof registerUserSchema>;

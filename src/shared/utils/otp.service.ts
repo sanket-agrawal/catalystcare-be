@@ -26,6 +26,11 @@ export const OTPService =  {
       data: { verified: true },
     });
 
+    await prisma.user.update({
+      where: { email: email },
+      data: { isEmailVerified: true },
+    });
+
     return true;
     } catch (error) {
       throw new Error("Invalid or expired OTP");

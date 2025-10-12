@@ -17,10 +17,7 @@ export const uploadFile = async (req : Request, res : Response) => {
         );
         }
 
-        const key = `${entity}/${userId}/${docType}-${Date.now()}-${file.originalname}`;
-        console.log("S3 Key:", key);
-        console.log("File Info:", file);
-        console.log("User ID:", userId, "Doc Type:", docType, "Entity:", entity);
+        const key = `${entity}/${userId}/${docType}-${Date.now()}`;
 
         await uploadFileToS3(file.buffer, key, file.mimetype);
 

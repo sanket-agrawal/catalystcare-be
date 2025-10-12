@@ -17,8 +17,7 @@ export const uploadFile = async (req : Request, res : Response) => {
         );
         }
 
-        const key = `${entity}/${userId}/${docType}-${Date.now()}`;
-
+        const key = `${entity}/${userId}/${docType}-${Date.now()}.${file.mimetype.split('/')[1]}`;
         await uploadFileToS3(file.buffer, key, file.mimetype);
 
         res.status(200).json(

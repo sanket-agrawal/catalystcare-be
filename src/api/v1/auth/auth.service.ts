@@ -216,7 +216,7 @@ if (user.role === "THERAPIST") {
 
 
   const token = jwt.sign(
-    { id: user.id, email: user.email, phone : user.mobileNumber ,role: user.role },
+    { id: user.id, email: user.email, phone : user.mobileNumber ,role: user.role, firstName : user.firstName, lastName : user.lastName },
     process.env.JWT_SECRET as string,
     { expiresIn: "7d" }
   );

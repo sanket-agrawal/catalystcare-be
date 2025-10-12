@@ -28,22 +28,23 @@ export const verifyOTP = async (req: Request, res: Response) => {
   try {
     const { email, otp } = req.body;
     const result = await verifyOTPService(email, otp);
+
     res
       .status(200)
-      .json(new ApiResponse(true,200, "OTP verified successfully", result));
+      .json(new ApiResponse(true, 200, "OTP verified and user logged in", result));
   } catch (error) {
-        console.error("Register Error:", error);
-       if (error instanceof ApiError) {
+    console.error("Verify OTP Controller Error:", error);
+    if (error instanceof ApiError) {
       res
-      .status(error.statusCode)
-      .json(new ApiResponse(false, error.statusCode, error.message));
+        .status(error.statusCode)
+        .json(new ApiResponse(false, error.statusCode, error.message));
     } else {
       res
-      .status(500)
-      .json(new ApiResponse(false, 500, "Internal Server Error"));
+        .status(500)
+        .json(new ApiResponse(false, 500, "Internal Server Error"));
     }
   }
-}
+};
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -72,3 +73,21 @@ export const login = async (req: Request, res: Response) => {
     }
   }
 };
+
+export const forgotPassword = async (req : Request, res : Response) => {
+  try {
+    
+  } catch (error) {
+    console.error("Forgot Password Error:", error);
+
+    if (error instanceof ApiError) {
+      res
+        .status(error.statusCode)
+        .json(new ApiResponse(false, error.statusCode, error.message));
+    } else {
+      res
+        .status(500)
+        .json(new ApiResponse(false, 500, "Internal Server Error"));
+    }
+  }
+}

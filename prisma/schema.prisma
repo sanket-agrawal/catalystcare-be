@@ -34,27 +34,23 @@ enum UserRole {
 }
 
 model ClientProfile {
-  id                     String     @id @default(uuid()) @map("id")
-  user                   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId                 String     @unique @map("user_id")
+  id                     String               @id @default(uuid()) @map("id")
+  user                   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                 String               @unique @map("user_id")
 
-  ageGroup               AgeGroup
+  ageGroup               AgeGroup?            @map("age_group")
+  genderIdentity         GenderIdentity?      @map("gender_identity")
+  occupation             Occupation?          
+  primaryObjective       PrimaryObjective?    @map("primary_objective")
+  priorTherapyExperience PriorTherapyExperience? @map("prior_therapy_experience")
+  preferredSupportType   PreferredSupportType?   @map("preferred_support_type")
 
-  genderIdentity         GenderIdentity
-
-  occupation             Occupation
-
-  primaryObjective       PrimaryObjective
-
-  priorTherapyExperience  PriorTherapyExperience
-
-  preferredSupportType    PreferredSupportType
-
-  createdAt              DateTime   @default(now()) @map("created_at")
-  updatedAt              DateTime   @updatedAt @map("updated_at")
+  createdAt              DateTime             @default(now()) @map("created_at")
+  updatedAt              DateTime             @updatedAt @map("updated_at")
 
   @@map("client_profiles")
 }
+
 
 enum AgeGroup {
   UNDER_18
@@ -120,6 +116,10 @@ model TherapistProfile {
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
 
+  // categories and subcategories relationship
+  categories       Category[]        @relation("TherapistCategories")
+  subCategories    SubCategory[]     @relation("TherapistSubCategories")
+
   @@map("therapist_profiles")
 }
 
@@ -139,4 +139,29 @@ model OTPVerification {
 
   @@map("otp_verifications")
   @@index([email])
+}
+
+model Category {
+  id            String            @id @default(uuid()) @map("id")
+  name          String            @unique
+  description   String?
+  subCategories SubCategory[]     @relation("CategorySubCategories")
+  therapists    TherapistProfile[] @relation("TherapistCategories")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt      @map("updated_at")
+
+  @@map("categories")
+}
+
+model SubCategory {
+  id            String            @id @default(uuid()) @map("id")
+  name          String
+  description   String?
+  categoryId    String            @map("category_id")
+  category      Category          @relation("CategorySubCategories", fields: [categoryId], references: [id])
+  therapists    TherapistProfile[] @relation("TherapistSubCategories")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt      @map("updated_at")
+
+  @@map("sub_categories")
 }

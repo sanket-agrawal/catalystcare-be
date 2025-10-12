@@ -1,0 +1,62 @@
+import ApiError from "../../../shared/utils/ApiError";
+import ApiResponse from "../../../shared/utils/ApiResponse";
+import { Request, Response } from "express";
+import { getAllCategories } from "./website.service";
+
+export const fetchAllCategories = async (req : Request, res : Response) => {
+    try {
+        const categories = await getAllCategories();
+        res.status(200).json(
+            new ApiResponse(true,200,"Categories fetched successfully",categories)
+        )
+    } catch (error) {
+        console.log("Fetching Categories :",error);
+        if(error instanceof ApiError){
+            res.status(error.statusCode).json(
+                new ApiResponse(false,error.statusCode,error.message)
+            )
+        }else{
+            res.status(500).json(
+                new ApiResponse(false,500,"Internal Server Error")
+            )
+        }   
+    }
+}
+
+export const fetchTherapistProfiles = async (req : Request, res : Response) => {
+    try {
+        res.status(200).json(
+            new ApiResponse(true,200,"Therapist profiles fetched successfully",{})
+        )   
+    } catch (error) {
+        console.log("Fetching Therapist Profiles :",error);
+        if(error instanceof ApiError){
+            res.status(error.statusCode).json(
+                new ApiResponse(false,error.statusCode,error.message)
+            )
+        }   else{
+            res.status(500).json(
+                new ApiResponse(false,500,"Internal Server Error")
+            )
+        }       
+    }
+}
+
+export const fetchTherapistById = async (req : Request, res : Response) => {        
+    try {
+        res.status(200).json(
+            new ApiResponse(true,200,"Therapist profile fetched successfully",{})
+        )   
+    }catch (error) {
+        console.log("Fetching Therapist By Id :",error);
+        if(error instanceof ApiError){
+            res.status(error.statusCode).json(
+                new ApiResponse(false,error.statusCode,error.message)
+            )
+        }   else{
+            res.status(500).json(
+                new ApiResponse(false,500,"Internal Server Error")
+            )
+        }   
+    }
+}

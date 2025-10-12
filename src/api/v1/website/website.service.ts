@@ -8,11 +8,13 @@ export const getAllCategories = async () => {
                 id : true,
                 name : true,
                 description : true,
+                iconUrl : true,
                 subCategories : {
                     select : {
                     id : true,
                     name : true,
-                    description : true
+                    description : true,
+                    iconUrl : true
                     }
                 }
             }

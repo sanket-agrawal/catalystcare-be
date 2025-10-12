@@ -19,6 +19,7 @@ model User {
   isMobileVerified Boolean           @default(false) @map("is_mobile_verified")
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
+  profilePhoto     String?           @map("profile_photo")
 
   clientProfile    ClientProfile?
   therapistProfile TherapistProfile?
@@ -101,27 +102,50 @@ enum PreferredSupportType {
 
 
 model TherapistProfile {
-  id               String            @id @default(uuid()) @map("id")
-  userId           String            @unique @map("user_id")
-  user             User              @relation(fields: [userId], references: [id])
+  id                                   String            @id @default(uuid()) @map("id")
+  userId                               String            @unique @map("user_id")
+  user                                 User              @relation(fields: [userId], references: [id])
 
-  specialization   String[]
-  educationDocs    String[]          @map("education_docs") // S3 URLs
-  medicalDocs      String[]          @map("medical_docs")
-  experienceYears  Int?              @map("experience_years")
-  about            String?
-  status           TherapistStatus   @default(PENDING) @map("status")
-  rejectionReason  String?           @map("rejection_reason")
-  approvedAt       DateTime?         @map("approved_at")
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
+  professionalTitle                    String            @map("professional_title")
+  highestQualification                 String            @map("highest_qualification")
+  graduationYear                       String            @map("graduation_year")
+  licenseNumber                        String            @map("license_number")
+  licensingAuthority                   String            @map("licensing_authority")
+  yearOfExperience                     String            @map("year_of_experience")  
+  languageSpoken                       String[]          @map("language_spoken")
+  currentWorkspace                     String            @map("current_workspace")
+  practiceType                         String            @map("practice_type")
 
-  // categories and subcategories relationship
-  categories       Category[]        @relation("TherapistCategories")
-  subCategories    SubCategory[]     @relation("TherapistSubCategories")
+  sessionFee                           Decimal?          @map("session_fee")
+  currency                             String?           @default("INR")
+
+  bgvConsent                           Boolean           @default(false) @map("bgv_consent")
+
+  registrationCert                     String?           @map("registration_certificate")
+  degreeCert                           String?           @map("degree_certificate")
+  governmentId                         String?           @map("government_id")
+  addressProof                         String?           @map("address_proof")
+
+  about                                String?
+  successStories                       String?           @map("success_stories")
+
+  geniuneDocumentConsent               Boolean           @default(false) @map("geniune_document_consent")
+  ethicalAndConfidentialityConsent     Boolean           @default(false) @map("ethical_and_confidentiality_consent")
+  serviceAndPrivacyPolicyConsent       Boolean           @default(false) @map("service_and_privacy_policy_consent")
+
+  status                               TherapistStatus   @default(PENDING) @map("status")
+  rejectionReason                      String?           @map("rejection_reason")
+  approvedAt                           DateTime?         @map("approved_at")
+  createdAt                            DateTime          @default(now()) @map("created_at")
+  updatedAt                            DateTime          @updatedAt @map("updated_at")
+
+  // relationships
+  categories                           Category[]        @relation("TherapistCategories")
+  subCategories                        SubCategory[]     @relation("TherapistSubCategories")
 
   @@map("therapist_profiles")
 }
+
 
 enum TherapistStatus {
   PENDING

@@ -11,7 +11,7 @@ import { otpVerificationTemplate, welcomeEmailTemplate } from "../../../shared/e
 
 export const registerUserService = async (data: RegisterUserInput) => {
   try {
-  const { firstName, lastName, email, password, mobileNumber } = data;
+  const { firstName, lastName, email, password, mobileNumber,role } = data;
 
 const existingUser = await prisma.user.findFirst({
   where: {
@@ -40,7 +40,8 @@ if (existingUser) {
       lastName,
       email: email.toLowerCase(),
       password: hashed,
-      mobileNumber
+      mobileNumber,
+      role: role || "CLIENT",
     },
   });
 
@@ -48,7 +49,8 @@ if (existingUser) {
     await sendEmail(email, emailSubjects().otpVerification, otpVerificationTemplate(firstName,otp));
 
   } catch (error) {
-    throw new Error("Registration failed");
+    if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
+    throw new ApiError(500,"Failed to register user");
   }
 };
 
@@ -63,6 +65,15 @@ export const verifyOTPService = async (email: string, otp: string) => {
     // Step 2: Fetch user
     const user = await prisma.user.findFirst({
       where: { email: { equals: email, mode: "insensitive" } },
+      select : {
+        id : true,
+        firstName : true,
+        lastName : true,
+        email : true,
+        mobileNumber : true,
+        role : true,
+        isEmailVerified : true
+      }
     });
 
     if (!user) {
@@ -161,6 +172,16 @@ export const verifyOTPService = async (email: string, otp: string) => {
 export const loginService = async (email: string, password: string) => {
   const user = await prisma.user.findFirst({
     where: { email: { equals: email, mode: "insensitive" } },
+    select : {
+      id : true,
+      email : true,
+      isEmailVerified : true,
+      firstName : true,
+      lastName : true,
+      password : true,
+      mobileNumber : true,
+      role : true
+    }
   });
 
   if (!user) {

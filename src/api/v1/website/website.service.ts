@@ -4,8 +4,17 @@ import { prisma } from "../../../infrastructure/prisma/client";
 export const getAllCategories = async () => {
     try {
         return await prisma.category.findMany({
-            include : {
-                subCategories : true
+            select : {
+                id : true,
+                name : true,
+                description : true,
+                subCategories : {
+                    select : {
+                    id : true,
+                    name : true,
+                    description : true
+                    }
+                }
             }
         });
     } catch (error) {

@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+export enum UserRole {
+  CLIENT = "CLIENT",
+  THERAPIST = "THERAPIST",
+  ADMIN = "ADMIN"
+}
+ 
 export const registerUserSchema = z.object({
   firstName: z
     .string()
@@ -19,6 +25,9 @@ export const registerUserSchema = z.object({
     .regex(/[0-9]/, "Must contain at least one number")
     .regex(/[@$!%*?&#]/, "Must contain at least one special character"),
   mobileNumber : z.string().min(10, "Mobile number must be at least 10 digits long").max(10, "Mobile number is too long"),
+    role: z
+    .enum([UserRole.CLIENT, UserRole.THERAPIST, UserRole.ADMIN])
+    .optional(),
 });
 
 export const verifyOTPSchema = z.object({
@@ -26,5 +35,11 @@ export const verifyOTPSchema = z.object({
   otp: z.string().length(6, "OTP must be 6 digits long"),
 });
 
-
-export type RegisterUserInput = z.infer<typeof registerUserSchema>;
+export type RegisterUserInput = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  mobileNumber : string;
+  role? : UserRole
+}

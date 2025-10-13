@@ -1,7 +1,7 @@
 import ApiError from "../../../shared/utils/ApiError";
 import ApiResponse from "../../../shared/utils/ApiResponse";
 import { Request, Response } from "express";
-import { getAllCategories } from "./website.service";
+import { getAllCategories,fetchTherapistProfileService } from "./website.service";
 
 export const fetchAllCategories = async (req : Request, res : Response) => {
     try {
@@ -25,8 +25,9 @@ export const fetchAllCategories = async (req : Request, res : Response) => {
 
 export const fetchTherapistProfiles = async (req : Request, res : Response) => {
     try {
+        const therapistProfiles = await fetchTherapistProfileService();
         res.status(200).json(
-            new ApiResponse(true,200,"Therapist profiles fetched successfully",{})
+            new ApiResponse(true,200,"Therapist profiles fetched successfully",therapistProfiles)
         )   
     } catch (error) {
         console.log("Fetching Therapist Profiles :",error);

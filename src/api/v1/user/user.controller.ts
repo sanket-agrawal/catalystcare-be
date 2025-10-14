@@ -1,10 +1,13 @@
-import ApiResponse from "@shared/utils/ApiResponse";
+import ApiResponse from "../../../shared/utils/ApiResponse";
 import ApiError from "../../../shared/utils/ApiError";
 import { Request, Response } from "express";
+import { userService } from "./user.service";
 
 export const userProfile = async (req : Request, res : Response) => {
     try {
-        // Simulate fetching user profile data  
+       const user = await userService.userProfileService(req.user);
+       res.status(200).json(new ApiResponse(true, 200,"User profile fetched successfully",user));
+       
     }catch (error) {
         console.log('Fetching user profile failed', error);
         if(error instanceof ApiError){

@@ -180,7 +180,8 @@ export const loginService = async (email: string, password: string) => {
       lastName : true,
       password : true,
       mobileNumber : true,
-      role : true
+      role : true,
+      profilePhoto : true
     }
   });
 
@@ -216,7 +217,7 @@ if (user.role === "THERAPIST") {
 
 
   const token = jwt.sign(
-    { id: user.id, email: user.email, phone : user.mobileNumber ,role: user.role, firstName : user.firstName, lastName : user.lastName },
+    { id: user.id, email: user.email, phone : user.mobileNumber ,role: user.role, firstName : user.firstName, lastName : user.lastName, profilePhoto : user.profilePhoto },
     process.env.JWT_SECRET as string,
     { expiresIn: "7d" }
   );

@@ -7,7 +7,7 @@ import { sendEmail } from "../../../infrastructure/email/index";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { emailSubjects } from "../../../shared/config/email.config";
-import { otpVerificationTemplate, welcomeEmailTemplate } from "../../../shared/email-templates/auth";
+import { forgotPasswordOtpTemplate, otpVerificationTemplate, welcomeEmailTemplate } from "../../../shared/email-templates/auth";
 
 export const registerUserService = async (data: RegisterUserInput) => {
   try {
@@ -246,7 +246,7 @@ export const forgotPasswordService = async (email: string) => {
     throw new ApiError(404, "User not found");
   }
   const otp = await OTPService.generateOTP(user.email);
-  await sendEmail(email, "Reset your password", `Your OTP is ${otp}`);
+  await sendEmail(email, "Reset your password", forgotPasswordOtpTemplate(user.firstName,otp));
 } catch (error) {
   throw new ApiError(400,"Failed to send OTP");  
 }

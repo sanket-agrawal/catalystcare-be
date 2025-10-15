@@ -251,3 +251,26 @@ export const forgotPasswordService = async (email: string) => {
   throw new ApiError(400,"Failed to send OTP");  
 }
 };
+
+export const resetPasswordService = async (password : string, email : string) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where : {email}
+    });
+
+    if(!user){
+      throw new ApiError(409,"User Not Found");
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+      await prisma.user.update({
+    where: { email },
+    data: { password: hashedPassword },
+    });
+    
+  } catch (error) {
+    if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message)
+    throw new ApiError(400,"Error Reseting Password")
+  }
+}

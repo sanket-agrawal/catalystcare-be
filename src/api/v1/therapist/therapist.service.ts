@@ -1,6 +1,7 @@
 import ApiError from "../../../shared/utils/ApiError";
 import { TherapistRegisterDTO } from "./therapist.dto";
 import { prisma } from "../../../infrastructure/prisma/client";
+import { Prisma } from "@prisma/client"; 
 import { sendEmail } from "../../../infrastructure/email";
 import { registrationTemplate } from "../../../shared/email-templates/therapist";
 
@@ -36,7 +37,7 @@ export const therapistService = {
       const existing = await prisma.therapistProfile.findUnique({ where: { userId } });
       if (existing) throw new ApiError(409, "Therapist profile already exists for this user");
 
-      const created = await prisma.$transaction(async (tx) => {
+      const created = await prisma.$transaction(async (tx : Prisma.TransactionClient ) => {
         // Validate categories and subCategories existence
         if (categories?.length) {
           const count = await tx.category.count({ where: { id: { in: categories } } });

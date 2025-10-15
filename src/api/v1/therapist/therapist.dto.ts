@@ -5,8 +5,8 @@ export const TherapistRegisterBody = z.object({
   professionalTitle: z.string().min(1),
   highestQualification: z.string().min(1),
   graduationYear: z.string().regex(/^\d{4}$/, "graduationYear must be YYYY"),
-  licenseNumber: z.string().optional().nullable(),
-  licensingAuthority: z.string().optional().nullable(),
+  licenseNumber: z.string(),
+  licensingAuthority: z.string(),
   yearOfExperience: z
     .string(),
   languageSpoken: z.array(z.string().min(1)).nonempty(),

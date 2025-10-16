@@ -252,8 +252,17 @@ export const forgotPasswordService = async (email: string) => {
 }
 };
 
-export const resetPasswordService = async (password : string, email : string) => {
+export const resetPasswordService = async (password : string,confirmPassword : string, email : string) => {
   try {
+
+    if(password !== confirmPassword){
+      throw new ApiError(400,"Password Mismatch")
+    }
+
+    if (!email) {
+    throw new ApiError(400, "Email is required for password reset");
+  }
+
     const user = await prisma.user.findUnique({
       where : {email}
     });
@@ -264,7 +273,7 @@ export const resetPasswordService = async (password : string, email : string) =>
 
     const hashedPassword = await hashPassword(password);
 
-      await prisma.user.update({
+    await prisma.user.update({
     where: { email },
     data: { password: hashedPassword },
     });

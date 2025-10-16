@@ -8,6 +8,11 @@ export const hashPassword = async (password : string) => {
   return await bcrypt.hash(password, saltRounds);
 };
 
+export const hashOtp = async (otp : string) => {
+  const saltRounds = 10;
+  return await bcrypt.hash(otp,saltRounds);
+}
+
 /**
  * Compare a plain text password with a hash
  */

@@ -96,16 +96,15 @@ export const forgotPassword = async (req : Request, res : Response) => {
 export const resetPassword = async (req : Request, res : Response) => {
   try {
     const { newPassword , confirmPassword, email } = req.body;
-    if(newPassword === confirmPassword){
-      res.status(400).json(new ApiResponse(false,400,"Password Mismatch"));
-    }
-    await resetPasswordService(newPassword,email) ;
+    await resetPasswordService(newPassword,confirmPassword,email) ;
     res.status(200).json(new ApiResponse(true,200,"Password reset sucessfull"))
   } catch (error) {
     console.log('Error in Reset Password',error);
     if(error instanceof ApiError){
       res.status(error.statusCode).json(new ApiResponse(false,error.statusCode,error.message))
+    }else{
+      res.status(400).json(new ApiResponse(false,400,'Something went wrong'))
     }
-    res.status(400).json(new ApiResponse(false,400,'Something went wrong'))
+    
   }
 }

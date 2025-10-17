@@ -143,6 +143,9 @@ model TherapistProfile {
   categories                           Category[]        @relation("TherapistCategories")
   subCategories                        SubCategory[]     @relation("TherapistSubCategories")
 
+  //availability
+  availability    TherapistAvailability[]
+
   @@map("therapist_profiles")
 }
 
@@ -192,4 +195,108 @@ model SubCategory {
   iconUrl       String?           @map("icon_url")
 
   @@map("sub_categories")
+}
+
+model TherapistAvailability {
+  id                String                      @id @default(uuid())
+  therapistId       String                      @map("therapist_id")
+  therapist         TherapistProfile            @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  
+  dayOfWeek         DayOfWeek                   @map("day_of_week")
+  startTime         String                      @map("start_time") // Format: "HH:mm" (24-hour)
+  endTime           String                      @map("end_time")   // Format: "HH:mm" (24-hour)
+  slotDuration      Int                         @default(60) @map("slot_duration") // Duration in minutes
+  
+  isActive          Boolean                     @default(true) @map("is_active")
+  effectiveFrom     DateTime                    @default(now()) @map("effective_from")
+  effectiveTo       DateTime?                   @map("effective_to")
+  
+  createdAt         DateTime                    @default(now()) @map("created_at")
+  updatedAt         DateTime                    @updatedAt @map("updated_at")
+  
+  slots             AvailabilitySlot[]
+
+  @@unique([therapistId, dayOfWeek, startTime, effectiveFrom])
+  @@index([therapistId, isActive])
+  @@index([dayOfWeek])
+  @@map("therapist_availability")
+}
+
+model AvailabilitySlot {
+  id                    String                  @id @default(uuid())
+  availabilityId        String                  @map("availability_id")
+  availability          TherapistAvailability   @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+  
+  therapistId           String                  @map("therapist_id")
+  
+  startDateTime         DateTime                @map("start_date_time")
+  endDateTime           DateTime                @map("end_date_time")
+  
+  status                SlotStatus              @default(AVAILABLE)
+  
+  // If booked
+  clientId              String?                 @map("client_id")
+  bookingId             String?                 @unique @map("booking_id")
+  booking               Booking?                @relation(fields: [bookingId], references: [id])
+  
+  createdAt             DateTime                @default(now()) @map("created_at")
+  updatedAt             DateTime                @updatedAt @map("updated_at")
+
+  @@unique([therapistId, startDateTime])
+  @@index([therapistId, status, startDateTime])
+  @@index([startDateTime, status])
+  @@index([clientId])
+  @@map("availability_slots")
+}
+
+model Booking {
+  id                String                @id @default(uuid())
+  clientId          String                @map("client_id")
+  therapistId       String                @map("therapist_id")
+  
+  slotId            String                @unique @map("slot_id")
+  slot              AvailabilitySlot?
+  
+  startDateTime     DateTime              @map("start_date_time")
+  endDateTime       DateTime              @map("end_date_time")
+  
+  status            BookingStatus         @default(CONFIRMED)
+  
+  sessionNotes      String?               @map("session_notes")
+  cancellationReason String?              @map("cancellation_reason")
+  cancelledBy       String?               @map("cancelled_by") // userId who cancelled
+  cancelledAt       DateTime?             @map("cancelled_at")
+  
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  @@index([clientId, status])
+  @@index([therapistId, status])
+  @@index([startDateTime])
+  @@map("bookings")
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum SlotStatus {
+  AVAILABLE
+  BOOKED
+  BLOCKED
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingStatus {
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
 }

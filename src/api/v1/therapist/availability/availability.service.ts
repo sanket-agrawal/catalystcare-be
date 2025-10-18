@@ -5,9 +5,9 @@ import {prisma} from '../../../../infrastructure/prisma/client';
 export interface CreateAvailabilityInput {
   therapistId: string;
   dayOfWeek: DayOfWeek;
-  startTime: string; // "09:00"
-  endTime: string;   // "17:00"
-  slotDuration?: number; // minutes (default: 60)
+  startTime: string; 
+  endTime: string;  
+  slotDuration?: number;
   effectiveFrom?: Date;
   effectiveTo?: Date;
 }

@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 import { availabilityService } from './availability.service';
 import { DayOfWeek } from '@prisma/client';
 import { parseISO, addDays } from 'date-fns';
+import {prisma} from "../../../../infrastructure/prisma/client"
 
 export class AvailabilityController {
   /**
@@ -25,7 +26,7 @@ export class AvailabilityController {
         return res.status(403).json({ error: 'Cannot modify other therapist availability' });
       }
 
-      const availability = await availabilitySlotService.createAvailability({
+      const availability = await availabilityService.createAvailability({
         therapistId,
         dayOfWeek: dayOfWeek as DayOfWeek,
         startTime,
@@ -37,7 +38,7 @@ export class AvailabilityController {
 
       // Generate slots for next 30 days
       const today = new Date();
-      await availabilitySlotService.generateSlots({
+      await availabilityService.generateSlots({
         therapistId,
         startDate: today,
         endDate: addDays(today, 30)
@@ -74,7 +75,7 @@ export class AvailabilityController {
       const start = startDate ? parseISO(startDate) : new Date();
       const end = endDate ? parseISO(endDate) : addDays(start, daysAhead || 30);
 
-      const result = await availabilitySlotService.generateSlots({
+      const result = await availabilityService.generateSlots({
         therapistId,
         startDate: start,
         endDate: end
@@ -102,7 +103,7 @@ export class AvailabilityController {
       const start = startDate ? parseISO(startDate as string) : new Date();
       const end = endDate ? parseISO(endDate as string) : addDays(start, parseInt(daysAhead as string) || 30);
 
-      const slots = await availabilitySlotService.getAvailableSlots(therapistId, start, end);
+      const slots = await availabilityService.getAvailableSlots(therapistId, start, end);
 
       res.status(200).json({
         success: true,
@@ -122,7 +123,7 @@ export class AvailabilityController {
       const { therapistId } = req.params;
       const { daysAhead } = req.query;
 
-      const data = await availabilitySlotService.getTherapistWithAvailability(
+      const data = await availabilityService.getTherapistWithAvailability(
         therapistId,
         daysAhead ? parseInt(daysAhead as string) : 30
       );
@@ -182,7 +183,7 @@ export class AvailabilityController {
         return res.status(403).json({ error: 'Unauthorized' });
       }
 
-      const updated = await availabilitySlotService.updateAvailability(availabilityId, updateData);
+      const updated = await availabilityService.updateAvailability(availabilityId, updateData);
 
       res.status(200).json({
         success: true,
@@ -211,7 +212,7 @@ export class AvailabilityController {
         return res.status(403).json({ error: 'Unauthorized' });
       }
 
-      await availabilitySlotService.deleteAvailability(availabilityId);
+      await availabilityService.deleteAvailability(availabilityId);
 
       res.status(200).json({
         success: true,
@@ -239,7 +240,7 @@ export class AvailabilityController {
         return res.status(403).json({ error: 'Unauthorized' });
       }
 
-      const slot = await availabilitySlotService.blockSlot(slotId);
+      const slot = await availabilityService.blockSlot(slotId);
 
       res.status(200).json({
         success: true,
@@ -268,7 +269,7 @@ export class AvailabilityController {
         return res.status(403).json({ error: 'Unauthorized' });
       }
 
-      const slot = await availabilitySlotService.unblockSlot(slotId);
+      const slot = await availabilityService.unblockSlot(slotId);
 
       res.status(200).json({
         success: true,

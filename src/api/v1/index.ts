@@ -16,4 +16,5 @@ router.use('/master-data', masterRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/admin',adminRoutes)
 
+
 export default router;

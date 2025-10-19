@@ -1,6 +1,11 @@
 import { DayOfWeek, SlotStatus} from "@prisma/client";
 import { startOfDay, endOfDay, addDays, parseISO, format, parse, addMinutes, isBefore, isAfter, isEqual } from 'date-fns';
 import {prisma} from '../../../../infrastructure/prisma/client';
+import ApiError from "../../../../shared/utils/ApiError";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
+
+
+const timeZone = 'Asia/Kolkata';
 
 export interface CreateAvailabilityInput {
   therapistId: string;
@@ -8,7 +13,7 @@ export interface CreateAvailabilityInput {
   startTime: string; 
   endTime: string;  
   slotDuration?: number;
-  effectiveFrom?: Date;
+  effectiveFrom: Date;
   effectiveTo?: Date;
 }
 
@@ -19,7 +24,7 @@ export interface GenerateSlotsInput {
 }
 
 export interface UpdateAvailabilityInput {
-  startTime?: string;
+  startTime: string;
   endTime?: string;
   slotDuration?: number;
   isActive?: boolean;
@@ -29,82 +34,80 @@ export interface UpdateAvailabilityInput {
 export class AvailabilityService{
 
     async createAvailability(input: CreateAvailabilityInput) {
-    const { therapistId, dayOfWeek, startTime, endTime, slotDuration = 60, effectiveFrom, effectiveTo } = input;
+    try {
+      const { therapistId, dayOfWeek, startTime, endTime, slotDuration = 60, effectiveFrom, effectiveTo } = input;
 
-    // Validate time format
-    this.validateTimeFormat(startTime);
-    this.validateTimeFormat(endTime);
+      this.validateTimeFormat(startTime);
+      this.validateTimeFormat(endTime);
 
-    // Validate that end time is after start time
-    if (!this.isEndTimeAfterStartTime(startTime, endTime)) {
-      throw new Error('End time must be after start time');
-    }
+      if (!this.isEndTimeAfterStartTime(startTime, endTime))
+        throw new ApiError(400, "End time must be after start time");
 
-    // Check if therapist exists
-    const therapist = await prisma.therapistProfile.findUnique({
-      where: { id: therapistId }
-    });
+      const therapist = await prisma.therapistProfile.findUnique({ where: { id: therapistId } });
+      if (!therapist) throw new ApiError(400, "Therapist not found");
 
-    if (!therapist) {
-      throw new Error('Therapist not found');
-    }
-
-    const overlapping = await this.checkOverlappingAvailability(
-      therapistId,
-      dayOfWeek,
-      startTime,
-      endTime,
-      effectiveFrom
-    );
-
-    if (overlapping) {
-      throw new Error('Overlapping availability exists for this time slot');
-    }
-
-    // Create availability
-    const availability = await prisma.therapistAvailability.create({
-      data: {
+      const overlapping = await this.checkOverlappingAvailability(
         therapistId,
         dayOfWeek,
         startTime,
         endTime,
-        slotDuration,
-        effectiveFrom: effectiveFrom || new Date(),
-        effectiveTo,
-        isActive: true
-      }
-    });
+        effectiveFrom
+      );
+      if (overlapping) throw new ApiError(400, "Overlapping availability exists for this day slot");
 
-    return availability;
+      // Convert to UTC before saving
+      const startUtc = fromZonedTime(`${effectiveFrom.toISOString().split("T")[0]}T${startTime}`, timeZone);
+      const endUtc = fromZonedTime(`${effectiveFrom.toISOString().split("T")[0]}T${endTime}`, timeZone);
+
+      const availability = await prisma.therapistAvailability.create({
+        data: {
+          therapistId,
+          dayOfWeek,
+          startTime,
+          endTime,
+          slotDuration,
+          effectiveFrom: startUtc,
+          effectiveTo: effectiveTo ? fromZonedTime(effectiveTo, timeZone) : null,
+          isActive: true,
+        },
+      });
+
+      return availability;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(400, (error as Error).message);
     }
+  }
 
-    async generateSlots(input: GenerateSlotsInput) {
-    const { therapistId, startDate, endDate } = input;
+   async generateSlots(input: { therapistId: string; startDate: Date; endDate: Date }) {
+    const { therapistId } = input;
 
-    // Get all active availability rules for this therapist
+    // Convert input UTC dates to IST at start of day
+    let currentDate = startOfDay(toZonedTime(input.startDate, timeZone));
+    const endDate = startOfDay(toZonedTime(input.endDate, timeZone));
+
+    // Fetch all active availabilities in this range
     const availabilities = await prisma.therapistAvailability.findMany({
       where: {
         therapistId,
         isActive: true,
         effectiveFrom: { lte: endDate },
-        OR: [
-          { effectiveTo: null },
-          { effectiveTo: { gte: startDate } }
-        ]
-      }
+        OR: [{ effectiveTo: null }, { effectiveTo: { gte: currentDate } }],
+      },
     });
-    const slotsToCreate = [];
-    let currentDate = startOfDay(startDate);
+
+    const slotsToCreate: any[] = [];
+
+    const DAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
     while (isBefore(currentDate, endDate) || isEqual(currentDate, endDate)) {
-      const dayOfWeek = this.getDayOfWeek(currentDate);
-      
-      // Find availability rules for this day
-      const dayAvailabilities = availabilities.filter(
-        a => a.dayOfWeek === dayOfWeek &&
-        (isBefore(currentDate, a.effectiveFrom) === false) &&
-        (!a.effectiveTo || isBefore(currentDate, a.effectiveTo) === false)
-      );
+      // Map currentDate to weekday string
+      const dayOfWeek = DAYS[currentDate.getDay()];
+
+      // Filter availabilities for this day
+      const dayAvailabilities = availabilities.filter((a) => a.dayOfWeek === dayOfWeek &&
+         (isBefore(currentDate, a.effectiveFrom) === false) &&
+         (!a.effectiveTo || isBefore(currentDate, a.effectiveTo) === false));
 
       for (const availability of dayAvailabilities) {
         const slots = this.generateSlotsForDay(
@@ -121,22 +124,21 @@ export class AvailabilityService{
       currentDate = addDays(currentDate, 1);
     }
 
-    // Filter out slots that already exist
+    // Remove duplicate slots
     const uniqueSlots = await this.filterExistingSlots(slotsToCreate);
 
-    // Bulk create slots
     if (uniqueSlots.length > 0) {
       await prisma.availabilitySlot.createMany({
         data: uniqueSlots,
-        skipDuplicates: true
+        skipDuplicates: true,
       });
     }
 
     return {
       slotsCreated: uniqueSlots.length,
-      dateRange: { startDate, endDate }
+      dateRange: { startDate: input.startDate, endDate: input.endDate },
     };
-    }
+  }
 
     async getAvailableSlots(therapistId: string, startDate: Date, endDate: Date) {
     const slots = await prisma.availabilitySlot.findMany({
@@ -162,7 +164,7 @@ export class AvailabilityService{
     return this.groupSlotsByDate(slots);
     }
 
-     async getTherapistWithAvailability(therapistId: string, daysAhead: number = 30) {
+    async getTherapistWithAvailability(therapistId: string, daysAhead: number = 30) {
     const startDate = new Date();
     const endDate = addDays(startDate, daysAhead);
 
@@ -266,6 +268,14 @@ export class AvailabilityService{
     });
   }
 
+  async blocDate(date : Date){
+
+  }
+
+  async unBlockDate(date : Date){
+
+  }
+
   // PRIVATE Helpers
   private validateTimeFormat(time: string): void {
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -320,49 +330,65 @@ export class AvailabilityService{
     therapistId: string,
     availabilityId: string
   ) {
-    const slots = [];
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
+    const slots: any[] = [];
 
-    let currentSlotStart = new Date(date);
-    currentSlotStart.setHours(startHour, startMin, 0, 0);
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
 
-    const dayEnd = new Date(date);
-    dayEnd.setHours(endHour, endMin, 0, 0);
+    // Build UTC timestamps from IST local time
+    let slotStart = toZonedTime(
+      new Date(date.getFullYear(), date.getMonth(), date.getDate(), startHour, startMinute),
+      timeZone
+    );
 
-    while (isBefore(currentSlotStart, dayEnd)) {
-      const slotEnd = addMinutes(currentSlotStart, slotDuration);
-      
-      if (isAfter(slotEnd, dayEnd)) break;
+    const slotEnd = toZonedTime(
+      new Date(date.getFullYear(), date.getMonth(), date.getDate(), endHour, endMinute),
+      timeZone
+    );
 
-      slots.push({
-        availabilityId,
-        therapistId,
-        startDateTime: new Date(currentSlotStart),
-        endDateTime: new Date(slotEnd),
-        status: SlotStatus.AVAILABLE
-      });
+    while (slotStart < slotEnd) {
+      const nextSlot = new Date(slotStart.getTime() + slotDuration * 60000);
 
-      currentSlotStart = slotEnd;
+      if (nextSlot <= slotEnd) {
+        slots.push({
+  therapistId,
+  availabilityId,
+  startDateTime: slotStart,
+  endDateTime: nextSlot,
+  status: "AVAILABLE", // or SlotStatus.AVAILABLE
+});
+      }
+
+      slotStart = nextSlot;
     }
 
     return slots;
   }
 
   private async filterExistingSlots(slots: any[]) {
-    const slotChecks = slots.map(slot =>
-      prisma.availabilitySlot.findFirst({
-        where: {
-          therapistId: slot.therapistId,
-          startDateTime: slot.startDateTime
-        }
-      })
-    );
+  if (slots.length === 0) return [];
 
-    const existingSlots = await Promise.all(slotChecks);
-    
-    return slots.filter((_, index) => !existingSlots[index]);
-  }
+  const orConditions = slots.map((s) => ({
+    therapistId: s.therapistId,
+    startDateTime: s.startDateTime,
+    endDateTime: s.endDateTime,
+  }));
+
+  const existing = await prisma.availabilitySlot.findMany({
+    where: {
+      OR: orConditions,
+    },
+    select: { therapistId: true, startDateTime: true, endDateTime: true },
+  });
+
+  const existingSet = new Set(
+    existing.map((e) => e.therapistId + e.startDateTime.toISOString() + e.endDateTime.toISOString())
+  );
+
+  return slots.filter(
+    (s) => !existingSet.has(s.therapistId + s.startDateTime.toISOString() + s.endDateTime.toISOString())
+  );
+}
 
   private groupSlotsByDate(slots: any[]) {
     return slots.reduce((acc, slot) => {

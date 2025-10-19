@@ -15,9 +15,9 @@ export const userService = {
                         ageGroup : true,
                         genderIdentity : true,
                         occupation : true,
-                        preferredSupportType : true,
-                        primaryObjective : true,
-                        priorTherapyExperience : true
+                        seekingSupportFor : true,
+                        relationShipStatus : true,
+                        
                     }
                 });
                 return { userProfile, clientProfile };
@@ -29,7 +29,7 @@ export const userService = {
             }
         } catch (error) {
             if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
-            throw new ApiError(500,"Something went wrong while fetching user profile");
+            throw error;
         }
     }
 }

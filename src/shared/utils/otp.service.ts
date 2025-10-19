@@ -21,12 +21,14 @@ export const OTPService =  {
   async verifyOTP(email: string, otp: string) {
     try {
     const record = await prisma.oTPVerification.findFirst({
-      where: { email, otp, verified: false, expiresAt: { gt: new Date() } },
+      where: { email, verified: false, expiresAt: { gt: new Date() } },
     });
+
 
     if (!record) throw new Error("Invalid or expired OTP");
 
     const isOtpValid = await bcrypt.compare(otp,record.otp);
+    console.log(isOtpValid)
     if (!isOtpValid) {
     throw new ApiError(400, "Invalid OTP");
     }

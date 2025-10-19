@@ -42,10 +42,9 @@ model ClientProfile {
   ageGroup               AgeGroup?            @map("age_group")
   genderIdentity         GenderIdentity?      @map("gender_identity")
   occupation             Occupation?          
-  primaryObjective       PrimaryObjective?    @map("primary_objective")
-  priorTherapyExperience PriorTherapyExperience? @map("prior_therapy_experience")
-  preferredSupportType   PreferredSupportType?   @map("preferred_support_type")
-
+  seekingSupportFor      SeekingSupportFor?    @map("seeking_support_for")
+  relationShipStatus     RelationShipStatus?   @map("relation_ship_status")
+  
   createdAt              DateTime             @default(now()) @map("created_at")
   updatedAt              DateTime             @updatedAt @map("updated_at")
 
@@ -76,6 +75,7 @@ enum Occupation {
   HOMEMAKER
   RETIRED
   NOT_WORKING
+  OTHER
 }
 
 enum PrimaryObjective {
@@ -98,6 +98,21 @@ enum PreferredSupportType {
   GROUP_WORKSHOPS
   SELF_HELP_RESOURCES
   NOT_SURE_OPEN
+}
+
+enum RelationShipStatus{
+  SINGLE
+  IN_A_RELATIONSHIP
+  MARRIED
+  SEPERATED_DIVORCED
+  WIDOWED
+  PREFER_NOT_TO_SAY
+}
+
+enum SeekingSupportFor {
+  MYSELF
+  COUPLE
+  FAMILY
 }
 
 

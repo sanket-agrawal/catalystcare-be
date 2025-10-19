@@ -5,6 +5,8 @@ import { availabilityService } from './availability.service';
 import { DayOfWeek } from '@prisma/client';
 import { parseISO, addDays } from 'date-fns';
 import {prisma} from "../../../../infrastructure/prisma/client"
+import ApiError from '../../../../shared/utils/ApiError';
+import ApiResponse from '../../../../shared/utils/ApiResponse';
 
 export class AvailabilityController {
   /**
@@ -44,13 +46,21 @@ export class AvailabilityController {
         endDate: addDays(today, 30)
       });
 
-      res.status(201).json({
-        success: true,
-        data: availability,
-        message: 'Availability created successfully'
-      });
+      res.status(201).json( new ApiResponse(
+        true,
+        201,
+        'Availability Created Sucessfully',
+        availability
+      ));
     } catch (error) {
-      next(error);
+      console.log("Error in CreateAvailabilty",error);
+      if(error instanceof ApiError){
+        res.status(error.statusCode).json(
+          new ApiResponse(false,error.statusCode,error.message)
+        )
+      }else{
+        res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+      }
     }
   }
 
@@ -81,13 +91,21 @@ export class AvailabilityController {
         endDate: end
       });
 
-      res.status(200).json({
-        success: true,
-        data: result,
-        message: 'Slots generated successfully'
-      });
+            res.status(201).json( new ApiResponse(
+        true,
+        200,
+        'Slots generated successfully',
+        result
+      ));
     } catch (error) {
-      next(error);
+       console.log("Error in CreateAvailabilty",error);
+      if(error instanceof ApiError){
+        res.status(error.statusCode).json(
+          new ApiResponse(false,error.statusCode,error.message)
+        )
+      }else{
+        res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+      }
     }
   }
 

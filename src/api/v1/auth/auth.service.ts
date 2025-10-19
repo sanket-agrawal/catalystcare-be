@@ -204,6 +204,7 @@ export const loginService = async (email: string, password: string) => {
 
   let isClientProfileFilled = false;
 let isTherapistProfileFilled = false;
+let therapistProfileId =  null;
 
 if (user.role === "CLIENT") {
   const clientProfile = await prisma.clientProfile.findUnique({ where: { userId: user.id } });
@@ -212,12 +213,14 @@ if (user.role === "CLIENT") {
 
 if (user.role === "THERAPIST") {
   const therapistProfile = await prisma.therapistProfile.findUnique({ where: { userId: user.id } });
+
   isTherapistProfileFilled = !!therapistProfile;
+  therapistProfileId = therapistProfile ? therapistProfile.id : null
 }
 
 
   const token = jwt.sign(
-    { id: user.id, email: user.email, phone : user.mobileNumber ,role: user.role, firstName : user.firstName, lastName : user.lastName, profilePhoto : user.profilePhoto },
+    { id: user.id, email: user.email, phone : user.mobileNumber ,role: user.role, firstName : user.firstName, lastName : user.lastName, profilePhoto : user.profilePhoto, therapistProfileId },
     process.env.JWT_SECRET as string,
     { expiresIn: "7d" }
   );

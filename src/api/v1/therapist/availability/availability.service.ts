@@ -24,7 +24,7 @@ export interface GenerateSlotsInput {
 }
 
 export interface UpdateAvailabilityInput {
-  startTime: string;
+  startTime?: string;
   endTime?: string;
   slotDuration?: number;
   isActive?: boolean;
@@ -55,10 +55,7 @@ export class AvailabilityService{
       );
       if (overlapping) throw new ApiError(400, "Overlapping availability exists for this day slot");
 
-      // Convert to UTC before saving
-      const startUtc = fromZonedTime(`${effectiveFrom.toISOString().split("T")[0]}T${startTime}`, timeZone);
-      const endUtc = fromZonedTime(`${effectiveFrom.toISOString().split("T")[0]}T${endTime}`, timeZone);
-
+      // Store times as strings, dates as UTC
       const availability = await prisma.therapistAvailability.create({
         data: {
           therapistId,
@@ -66,8 +63,8 @@ export class AvailabilityService{
           startTime,
           endTime,
           slotDuration,
-          effectiveFrom: startUtc,
-          effectiveTo: effectiveTo ? fromZonedTime(effectiveTo, timeZone) : null,
+          effectiveFrom: effectiveFrom,
+          effectiveTo: effectiveTo || null,
           isActive: true,
         },
       });
@@ -82,17 +79,21 @@ export class AvailabilityService{
    async generateSlots(input: { therapistId: string; startDate: Date; endDate: Date }) {
     const { therapistId } = input;
 
-    // Convert input UTC dates to IST at start of day
+    // Work in IST timezone
     let currentDate = startOfDay(toZonedTime(input.startDate, timeZone));
     const endDate = startOfDay(toZonedTime(input.endDate, timeZone));
+
+    // Convert to UTC for database query
+    const currentDateUTC = fromZonedTime(currentDate, timeZone);
+    const endDateUTC = fromZonedTime(endDate, timeZone);
 
     // Fetch all active availabilities in this range
     const availabilities = await prisma.therapistAvailability.findMany({
       where: {
         therapistId,
         isActive: true,
-        effectiveFrom: { lte: endDate },
-        OR: [{ effectiveTo: null }, { effectiveTo: { gte: currentDate } }],
+        effectiveFrom: { lte: endDateUTC },
+        OR: [{ effectiveTo: null }, { effectiveTo: { gte: currentDateUTC } }],
       },
     });
 
@@ -104,10 +105,22 @@ export class AvailabilityService{
       // Map currentDate to weekday string
       const dayOfWeek = DAYS[currentDate.getDay()];
 
-      // Filter availabilities for this day
-      const dayAvailabilities = availabilities.filter((a) => a.dayOfWeek === dayOfWeek &&
-         (isBefore(currentDate, a.effectiveFrom) === false) &&
-         (!a.effectiveTo || isBefore(currentDate, a.effectiveTo) === false));
+      // Convert currentDate to UTC for comparison
+      const currentDateUTC = fromZonedTime(currentDate, timeZone);
+
+      // Filter availabilities for this day - FIXED LOGIC
+      const dayAvailabilities = availabilities.filter((a) => {
+        // Must match day of week
+        if (a.dayOfWeek !== dayOfWeek) return false;
+        
+        // Must be after or on effectiveFrom
+        if (isAfter(a.effectiveFrom, currentDateUTC)) return false;
+        
+        // Must be before or on effectiveTo (if it exists)
+        if (a.effectiveTo && isAfter(currentDateUTC, a.effectiveTo)) return false;
+        
+        return true;
+      });
 
       for (const availability of dayAvailabilities) {
         const slots = this.generateSlotsForDay(
@@ -268,12 +281,56 @@ export class AvailabilityService{
     });
   }
 
-  async blocDate(date : Date){
+  async blockDate(therapistId: string, date: Date) {
+    // Convert to IST and get start/end of day
+    const startOfDayIST = startOfDay(toZonedTime(date, timeZone));
+    const endOfDayIST = endOfDay(toZonedTime(date, timeZone));
+    
+    // Convert back to UTC for DB query
+    const startOfDayUTC = fromZonedTime(startOfDayIST, timeZone);
+    const endOfDayUTC = fromZonedTime(endOfDayIST, timeZone);
 
+    const result = await prisma.availabilitySlot.updateMany({
+      where: {
+        therapistId,
+        status: SlotStatus.AVAILABLE,
+        startDateTime: {
+          gte: startOfDayUTC,
+          lt: endOfDayUTC
+        }
+      },
+      data: {
+        status: SlotStatus.BLOCKED
+      }
+    });
+
+    return result;
   }
 
-  async unBlockDate(date : Date){
+  async unblockDate(therapistId: string, date: Date) {
+    // Convert to IST and get start/end of day
+    const startOfDayIST = startOfDay(toZonedTime(date, timeZone));
+    const endOfDayIST = endOfDay(toZonedTime(date, timeZone));
+    
+    // Convert back to UTC for DB query
+    const startOfDayUTC = fromZonedTime(startOfDayIST, timeZone);
+    const endOfDayUTC = fromZonedTime(endOfDayIST, timeZone);
 
+    const result = await prisma.availabilitySlot.updateMany({
+      where: {
+        therapistId,
+        status: SlotStatus.BLOCKED,
+        startDateTime: {
+          gte: startOfDayUTC,
+          lt: endOfDayUTC
+        }
+      },
+      data: {
+        status: SlotStatus.AVAILABLE
+      }
+    });
+
+    return result;
   }
 
   // PRIVATE Helpers
@@ -335,28 +392,38 @@ export class AvailabilityService{
     const [startHour, startMinute] = startTime.split(":").map(Number);
     const [endHour, endMinute] = endTime.split(":").map(Number);
 
-    // Build UTC timestamps from IST local time
-    let slotStart = toZonedTime(
-      new Date(date.getFullYear(), date.getMonth(), date.getDate(), startHour, startMinute),
-      timeZone
+    // Create date in IST timezone
+    let slotStart = new Date(
+      date.getFullYear(), 
+      date.getMonth(), 
+      date.getDate(), 
+      startHour, 
+      startMinute
     );
 
-    const slotEnd = toZonedTime(
-      new Date(date.getFullYear(), date.getMonth(), date.getDate(), endHour, endMinute),
-      timeZone
+    const slotEnd = new Date(
+      date.getFullYear(), 
+      date.getMonth(), 
+      date.getDate(), 
+      endHour, 
+      endMinute
     );
 
     while (slotStart < slotEnd) {
       const nextSlot = new Date(slotStart.getTime() + slotDuration * 60000);
 
       if (nextSlot <= slotEnd) {
+        // Convert to UTC for database storage
+        const startUTC = fromZonedTime(slotStart, timeZone);
+        const endUTC = fromZonedTime(nextSlot, timeZone);
+
         slots.push({
-  therapistId,
-  availabilityId,
-  startDateTime: slotStart,
-  endDateTime: nextSlot,
-  status: "AVAILABLE", // or SlotStatus.AVAILABLE
-});
+          therapistId,
+          availabilityId,
+          startDateTime: startUTC,
+          endDateTime: endUTC,
+          status: SlotStatus.AVAILABLE,
+        });
       }
 
       slotStart = nextSlot;
@@ -366,40 +433,44 @@ export class AvailabilityService{
   }
 
   private async filterExistingSlots(slots: any[]) {
-  if (slots.length === 0) return [];
+    if (slots.length === 0) return [];
 
-  const orConditions = slots.map((s) => ({
-    therapistId: s.therapistId,
-    startDateTime: s.startDateTime,
-    endDateTime: s.endDateTime,
-  }));
+    const orConditions = slots.map((s) => ({
+      therapistId: s.therapistId,
+      startDateTime: s.startDateTime,
+      endDateTime: s.endDateTime,
+    }));
 
-  const existing = await prisma.availabilitySlot.findMany({
-    where: {
-      OR: orConditions,
-    },
-    select: { therapistId: true, startDateTime: true, endDateTime: true },
-  });
+    const existing = await prisma.availabilitySlot.findMany({
+      where: {
+        OR: orConditions,
+      },
+      select: { therapistId: true, startDateTime: true, endDateTime: true },
+    });
 
-  const existingSet = new Set(
-    existing.map((e) => e.therapistId + e.startDateTime.toISOString() + e.endDateTime.toISOString())
-  );
+    const existingSet = new Set(
+      existing.map((e) => e.therapistId + e.startDateTime.toISOString() + e.endDateTime.toISOString())
+    );
 
-  return slots.filter(
-    (s) => !existingSet.has(s.therapistId + s.startDateTime.toISOString() + s.endDateTime.toISOString())
-  );
-}
+    return slots.filter(
+      (s) => !existingSet.has(s.therapistId + s.startDateTime.toISOString() + s.endDateTime.toISOString())
+    );
+  }
 
   private groupSlotsByDate(slots: any[]) {
     return slots.reduce((acc, slot) => {
-      const dateKey = format(slot.startDateTime, 'yyyy-MM-dd');
+      // Convert to IST for display
+      const slotInIST = toZonedTime(slot.startDateTime, timeZone);
+      const dateKey = format(slotInIST, 'yyyy-MM-dd');
+      
       if (!acc[dateKey]) {
         acc[dateKey] = [];
       }
+      
       acc[dateKey].push({
         id: slot.id,
-        startTime: format(slot.startDateTime, 'HH:mm'),
-        endTime: format(slot.endDateTime, 'HH:mm'),
+        startTime: format(toZonedTime(slot.startDateTime, timeZone), 'HH:mm'),
+        endTime: format(toZonedTime(slot.endDateTime, timeZone), 'HH:mm'),
         startDateTime: slot.startDateTime,
         endDateTime: slot.endDateTime
       });

@@ -104,4 +104,18 @@ export const therapistService = {
       throw error;
     }
   },
+  async profile(therapistId : string){
+    try {
+      const profile = await prisma.therapistProfile.findUnique({
+        where : {id : therapistId}
+      });
+
+      if(!profile) throw new ApiError(404, "Therapist Profile not found")
+
+      return profile;
+    } catch (error) {
+      if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
+      throw error;
+    }
+  }
 };

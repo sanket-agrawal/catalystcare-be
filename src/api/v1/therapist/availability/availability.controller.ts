@@ -15,7 +15,6 @@ export class AvailabilityController {
    */
   async createAvailability(req: Request, res: Response, next: NextFunction) {
     try {
-      console.log(req.user)
       const { therapistProfileId : therapistId } = req.user;
       const { dayOfWeek, startTime, endTime, slotDuration, effectiveFrom, effectiveTo } = req.body;
 
@@ -116,7 +115,7 @@ export class AvailabilityController {
    */
   async getAvailableSlots(req: Request, res: Response, next: NextFunction) {
     try {
-
+     
       const { therapistId } = req.params;
       const { startDate, endDate, daysAhead } = req.query;
 
@@ -163,7 +162,8 @@ export class AvailabilityController {
    */
   async getAvailabilityRules(req: Request, res: Response, next: NextFunction) {
     try {
-      const { therapistId } = req.user.therapistProfileId;
+      console.log(req.user)
+      const { therapistProfileId : therapistId } = req.user;
 
       const availabilities = await prisma.therapistAvailability.findMany({
         where: {

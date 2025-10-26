@@ -30,7 +30,7 @@ export const scheduleSlotGeneration = () => {
         }
       });
 
-      const therapistsWithAvailability = therapists.filter(t => t.availability.length > 0);
+      const therapistsWithAvailability = therapists.filter((t : typeof therapists[number]) => t.availability.length > 0);
 
       console.log(`[CRON] Found ${therapistsWithAvailability.length} therapists with availability`);
 

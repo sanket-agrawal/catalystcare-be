@@ -1,4 +1,4 @@
-import { DayOfWeek, SlotStatus} from "@prisma/client";
+import { DayOfWeek, SlotStatus} from "./availability.dto";
 import { startOfDay, endOfDay, addDays, parseISO, format, parse, addMinutes, isBefore, isAfter, isEqual } from 'date-fns';
 import {prisma} from '../../../../infrastructure/prisma/client';
 import ApiError from "../../../../shared/utils/ApiError";
@@ -109,7 +109,7 @@ export class AvailabilityService{
       const currentDateUTC = fromZonedTime(currentDate, timeZone);
 
       // Filter availabilities for this day - FIXED LOGIC
-      const dayAvailabilities = availabilities.filter((a) => {
+      const dayAvailabilities = availabilities.filter((a : typeof availabilities[number]) => {
         // Must match day of week
         if (a.dayOfWeek !== dayOfWeek) return false;
         
@@ -386,11 +386,6 @@ export class AvailabilityService{
     return !!overlapping;
   }
 
-  private getDayOfWeek(date: Date): DayOfWeek {
-    const days: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-    return days[date.getDay()];
-  }
-
   private generateSlotsForDay(
     date: Date,
     startTime: string,
@@ -461,7 +456,7 @@ export class AvailabilityService{
     });
 
     const existingSet = new Set(
-      existing.map((e) => e.therapistId + e.startDateTime.toISOString() + e.endDateTime.toISOString())
+      existing.map((e : typeof existing[number]) => e.therapistId + e.startDateTime.toISOString() + e.endDateTime.toISOString())
     );
 
     return slots.filter(

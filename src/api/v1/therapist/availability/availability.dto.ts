@@ -1,0 +1,17 @@
+export enum DayOfWeek{
+    MONDAY = 'MONDAY',
+    TUESDAY = 'TUESDAY',
+    WEDNESDAY = 'WEDNESDAY',
+    THURSDAY = 'THURSDAY',
+    FRIDAY = 'FRIDAY',
+    SATURDAY = 'SATURDAY',
+    SUNDAY = 'SUNDAY'
+}
+
+export enum SlotStatus{
+      AVAILABLE = 'AVAILABLE',
+  BOOKED = 'BOOKED',
+  BLOCKED = 'BLOCKED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED'
+}

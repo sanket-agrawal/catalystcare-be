@@ -2,7 +2,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { availabilityService } from './availability.service';
-import { DayOfWeek } from '@prisma/client';
+import { DayOfWeek } from './availability.dto';
 import { parseISO, addDays } from 'date-fns';
 import {prisma} from "../../../../infrastructure/prisma/client"
 import ApiError from '../../../../shared/utils/ApiError';

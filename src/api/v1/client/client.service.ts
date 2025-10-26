@@ -18,13 +18,16 @@ export const clientService = {
             let updatedProfile
 
             if(existingProfile){
-                existingProfile.ageGroup = data.ageGroup;
-                existingProfile.genderIdentity = data.genderIdentity;
-                existingProfile.occupation = data.occupation;
-                existingProfile.seekingSupportForn = data.seekingSupportFor;
-                existingProfile.relationShipStatus = data.relationShipStatus;
-
-               updatedProfile = await prisma.clientProfile.save(existingProfile)
+                updatedProfile = await prisma.clientProfile.update({
+        where: { id: existingProfile.id },
+        data: {
+          ageGroup: data.ageGroup,
+          genderIdentity: data.genderIdentity,
+          occupation: data.occupation,
+          seekingSupportFor: data.seekingSupportFor,
+          relationShipStatus: data.relationShipStatus,
+        },
+      });
             }else{
                updatedProfile  = await prisma.clientProfile.create({
                     data : {

@@ -13,7 +13,7 @@ export interface CreateAvailabilityInput {
   startTime: string; 
   endTime: string;  
   slotDuration?: number;
-  effectiveFrom: Date;
+  effectiveFrom?: Date;
   effectiveTo?: Date;
 }
 
@@ -372,14 +372,14 @@ export class AvailabilityService{
         therapistId,
         dayOfWeek,
         isActive: true,
-        OR: [
-          { effectiveTo: null },
-          { effectiveTo: { gte: effectiveFrom || new Date() } }
-        ],
         AND: [
-          { startTime: { lt: endTime } },
-          { endTime: { gt: startTime } }
-        ]
+        {
+          startTime: { lt: endTime }, 
+        },
+        {
+          endTime: { gt: startTime },
+        },
+      ],
       }
     });
 

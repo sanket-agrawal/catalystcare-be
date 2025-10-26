@@ -231,7 +231,7 @@ model TherapistAvailability {
   
   slots             AvailabilitySlot[]
 
-  @@unique([therapistId, dayOfWeek, startTime, effectiveFrom])
+
   @@index([therapistId, isActive])
   @@index([dayOfWeek])
   @@map("therapist_availability")

@@ -162,7 +162,6 @@ export class AvailabilityController {
    */
   async getAvailabilityRules(req: Request, res: Response, next: NextFunction) {
     try {
-      console.log(req.user)
       const { therapistProfileId : therapistId } = req.user;
 
       const availabilities = await prisma.therapistAvailability.findMany({
@@ -176,12 +175,21 @@ export class AvailabilityController {
         ]
       });
 
-      res.status(200).json({
-        success: true,
-        data: availabilities
-      });
+      res.status(200).json( new ApiResponse(
+        true,
+        200,
+        'Availability fetched successfully',
+        availabilities
+      ));
     } catch (error) {
-      next(error);
+      console.log("Error in Fetching Availability Rules",error);
+      if(error instanceof ApiError){
+        res.status(error.statusCode).json(
+          new ApiResponse(false,error.statusCode,error.message)
+        )
+      }else{
+        res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+      }
     }
   }
 
@@ -191,27 +199,36 @@ export class AvailabilityController {
    */
   async updateAvailability(req: Request, res: Response, next: NextFunction) {
     try {
-      const { therapistId, availabilityId } = req.params;
+      const { therapistProfileId : therapistId } = req.user;
+      const { availabilityId } = req.params;
       const updateData = req.body;
 
       // Authorization check
       if (req.user?.role !== 'THERAPIST' && req.user?.role !== 'ADMIN') {
-        return res.status(403).json({ error: 'Unauthorized' });
+        return res.status(403).json(new ApiResponse(false,403,'Unauthorized'));
       }
 
       if (req.user?.role === 'THERAPIST' && req.user?.therapistProfileId !== therapistId) {
-        return res.status(403).json({ error: 'Unauthorized' });
+        return res.status(403).json(new ApiResponse(false,403,'Unauthorized'));
       }
 
       const updated = await availabilityService.updateAvailability(availabilityId, updateData);
 
-      res.status(200).json({
-        success: true,
-        data: updated,
-        message: 'Availability updated successfully'
-      });
+      res.status(200).json( new ApiResponse(
+        true,
+        200,
+        'Availability updated successfully',
+        updated,
+      ));
     } catch (error) {
-      next(error);
+      console.log("Error in Updating Availability",error);
+      if(error instanceof ApiError){
+        res.status(error.statusCode).json(
+          new ApiResponse(false,error.statusCode,error.message)
+        )
+      }else{
+        res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+      }
     }
   }
 
@@ -221,25 +238,34 @@ export class AvailabilityController {
    */
   async deleteAvailability(req: Request, res: Response, next: NextFunction) {
     try {
-      const { therapistId, availabilityId } = req.params;
+      const { therapistProfileId : therapistId } = req.user;
+      const { availabilityId } = req.params;
 
       // Authorization check
       if (req.user?.role !== 'THERAPIST' && req.user?.role !== 'ADMIN') {
-        return res.status(403).json({ error: 'Unauthorized' });
+        return res.status(403).json(new ApiResponse(false,403,'Unauthorized'));
       }
 
       if (req.user?.role === 'THERAPIST' && req.user?.therapistProfileId !== therapistId) {
-        return res.status(403).json({ error: 'Unauthorized' });
+        return res.status(403).json(new ApiResponse(false,403,'Unauthorized'));
       }
 
       await availabilityService.deleteAvailability(availabilityId);
 
-      res.status(200).json({
-        success: true,
-        message: 'Availability deleted successfully'
-      });
+      res.status(200).json(new ApiResponse(
+        true,
+        200,
+        'Availability deleted successfully'
+      ));
     } catch (error) {
-      next(error);
+      console.log("Error in Deleting Availability",error);
+      if(error instanceof ApiError){
+        res.status(error.statusCode).json(
+          new ApiResponse(false,error.statusCode,error.message)
+        )
+      }else{
+        res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+      }
     }
   }
 
@@ -299,6 +325,14 @@ export class AvailabilityController {
     } catch (error) {
       next(error);
     }
+  }
+
+  async blockDate(req : Request, res : Response){
+   try{
+
+   }catch(error){
+
+   }
   }
 }
 

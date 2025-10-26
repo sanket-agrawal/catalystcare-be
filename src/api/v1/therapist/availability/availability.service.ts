@@ -215,29 +215,36 @@ export class AvailabilityService{
     }
 
     async updateAvailability(availabilityId: string, input: UpdateAvailabilityInput) {
+      try{
     const availability = await prisma.therapistAvailability.findUnique({
       where: { id: availabilityId }
     });
 
     if (!availability) {
-      throw new Error('Availability not found');
+      throw new ApiError(404,'Availability not found');
     }
 
     if (input.startTime) this.validateTimeFormat(input.startTime);
     if (input.endTime) this.validateTimeFormat(input.endTime);
 
     if (input.startTime && input.endTime && !this.isEndTimeAfterStartTime(input.startTime, input.endTime)) {
-      throw new Error('End time must be after start time');
+      throw new ApiError(400,'End time must be after start time');
     }
 
     return await prisma.therapistAvailability.update({
       where: { id: availabilityId },
       data: input
     });
+  
+    }catch(error){
+       if (error instanceof ApiError) throw error;
+      throw new ApiError(400, (error as Error).message);
     }
+  }
 
     async deleteAvailability(availabilityId: string) {
-    // Soft delete by setting isActive to false and effectiveTo to now
+      try{
+             // Soft delete by setting isActive to false and effectiveTo to now
     return await prisma.therapistAvailability.update({
       where: { id: availabilityId },
       data: {
@@ -245,6 +252,11 @@ export class AvailabilityService{
         effectiveTo: new Date()
       }
     });
+      }catch(error){
+        if (error instanceof ApiError) throw error;
+      throw new ApiError(400, (error as Error).message);
+      }
+
   }
 
   async blockSlot(slotId: string) {

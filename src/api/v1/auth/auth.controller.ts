@@ -26,8 +26,7 @@ export const registerUser = async (req: Request, res: Response) => {
 
 export const verifyOTP = async (req: Request, res: Response) => {
   try {
-    const { email, otp } = req.body;
-    const result = await verifyOTPService(email, otp);
+    const result = await verifyOTPService(req.body);
 
     res
       .status(200)

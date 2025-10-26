@@ -1,7 +1,7 @@
 import { prisma } from "../../../infrastructure/prisma/client";
 import { hashPassword } from "../../../shared/utils/hashPassword";
 import ApiError from "../../../shared/utils/ApiError";
-import { RegisterUserInput } from "./auth.dto";
+import { RegisterUserInput, verifyOTPInput } from "./auth.dto";
 import { OTPService } from "../../../shared/utils/otp.service";
 import { sendEmail } from "../../../infrastructure/email/index";
 import bcrypt from "bcryptjs";
@@ -11,7 +11,7 @@ import { forgotPasswordOtpTemplate, otpVerificationTemplate, welcomeEmailTemplat
 
 export const registerUserService = async (data: RegisterUserInput) => {
   try {
-  const { firstName, lastName, email, password, mobileNumber,role } = data;
+  const { email, mobileNumber, firstName } = data;
 
 const existingUser = await prisma.user.findFirst({
   where: {
@@ -32,7 +32,25 @@ if (existingUser) {
   }
 }
 
-  const hashed = await hashPassword(password);
+    const otp =  await OTPService.generateOTP(email);
+    await sendEmail(email, emailSubjects().otpVerification, otpVerificationTemplate(firstName,otp));
+
+  } catch (error) {
+    if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
+    throw new ApiError(500,"Failed to register user");
+  }
+};
+
+export const verifyOTPService = async (data : verifyOTPInput) => {
+  try {
+    // Step 1: Verify OTP
+    const {email, otp, firstName , lastName , password ,mobileNumber , role } = data;
+    const isValid = await OTPService.verifyOTP(email, otp);
+    if (!isValid) {
+      throw new ApiError(400, "Invalid or expired OTP");
+    }
+
+    const hashed = await hashPassword(password);
 
   const user = await prisma.user.create({
     data: {
@@ -42,51 +60,9 @@ if (existingUser) {
       password: hashed,
       mobileNumber,
       role: role || "CLIENT",
+      isEmailVerified: true
     },
   });
-
-    const otp =  await OTPService.generateOTP(user.email);
-    await sendEmail(email, emailSubjects().otpVerification, otpVerificationTemplate(firstName,otp));
-
-  } catch (error) {
-    if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
-    throw new ApiError(500,"Failed to register user");
-  }
-};
-
-export const verifyOTPService = async (email: string, otp: string) => {
-  try {
-    // Step 1: Verify OTP
-    const isValid = await OTPService.verifyOTP(email, otp);
-    if (!isValid) {
-      throw new ApiError(400, "Invalid or expired OTP");
-    }
-
-    // Step 2: Fetch user
-    const user = await prisma.user.findFirst({
-      where: { email: { equals: email, mode: "insensitive" } },
-      select : {
-        id : true,
-        firstName : true,
-        lastName : true,
-        email : true,
-        mobileNumber : true,
-        role : true,
-        isEmailVerified : true
-      }
-    });
-
-    if (!user) {
-      throw new ApiError(404, "User not found");
-    }
-
-    // Step 3: Mark email as verified (if not already)
-    if (!user.isEmailVerified) {
-      await prisma.user.update({
-        where: { email },
-        data: { isEmailVerified: true },
-      });
-    }
 
     // Step 4: Check profile completion
     let isClientProfileFilled = false;

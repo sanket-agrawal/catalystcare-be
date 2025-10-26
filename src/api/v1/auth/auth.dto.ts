@@ -11,6 +11,18 @@ export const registerUserSchema = z.object({
     .string()
     .min(2, "First name must be at least 2 characters long")
     .max(50, "First name is too long"),
+  email: z.string().email("Invalid email address"),
+  mobileNumber : z.string().min(10, "Mobile number must be at least 10 digits long").max(10, "Mobile number is too long"),
+    role: z
+    .enum([UserRole.CLIENT, UserRole.THERAPIST, UserRole.ADMIN])
+    .optional(),
+});
+
+export const verifyOTPSchema = z.object({
+    firstName: z
+    .string()
+    .min(2, "First name must be at least 2 characters long")
+    .max(50, "First name is too long"),
   lastName: z
     .string()
     .min(2, "Last name must be at least 2 characters long")
@@ -28,16 +40,21 @@ export const registerUserSchema = z.object({
     role: z
     .enum([UserRole.CLIENT, UserRole.THERAPIST, UserRole.ADMIN])
     .optional(),
-});
-
-export const verifyOTPSchema = z.object({
-  email: z.string().email("Invalid email address"),
   otp: z.string().length(6, "OTP must be 6 digits long"),
 });
 
 export type RegisterUserInput = {
-  firstName: string;
-  lastName: string;
+  firstName : string;
+  email: string;
+  password: string;
+  mobileNumber : string;
+  role? : UserRole
+}
+
+export type verifyOTPInput = {
+  otp : string,
+  firstName : string;
+  lastName : string;
   email: string;
   password: string;
   mobileNumber : string;

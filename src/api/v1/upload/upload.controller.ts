@@ -6,7 +6,7 @@ import { uploadFileToS3 } from "../../../infrastructure/aws/s3";
 
 export const uploadFile = async (req : Request, res : Response) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.user.id;
         const docType = req.query.doctype;
         const entity = req.query.entity;
         const file = req.file;

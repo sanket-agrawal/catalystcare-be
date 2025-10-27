@@ -16,7 +16,7 @@ export class AvailabilityController {
   async createAvailability(req: Request, res: Response, next: NextFunction) {
     try {
       const { therapistProfileId : therapistId } = req.user;
-      const { dayOfWeek, startTime, endTime, slotDuration, effectiveFrom, effectiveTo } = req.body;
+      const { availabilities } = req.body;
 
       // Authorization check: ensure therapist can only create their own availability
       // req.user should be populated by auth middleware
@@ -28,14 +28,9 @@ export class AvailabilityController {
         return res.status(403).json({ error: 'Cannot modify other therapist availability' });
       }
 
-      const availability = await availabilityService.createAvailability({
+      const availability = await availabilityService.createMultipleAvailabilities({
         therapistId,
-        dayOfWeek: dayOfWeek as DayOfWeek,
-        startTime,
-        endTime,
-        slotDuration,
-        effectiveFrom: effectiveFrom ? parseISO(effectiveFrom) : undefined,
-        effectiveTo: effectiveTo ? parseISO(effectiveTo) : undefined
+        availabilities : availabilities
       });
 
       // Generate slots for next 30 days

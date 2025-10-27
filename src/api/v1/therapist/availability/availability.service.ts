@@ -28,7 +28,19 @@ export interface UpdateAvailabilityInput {
   endTime?: string;
   slotDuration?: number;
   isActive?: boolean;
+  effectiveFrom? : Date;
   effectiveTo?: Date;
+}
+
+export interface CreateMultipleAvailabilitiesInput {
+  therapistId: string;
+  availabilities: {
+    dayOfWeek: DayOfWeek;
+    intervals: { startTime: string; endTime: string }[];
+    slotDuration?: number;
+    effectiveFrom?: Date;
+    effectiveTo?: Date;
+  }[];
 }
 
 export class AvailabilityService{
@@ -74,7 +86,73 @@ export class AvailabilityService{
       if (error instanceof ApiError) throw error;
       throw new ApiError(400, (error as Error).message);
     }
+    }
+
+    async createMultipleAvailabilities(input: CreateMultipleAvailabilitiesInput) {
+  try {
+    const { therapistId, availabilities } = input;
+
+    const therapist = await prisma.therapistProfile.findUnique({ where: { id: therapistId } });
+    if (!therapist) throw new ApiError(400, "Therapist not found");
+
+    const createdAvailabilities = [];
+
+    for (const day of availabilities) {
+      const { dayOfWeek, intervals, slotDuration = 60, effectiveFrom, effectiveTo } = day;
+
+      if (!effectiveFrom) throw new ApiError(400, `effectiveFrom is required for ${dayOfWeek}`);
+
+      for (const { startTime, endTime } of intervals) {
+        // Validate time format
+        this.validateTimeFormat(startTime);
+        this.validateTimeFormat(endTime);
+
+        // Ensure end time > start time
+        if (!this.isEndTimeAfterStartTime(startTime, endTime)) {
+          throw new ApiError(400, `End time must be after start time for ${dayOfWeek}`);
+        }
+
+        // Check overlapping availability for same day
+        const overlapping = await this.checkOverlappingAvailability(
+          therapistId,
+          dayOfWeek,
+          startTime,
+          endTime,
+          effectiveFrom
+        );
+
+        if (overlapping) {
+          throw new ApiError(
+            400,
+            `Overlapping availability exists on ${dayOfWeek} for ${startTime}-${endTime}`
+          );
+        }
+
+        // Create availability record
+        const availability = await prisma.therapistAvailability.create({
+          data: {
+            therapistId,
+            dayOfWeek,
+            startTime,
+            endTime,
+            slotDuration,
+            effectiveFrom,
+            effectiveTo: effectiveTo || null,
+            isActive: true,
+          },
+        });
+
+        createdAvailabilities.push(availability);
+      }
+    }
+
+    return createdAvailabilities;
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(400, (error as Error).message);
   }
+    }
+
 
    async generateSlots(input: { therapistId: string; startDate: Date; endDate: Date }) {
     const { therapistId } = input;

@@ -231,6 +231,21 @@ export const forgotPasswordService = async (email: string) => {
 }
 };
 
+export const verifyForgotPasswordOTPService = async (email : string, otp : string) => {
+  try {
+    const isValid = await OTPService.verifyOTP(email, otp);
+    if (!isValid) {
+      throw new ApiError(400, "Invalid or expired OTP");
+    }
+
+    return true;
+
+  } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(400, "Invalid or expired OTP");
+  }
+}
+
 export const resetPasswordService = async (password : string,confirmPassword : string, email : string) => {
   try {
 

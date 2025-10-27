@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { forgotPasswordService, loginService, registerUserService, resetPasswordService, verifyOTPService } from "./auth.service";
+import { forgotPasswordService, loginService, registerUserService, resetPasswordService, verifyForgotPasswordOTPService, verifyOTPService } from "./auth.service";
 import ApiResponse from "../../../shared/utils/ApiResponse";
 import ApiError from "../../../shared/utils/ApiError";
 
@@ -105,5 +105,27 @@ export const resetPassword = async (req : Request, res : Response) => {
       res.status(400).json(new ApiResponse(false,400,'Something went wrong'))
     }
     
+  }
+}
+
+export const verifyForgotPasswordOTP = async (req : Request, res : Response)=> {
+  try {
+    const status = await verifyForgotPasswordOTPService(req.body.email, req.body.otp);
+    if(status){
+      res.status(200).json(
+        new ApiResponse(true,200,"OTP verified successfully")
+      )
+    }else{
+      res.status(400).json(
+        new ApiResponse(false,400,"Invalid or expired OTP")
+      )
+    }
+  } catch (error) {
+     console.log('Error in Forgot Password OTP Verification',error);
+    if(error instanceof ApiError){
+      res.status(error.statusCode).json(new ApiResponse(false,error.statusCode,error.message))
+    }else{
+      res.status(400).json(new ApiResponse(false,400,'Something went wrong'))
+    }
   }
 }

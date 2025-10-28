@@ -65,7 +65,7 @@ export class AvailabilityController {
    */
   async generateSlots(req: Request, res: Response, next: NextFunction) {
     try {
-      const { therapistId } = req.params;
+      const { therapistProfileId : therapistId } = req.user;
       const { startDate, endDate, daysAhead } = req.body;
 
       // Authorization check
@@ -270,7 +270,9 @@ export class AvailabilityController {
    */
   async blockSlot(req: Request, res: Response, next: NextFunction) {
     try {
-      const { therapistId, slotId } = req.params;
+
+      const { therapistProfileId : therapistId } = req.user;
+      const { slotId } = req.params;
 
       // Authorization check
       if (req.user?.role !== 'THERAPIST' && req.user?.role !== 'ADMIN') {
@@ -299,7 +301,8 @@ export class AvailabilityController {
    */
   async unblockSlot(req: Request, res: Response, next: NextFunction) {
     try {
-      const { therapistId, slotId } = req.params;
+      const { therapistProfileId : therapistId } = req.user;
+      const { slotId } = req.params;
 
       // Authorization check
       if (req.user?.role !== 'THERAPIST' && req.user?.role !== 'ADMIN') {

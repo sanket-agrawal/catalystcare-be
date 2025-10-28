@@ -25,6 +25,7 @@ export const fetchAllCategories = async (req : Request, res : Response) => {
 
 export const fetchTherapistProfiles = async (req : Request, res : Response) => {
     try {
+        const {categoryId , subCategoryId} = req.query
         const therapistProfiles = await fetchTherapistProfileService();
         res.status(200).json(
             new ApiResponse(true,200,"Therapist profiles fetched successfully",therapistProfiles)

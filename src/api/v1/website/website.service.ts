@@ -24,8 +24,9 @@ export const getAllCategories = async () => {
     }
 }
 
-export const fetchTherapistProfileService = async () => {
+export const fetchTherapistProfileService = async (categoryId : string, subCategoryId : string) => {
     try {
+        
         return await prisma.therapistProfile.findMany({ 
             where: { status: 'APPROVED' },
             include: {

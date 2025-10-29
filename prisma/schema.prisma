@@ -23,6 +23,7 @@ model User {
 
   clientProfile    ClientProfile?
   therapistProfile TherapistProfile?
+  ClientAssesment  ClientAssesment[]
 
   @@map("users")
   @@index([email])
@@ -314,4 +315,36 @@ enum BookingStatus {
   COMPLETED
   CANCELLED
   NO_SHOW
+}
+
+model ClientAssesment {
+  id                     String               @id @default(uuid()) @map("id")
+  user                   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                 String               @map("user_id")
+
+  recentFeeling          String?               @map("recent_feeling")
+  crowdedWithWorries     String?               @map("crowded_with_worries")
+  roomFullWithPeople     String?               @map("room_full_with_people")          
+  dailyTaskFeeling       String?               @map("daily_task_feeling")
+  thoughtEcho            String?               @map("thought_echo")
+  decision               String?  
+  oldMemories            String?               @map("old_memories")
+  lossOrSeperation       String?               @map("loss_or_seperation")
+  closestRelationShip    String?               @map("closest_relation_ship")
+  sayingNo               String?               @map("saying_no")
+  nightSleep             String?               @map("night_sleep")
+  eatingPattern          String?               @map("eating_pattern")
+  heavyLifeCope          String?               @map("heavy_life_cope")
+  technologyView         String?               @map("technology_view")
+  selfImage              String?               @map("self_image")
+  futurePerspective      String?               @map("future_perspective")
+  sucidalThoughts        String?               @map("sucidal_thoughts")
+  halucinations          String? 
+  selfHarm               String?               @map("self_harm")
+
+
+  createdAt              DateTime             @default(now()) @map("created_at")
+  updatedAt              DateTime             @updatedAt @map("updated_at")
+
+  @@map("client_assessments")
 }

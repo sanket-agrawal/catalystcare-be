@@ -8,15 +8,7 @@ export const getAllCategories = async () => {
                 id : true,
                 name : true,
                 description : true,
-                iconUrl : true,
-                subCategories : {
-                    select : {
-                    id : true,
-                    name : true,
-                    description : true,
-                    iconUrl : true
-                    }
-                }
+                iconUrl : true
             }
         });
     } catch (error) {
@@ -27,20 +19,57 @@ export const getAllCategories = async () => {
 export const fetchTherapistProfileService = async (categoryId : string, subCategoryId : string) => {
     try {
         
-        return await prisma.therapistProfile.findMany({ 
-            where: { status: 'APPROVED' },
-            include: {
-                user: {
-                    select: {
-                        firstName: true,
-                        lastName: true, 
-                        email: true,
-                        mobileNumber: true,
-                    }
-                }
-            }
-        });
+        return await prisma.user.findMany({
+  where: {
+    therapistProfile: {
+      status: 'APPROVED',
+    },
+  },
+  select: {
+    firstName: true,
+    lastName: true,
+    profilePhoto: true,
+  },
+});
+
     } catch (error) {
         throw new ApiError(500,"Something went wrong while fetching therapist profiles");
+    }
+}
+
+export const fetchCategoryById = async (categoryId : string) => {
+    try{
+        return await prisma.category.findUnique({
+            where : {
+                id : categoryId
+            },
+            include : {
+                subCategories : {
+                    select : {
+                    id : true,
+                    name : true,
+                    description : true,
+                    iconUrl : true
+                    }
+                },
+                therapists : {
+                    where : {
+                        status : 'APPROVED'
+                    },
+                    select : {
+                        user : {
+                            select : {
+                                firstName : true,
+                                lastName : true,
+                                profilePhoto : true
+                            }
+                        }
+                    }
+                }
+                
+            }
+        })
+    }catch(error){
+         throw new ApiError(500,"Something went wrong while fetching categories");
     }
 }

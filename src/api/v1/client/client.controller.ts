@@ -20,5 +20,56 @@ export const clientController = {
                 res.status(400).json(new ApiResponse(false,400,"Something went wrong"))
             }
         }
+    },
+    async assessmentSubmit(req: Request, res: Response) {
+    try {
+      const userId = req.user.id;
+
+      const result = await clientService.assessmentSubmit(userId, req.body);
+
+      res
+        .status(200)
+        .json(new ApiResponse(true, 200, "Assessment submitted successfully", result));
+    } catch (error) {
+      console.error("Error in submitting assessment:", error);
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
+      }else {
+        res.status(400).json(new ApiResponse(false, 400, "Something went wrong"));
+      }
+    }
+  },
+  async getAssessments(req: Request, res: Response) {
+    try {
+      const userId = req.user.id;
+      const assessments = await clientService.getAssessments(userId);
+
+      res
+        .status(200)
+        .json(new ApiResponse(true, 200, "Assessments fetched successfully", assessments));
+    } catch (error) {
+      console.error("Error fetching assessments:", error);
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
+      } else {
+        res.status(400).json(new ApiResponse(false, 400, "Something went wrong"));
+      }
+    }
+  },
+    async getTherapistsByUserNeeds(req : Request, res : Response){
+      try{
+          const assessmentId = req.params.assessmentId;
+          const therapists = await clientService.getTherapistByUserNeeds(req.user,assessmentId);
+          res.status(200).json(
+            new ApiResponse(true,200,"Therapists Fetched Successfully",therapists)
+          )
+      }catch(error){
+        console.log("Error in Fetching Client Assesment",error)
+            if(error instanceof ApiError){
+                res.status(error.statusCode).json(new ApiResponse(false,error.statusCode,error.message))
+            }else{
+                res.status(400).json(new ApiResponse(false,400,"Something went wrong"))
+            }
+      }
     }
 };

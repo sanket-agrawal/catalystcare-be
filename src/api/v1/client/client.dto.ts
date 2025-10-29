@@ -1,4 +1,4 @@
-// src/api/v1/client/client.dto.ts
+import { z } from "zod";
 
 export enum AgeGroup {
   UNDER_18 = "UNDER_18",
@@ -48,3 +48,28 @@ export type ClientProfileUpdateData = {
   seekingSupportFor: SeekingSupportFor;
   relationShipStatus: RelationShipStatus;
 };
+
+
+export const createAssessmentSchema = z.object({
+  recentFeeling: z.string().optional(),
+  crowdedWithWorries: z.string().optional(),
+  roomFullWithPeople: z.string().optional(),
+  dailyTaskFeeling: z.string().optional(),
+  thoughtEcho: z.string().optional(),
+  decision: z.string().optional(),
+  oldMemories: z.string().optional(),
+  lossOrSeperation: z.string().optional(),
+  closestRelationShip: z.string().optional(),
+  sayingNo: z.string().optional(),
+  nightSleep: z.string().optional(),
+  eatingPattern: z.string().optional(),
+  heavyLifeCope: z.string().optional(),
+  technologyView: z.string().optional(),
+  selfImage: z.string().optional(),
+  futurePerspective: z.string().optional(),
+  sucidalThoughts: z.string().optional(),
+  halucinations: z.string().optional(),
+  selfHarm: z.string().optional(),
+});
+
+export type CreateAssessmentInput = z.infer<typeof createAssessmentSchema>;

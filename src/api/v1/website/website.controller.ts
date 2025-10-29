@@ -1,7 +1,7 @@
 import ApiError from "../../../shared/utils/ApiError";
 import ApiResponse from "../../../shared/utils/ApiResponse";
 import { Request, Response } from "express";
-import { getAllCategories,fetchTherapistProfileService } from "./website.service";
+import { getAllCategories,fetchTherapistProfileService, fetchCategoryById } from "./website.service";
 
 export const fetchAllCategories = async (req : Request, res : Response) => {
     try {
@@ -60,5 +60,25 @@ export const fetchTherapistById = async (req : Request, res : Response) => {
                 new ApiResponse(false,500,"Internal Server Error")
             )
         }   
+    }
+}
+
+export const fetchCategoryDetailsById = async (req : Request, res : Response) => {
+    try {
+        const category = await fetchCategoryById(req.params.categoryId);
+        res.status(200).json(
+            new ApiResponse(true,200,"Category Fetched Successfully",category)
+        )
+    } catch (error) {
+         console.log("Error while Fetching Category by ID :",error);
+        if(error instanceof ApiError){
+            res.status(error.statusCode).json(
+                new ApiResponse(false,error.statusCode,error.message)
+            )
+        }   else{
+            res.status(500).json(
+                new ApiResponse(false,500,"Internal Server Error")
+            )
+        }  
     }
 }

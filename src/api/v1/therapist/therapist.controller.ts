@@ -6,7 +6,7 @@ import { therapistService } from "./therapist.service";
 export const therapistController = {
     async registeration(req : Request, res : Response){
         try {
-            const therapist = await therapistService.register(req.user.id, req.body,req.user.email,req.user.firstName);
+            const therapist = await therapistService.register(req.user.id, req.body,req.user.email,req.user.firstName, req.user.lastName);
             res.status(201).json(
                 new ApiResponse(true,201,"Therapist Registered Successfully")
             )

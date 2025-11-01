@@ -24,6 +24,7 @@ model User {
   clientProfile    ClientProfile?
   therapistProfile TherapistProfile?
   ClientAssesment  ClientAssesment[]
+  testimonials     Testimonial[]
 
   @@map("users")
   @@index([email])
@@ -155,12 +156,17 @@ model TherapistProfile {
   createdAt                            DateTime          @default(now()) @map("created_at")
   updatedAt                            DateTime          @updatedAt @map("updated_at")
 
+  slug                                 String?            @unique @map("slug")
+
   // relationships
   categories                           Category[]        @relation("TherapistCategories")
   subCategories                        SubCategory[]     @relation("TherapistSubCategories")
 
   //availability
   availability    TherapistAvailability[]
+
+  //testimonials
+  testimonials                         Testimonial[]
 
   @@map("therapist_profiles")
 }
@@ -194,6 +200,10 @@ model Category {
   updatedAt     DateTime          @updatedAt      @map("updated_at")
 
   iconUrl       String?           @map("icon_url")
+  slug          String?            @unique @map("slug")
+  tagline       String?           
+
+
 
   @@map("categories")
 }
@@ -209,6 +219,9 @@ model SubCategory {
   updatedAt     DateTime          @updatedAt      @map("updated_at")
 
   iconUrl       String?           @map("icon_url")
+  slug          String?            @unique @map("slug")
+  tagline       String?
+
 
   @@map("sub_categories")
 }
@@ -280,11 +293,13 @@ model Booking {
   
   sessionNotes      String?               @map("session_notes")
   cancellationReason String?              @map("cancellation_reason")
-  cancelledBy       String?               @map("cancelled_by") // userId who cancelled
+  cancelledBy       String?               @map("cancelled_by")
   cancelledAt       DateTime?             @map("cancelled_at")
   
   createdAt         DateTime              @default(now()) @map("created_at")
   updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  testimonial       Testimonial?          @relation()
 
   @@index([clientId, status])
   @@index([therapistId, status])
@@ -348,3 +363,28 @@ model ClientAssesment {
 
   @@map("client_assessments")
 }
+
+model Testimonial {
+  id             String           @id @default(uuid())
+
+  therapistId    String           @map("therapist_id")
+  therapist      TherapistProfile @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+
+  clientId       String           @map("client_id")
+  client         User             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  bookingId      String           @unique @map("booking_id")
+  booking        Booking?         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  rating         Int              @default(5)
+  text           String?
+
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  @@unique([therapistId, clientId]) 
+  @@map("testimonials")
+}
+
+
+
+

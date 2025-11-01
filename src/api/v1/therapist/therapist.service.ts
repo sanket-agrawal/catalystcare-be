@@ -4,9 +4,10 @@ import { prisma } from "../../../infrastructure/prisma/client";
 import { Prisma } from "@prisma/client"; 
 import { sendEmail } from "../../../infrastructure/email";
 import { registrationTemplate } from "../../../shared/email-templates/therapist";
+import slugify from 'slugify'
 
 export const therapistService = {
-  async register(userId: string, data: TherapistRegisterDTO, userEmail : string, userName : string) {
+  async register(userId: string, data: TherapistRegisterDTO, userEmail : string, userName : string, lastName : string) {
     try {
       const {
         professionalTitle,
@@ -51,6 +52,15 @@ export const therapistService = {
             throw new ApiError(400, "One or more subcategories not found");
         }
 
+          const baseSlug = slugify(`${userName}-${lastName}`, { lower: true });
+  let slug = baseSlug;
+  let counter = 1;
+
+  // ensure uniqueness
+  while (await prisma.therapistProfile.findUnique({ where: { slug } })) {
+    slug = `${baseSlug}-${counter++}`;
+  }
+
         // ✅ Create therapist profile
         const profile = await tx.therapistProfile.create({
           data: {
@@ -82,6 +92,7 @@ export const therapistService = {
             subCategories: subCategories?.length
               ? { connect: subCategories.map((id) => ({ id })) }
               : undefined,
+            slug,
           },
           include: {
             categories: true,
@@ -117,5 +128,5 @@ export const therapistService = {
       if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
       throw error;
     }
-  }
+  },
 };

@@ -1,7 +1,7 @@
 import ApiError from "../../../shared/utils/ApiError";
 import ApiResponse from "../../../shared/utils/ApiResponse";
 import { Request, Response } from "express";
-import { getAllCategories,fetchTherapistProfileService, fetchCategoryById } from "./website.service";
+import { getAllCategories,fetchTherapistProfileService, fetchCategoryBySlugService, fetchTherapistBySlugService } from "./website.service";
 
 export const fetchAllCategories = async (req : Request, res : Response) => {
     try {
@@ -44,10 +44,11 @@ export const fetchTherapistProfiles = async (req : Request, res : Response) => {
     }
 }
 
-export const fetchTherapistById = async (req : Request, res : Response) => {        
+export const fetchTherapistBySlug = async (req : Request, res : Response) => {        
     try {
+        const therapist = await fetchTherapistBySlugService(req.params.slug);
         res.status(200).json(
-            new ApiResponse(true,200,"Therapist profile fetched successfully",{})
+            new ApiResponse(true,200,"Therapist profile fetched successfully",therapist)
         )   
     }catch (error) {
         console.log("Fetching Therapist By Id :",error);
@@ -63,21 +64,38 @@ export const fetchTherapistById = async (req : Request, res : Response) => {
     }
 }
 
-export const fetchCategoryDetailsById = async (req : Request, res : Response) => {
+export const fetchCategoryDetailsBySlug = async (req : Request, res : Response) => {
     try {
-        const category = await fetchCategoryById(req.params.categoryId);
+        const category = await fetchCategoryBySlugService(req.params.slug);
         res.status(200).json(
             new ApiResponse(true,200,"Category Fetched Successfully",category)
         )
     } catch (error) {
-         console.log("Error while Fetching Category by ID :",error);
+         console.log("Error while Fetching Category by Slug :",error);
         if(error instanceof ApiError){
             res.status(error.statusCode).json(
                 new ApiResponse(false,error.statusCode,error.message)
             )
         }   else{
             res.status(500).json(
-                new ApiResponse(false,500,"Internal Server Error")
+                new ApiResponse(false,500,"Something went wrong")
+            )
+        }  
+    }
+}
+
+export const fetchSubCategoryDetailsBySlug = async (req : Request, res : Response) => {
+    try{
+
+    }catch(error){
+         console.log("Error while Fetching Sub Category by Slug :",error);
+        if(error instanceof ApiError){
+            res.status(error.statusCode).json(
+                new ApiResponse(false,error.statusCode,error.message)
+            )
+        }   else{
+            res.status(500).json(
+                new ApiResponse(false,500,"Something went wrong")
             )
         }  
     }

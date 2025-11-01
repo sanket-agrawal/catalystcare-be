@@ -10,6 +10,11 @@ export const uploadFile = async (req : Request, res : Response) => {
         const docType = req.query.doctype;
         const entity = req.query.entity;
         const file = req.file;
+        let folder = 'private';
+
+        if(docType === 'profilePic'){
+            folder = 'public';
+        }
 
         if (!file || !docType || !entity) {
         return res.status(404).json(
@@ -17,7 +22,7 @@ export const uploadFile = async (req : Request, res : Response) => {
         );
         }
 
-        const key = `${entity}/${userId}/${docType}-${Date.now()}.${file.mimetype.split('/')[1]}`;
+        const key = `/${entity}/${folder}/${userId}/${docType}-${Date.now()}.${file.mimetype.split('/')[1]}`;
         await uploadFileToS3(file.buffer, key, file.mimetype);
 
         res.status(200).json(

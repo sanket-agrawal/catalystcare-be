@@ -94,7 +94,7 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
     const therapist = await prisma.therapistProfile.findFirst({
       where: {
         slug: therapistSlug,
-        status: 'APPROVED',
+        status: "APPROVED",
         user: { isEmailVerified: true },
       },
       select: {
@@ -102,11 +102,37 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
         about: true,
         yearOfExperience: true,
         languageSpoken: true,
-        categories: { select: { slug: true, name: true } },
-        subCategories: { select: { slug: true, name: true } },
-        user: { select: { firstName: true, lastName: true, profilePhoto: true } },
-        testimonials: { select: { clientName: true, text: true, rating: true } },
-        availability: { select: { dayOfWeek: true, slots: true } },
+        categories: {
+          select: { slug: true, name: true },
+        },
+        subCategories: {
+          select: { slug: true, name: true },
+        },
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            profilePhoto: true,
+          },
+        },
+        testimonials: {
+          select: {
+            client: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+            text: true,
+            rating: true,
+          },
+        },
+        availability: {
+          select: {
+            dayOfWeek: true,
+            slots: true,
+          },
+        },
       },
     });
 
@@ -114,18 +140,22 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
       throw new ApiError(404, "Therapist not found");
     }
 
-    // calculate average rating
-    const ratings = therapist.testimonials.map(t => t.rating);
+    // ✅ Fix: Correct typing of testimonials array
+    const ratings = therapist.testimonials.map((t : {rating : number}) => t.rating);
+
+    // ✅ Calculate average rating
     const averageRating =
       ratings.length > 0
-        ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+        ? parseFloat(
+            (ratings.reduce(( sum : number, rating : number) => sum + rating, 0) / ratings.length).toFixed(1)
+          )
         : null;
 
     return {
       ...therapist,
       averageRating,
       totalReviews: ratings.length,
-      shareUrl : `${serverConfig.baseFrontendUrl}/therapists/${therapist.slug}`
+      shareUrl: `${serverConfig.baseFrontendUrl}/therapists/${therapist.slug}`,
     };
   } catch (error) {
     if (error instanceof ApiError) {
@@ -134,3 +164,4 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
     throw error;
   }
 };
+

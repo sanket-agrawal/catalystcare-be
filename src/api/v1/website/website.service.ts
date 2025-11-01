@@ -41,7 +41,22 @@ export const fetchTherapistProfileService = async (categoryId : string, subCateg
     profilePhoto: true,
     therapistProfile : {
         select : {
-            slug : true
+            slug : true,
+            sessionFee : true,
+            languageSpoken : true,
+            yearOfExperience : true,
+            categories : {
+              select : {
+                slug : true,
+                name : true
+              }
+            },
+            subCategories : {
+              select : {
+                slug : true,
+                name : true
+              }
+            }
         }
     }
   },

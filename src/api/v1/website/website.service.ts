@@ -140,10 +140,8 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
       throw new ApiError(404, "Therapist not found");
     }
 
-    // ✅ Fix: Correct typing of testimonials array
     const ratings = therapist.testimonials.map((t : {rating : number}) => t.rating);
 
-    // ✅ Calculate average rating
     const averageRating =
       ratings.length > 0
         ? parseFloat(

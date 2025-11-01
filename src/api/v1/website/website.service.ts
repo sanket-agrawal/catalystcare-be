@@ -9,7 +9,16 @@ export const getAllCategories = async () => {
                 slug : true,
                 name : true,
                 description : true,
-                iconUrl : true,                           
+                iconUrl : true,    
+                subCategories : {
+                  select : {
+                    slug : true,
+                    name : true,
+                    description : true,
+                    iconUrl : true,
+                    tagline : true
+                  }
+                }                       
             }
         });
     } catch (error) {

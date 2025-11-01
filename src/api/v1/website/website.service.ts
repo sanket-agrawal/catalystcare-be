@@ -6,12 +6,14 @@ export const getAllCategories = async () => {
     try {
         return await prisma.category.findMany({
             select : {
+              id : true,
                 slug : true,
                 name : true,
                 description : true,
                 iconUrl : true,    
                 subCategories : {
                   select : {
+                  id : true,
                     slug : true,
                     name : true,
                     description : true,

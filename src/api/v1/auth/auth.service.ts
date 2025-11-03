@@ -6,8 +6,9 @@ import { OTPService } from "../../../shared/utils/otp.service";
 import { sendEmail } from "../../../infrastructure/email/index";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { emailSubjects } from "../../../shared/config/email.config";
+import { emailFromAddress, emailSubjects } from "../../../shared/config/email.config";
 import { forgotPasswordOtpTemplate, otpVerificationTemplate, welcomeEmailTemplate } from "../../../shared/email-templates/auth";
+import { emailQueue } from "../../../infrastructure/queues/index";
 
 export const registerUserService = async (data: RegisterUserInput) => {
   try {
@@ -34,6 +35,12 @@ if (existingUser) {
 
     const otp =  await OTPService.generateOTP(email);
     await sendEmail(email, emailSubjects().otpVerification, otpVerificationTemplate(firstName,otp));
+    // await emailQueue.add('sendOtp',{
+    //   to : email,
+    //   subject : emailSubjects().otpVerification,
+    //   html : otpVerificationTemplate(firstName,otp),
+    //   sender : emailFromAddress().otpSending
+    // })
 
   } catch (error) {
     if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);

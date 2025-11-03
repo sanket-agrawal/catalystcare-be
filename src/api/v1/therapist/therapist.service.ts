@@ -32,6 +32,7 @@ export const therapistService = {
         degreeCert,
         governmentId,
         registrationCert,
+        profilePhoto
       } = data;
 
       // check if profile already exists

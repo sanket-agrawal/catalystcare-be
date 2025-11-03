@@ -26,6 +26,7 @@ export const TherapistRegisterBody = z.object({
   geniuneDocumentConsent: z.boolean({message: "geniuneDocumentConsent must be true"}).refine(val => val === true, {message: "geniuneDocumentConsent must be true"}),
   ethicalAndConfidentialityConsent: z.boolean({message: "ethicalAndConfidentialityConsent must be true"}).refine(val => val === true, {message: "ethicalAndConfidentialityConsent must be true"}),
   serviceAndPrivacyPolicyConsent: z.boolean({message: "serviceAndPrivacyPolicyConsent must be true"}).refine(val => val === true, {message: "serviceAndPrivacyPolicyConsent must be true"}),
+  profilePhoto : z.string()
 });
 
 

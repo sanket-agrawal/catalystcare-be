@@ -13,9 +13,18 @@ export const emailSubjects = () => ({
     accountDeactivation : "We're Sorry to See You Go - CatalystCare",
 });
 
+// export const emailFromAddress = () => ({
+//     onboarding : {name : "CatalystCare Onboarding" , email : "onboarding@catalystcare.in"},
+//     otpSending : {name : "CatalystCare", email : "noreply@catalystcare.in"},
+//     otpVerification : {name : "CatalystCare", email : "noreply@catalystcare.in"},
+//     infoEmail : {name : "CatalystCare", email : "info@catalystcare.in"}
+// });
+
 export const emailFromAddress = () => ({
-    onboarding : {name : "CatalystCare Onboarding" , email : "onboarding@catalystcare.in"},
-    otpSending : {name : "CatalystCare", email : "noreply@catalystcare.in"},
-    otpVerification : {name : "CatalystCare", email : "noreply@catalystcare.in"},
-    infoEmail : {name : "CatalystCare", email : "info@catalystcare.in"}
-})
+    onboarding : {name : "CatalystCare Onboarding" , email : "noreply@sanketagrawal.com"},
+    otpSending : {name : "CatalystCare", email : "noreply@sanketagrawal.com"},
+    otpVerification : {name : "CatalystCare", email : "noreply@sanketagrawal.com"},
+    infoEmail : {name : "CatalystCare", email : "noreply@sanketagrawal.com"}
+});
+
+

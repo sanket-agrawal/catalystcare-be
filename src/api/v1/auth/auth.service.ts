@@ -34,13 +34,12 @@ if (existingUser) {
 }
 
     const otp =  await OTPService.generateOTP(email);
-    await sendEmail(email, emailSubjects().otpVerification, otpVerificationTemplate(firstName,otp));
-    // await emailQueue.add('sendOtp',{
-    //   to : email,
-    //   subject : emailSubjects().otpVerification,
-    //   html : otpVerificationTemplate(firstName,otp),
-    //   sender : emailFromAddress().otpSending
-    // })
+    await emailQueue.add('sendOtp',{
+      to : email,
+      subject : emailSubjects().otpVerification,
+      html : otpVerificationTemplate(firstName,otp),
+      sender : emailFromAddress().otpSending
+    });
 
   } catch (error) {
     if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
@@ -93,7 +92,13 @@ export const verifyOTPService = async (data : verifyOTPInput) => {
       { expiresIn: "7d" }
     );
 
-    await sendEmail(email, emailSubjects().welcome, welcomeEmailTemplate(user.firstName))
+    // await sendEmail(email, emailSubjects().welcome, welcomeEmailTemplate(user.firstName))
+    await emailQueue.add('sendOtp',{
+      to : email,
+      subject : emailSubjects().welcome,
+      html : welcomeEmailTemplate(user.firstName),
+      sender : emailFromAddress().otpVerification
+    });
 
     // Step 6: Return same structure as loginService
     return {

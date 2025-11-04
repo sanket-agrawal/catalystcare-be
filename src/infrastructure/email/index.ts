@@ -1,5 +1,7 @@
 import { Resend } from "resend";
-const resend = new Resend(process.env.RESEND_API_KEY || "re_hnqBBfk3_Ks8uYMqiJKqNXu8T3CqNjdMW");
+const resend = new Resend("re_GfoWxBFK_DX6e1B6PzsCA4zSUwp5Xwcyw");
+
+console.log("Resend key loaded?", !!process.env.RESEND_API_KEY);
 
 type senderObj = {
   name : string;
@@ -8,12 +10,13 @@ type senderObj = {
 
 export const sendEmail = async (to: string, subject: string, body: string,sender : senderObj) => {
   try{
-     await resend.emails.send({
-    from: `<${sender.name}> ${sender.email}`,
+    const result = await resend.emails.send({
+    from: `${sender.name} <${sender.email}>`,
     to,
     subject,
-    html: `<p>${body}</p>`,
+    html: body,
   });
+  return result;
   }catch(error){
     throw error;
   }

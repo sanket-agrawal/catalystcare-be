@@ -1,8 +1,9 @@
 import ApiError from "../../../shared/utils/ApiError"
 import {prisma} from '../../../infrastructure/prisma/client';
-import { sendEmail } from "../../../infrastructure/email/index";
 import { therapistProfileApprovalTemplate } from "../../../shared/email-templates/admin";
 import { TherapistProfileStatus } from "./admin.dto";
+import { emailQueue } from "../../../infrastructure/queues";
+import { emailFromAddress, emailSubjects } from "../../../shared/config/email.config";
 
 export const adminService = {
     getAllTherapistProfiles: async () => {
@@ -48,11 +49,12 @@ export const adminService = {
                 where: { id: profileId },
                 data
             });
-            await sendEmail(
-                profile.user.email,
-                approve ? "Your Therapist Profile is Approved - Catalystcare" : "Your Therapist Profile is Rejected - Catalystcare",
-                therapistProfileApprovalTemplate(profile.user.firstName, approve),
-            );
+                await emailQueue.add('sendOtp',{
+                  to : profile.user.email,
+                  subject : approve ? emailSubjects().therapistOnboarding : emailSubjects().therapistOnboarding,
+                  html : therapistProfileApprovalTemplate(profile.user.firstName, approve),
+                  sender : emailFromAddress().onboarding
+                });
             return updatedProfile;
         } catch (error) {
             if(error instanceof ApiError) throw new ApiError(error.statusCode, error.message);

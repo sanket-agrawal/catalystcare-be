@@ -2,9 +2,10 @@ import ApiError from "../../../shared/utils/ApiError";
 import { TherapistRegisterDTO } from "./therapist.dto";
 import { prisma } from "../../../infrastructure/prisma/client";
 import { Prisma } from "@prisma/client"; 
-import { sendEmail } from "../../../infrastructure/email";
 import { registrationTemplate } from "../../../shared/email-templates/therapist";
 import slugify from 'slugify'
+import { emailFromAddress, emailSubjects } from "../../../shared/config/email.config";
+import { emailQueue } from "../../../infrastructure/queues";
 
 export const therapistService = {
   async register(userId: string, data: TherapistRegisterDTO, userEmail : string, userName : string, lastName : string) {
@@ -101,7 +102,18 @@ export const therapistService = {
           },
         });
 
-        await sendEmail(userEmail, "Therapist Registration Received - Catalystcare", registrationTemplate(userName));
+              if (profilePhoto) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { profilePhoto },
+        });
+      }
+        await emailQueue.add('therapistRegistration',{
+          to : userEmail,
+          subject : emailSubjects().therapistRegisterationRecieved,
+          html : registrationTemplate(userName),
+          sender : emailFromAddress().onboarding
+        });
 
         return profile;
       });

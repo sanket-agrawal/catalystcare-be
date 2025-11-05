@@ -1,7 +1,8 @@
 import { Resend } from "resend";
-const resend = new Resend("re_GfoWxBFK_DX6e1B6PzsCA4zSUwp5Xwcyw");
+import dotenv from "dotenv";
+dotenv.config();
 
-console.log("Resend key loaded?", !!process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 type senderObj = {
   name : string;

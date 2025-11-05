@@ -22,10 +22,10 @@ export const OTPService =  {
     try {
     const record = await prisma.oTPVerification.findFirst({
       where: { email, verified: false, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: "desc" },
     });
 
-
-    if (!record) throw new Error("Invalid or expired OTP");
+    if (!record) throw new ApiError(400,"Invalid or expired OTP");
 
     const isOtpValid = await bcrypt.compare(otp,record.otp);
     if (!isOtpValid) {
@@ -41,7 +41,8 @@ export const OTPService =  {
 
     return true;
     } catch (error) {
-      throw new Error("Invalid or expired OTP");
+      if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message)
+      throw error;
     }
 
   }

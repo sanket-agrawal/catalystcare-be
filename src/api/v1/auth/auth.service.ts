@@ -3,7 +3,6 @@ import { hashPassword } from "../../../shared/utils/hashPassword";
 import ApiError from "../../../shared/utils/ApiError";
 import { RegisterUserInput, verifyOTPInput } from "./auth.dto";
 import { OTPService } from "../../../shared/utils/otp.service";
-import { sendEmail } from "../../../infrastructure/email/index";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { emailFromAddress, emailSubjects } from "../../../shared/config/email.config";
@@ -84,6 +83,8 @@ export const verifyOTPService = async (data : verifyOTPInput) => {
     const token = jwt.sign(
       {
         id: user.id,
+        firstName : user.firstName,
+        lastName : user.lastName,
         email: user.email,
         phone: user.mobileNumber,
         role: user.role,
@@ -92,8 +93,7 @@ export const verifyOTPService = async (data : verifyOTPInput) => {
       { expiresIn: "7d" }
     );
 
-    // await sendEmail(email, emailSubjects().welcome, welcomeEmailTemplate(user.firstName))
-    await emailQueue.add('sendOtp',{
+    await emailQueue.add('clientWelcome',{
       to : email,
       subject : emailSubjects().welcome,
       html : welcomeEmailTemplate(user.firstName),
@@ -127,6 +127,8 @@ export const verifyOTPService = async (data : verifyOTPInput) => {
         id: user.id,
         email: user.email,
         phone: user.mobileNumber,
+        firstName : user.firstName,
+        lastName : user.lastName,
         role: user.role,
       },
       process.env.JWT_SECRET as string,
@@ -151,9 +153,8 @@ export const verifyOTPService = async (data : verifyOTPInput) => {
 
     
   } catch (error) {
-    console.error("Verify OTP Error:", error);
-    if (error instanceof ApiError) throw error;
-    throw new ApiError(400, "Invalid or expired OTP");
+    if (error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
+    throw error;
   }
 };
 
@@ -237,9 +238,16 @@ export const forgotPasswordService = async (email: string) => {
     throw new ApiError(404, "User not found");
   }
   const otp = await OTPService.generateOTP(user.email);
-  await sendEmail(email, "Reset your password", forgotPasswordOtpTemplate(user.firstName,otp));
+  await emailQueue.add('forgotPasswordSendOtp',{
+    to : email,
+    subject : emailSubjects().forgotPassword,
+    html : forgotPasswordOtpTemplate(user.firstName,otp),
+    sender : emailFromAddress().otpSending
+  });
+
 } catch (error) {
-  throw new ApiError(400,"Failed to send OTP");  
+  if(error instanceof ApiError) new ApiError(error.statusCode,error.message);  
+  throw error;
 }
 };
 

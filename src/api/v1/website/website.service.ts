@@ -11,6 +11,7 @@ export const getAllCategories = async () => {
                 name : true,
                 description : true,
                 iconUrl : true,    
+                websiteDesc : true,
                 subCategories : {
                   select : {
                   id : true,
@@ -18,7 +19,8 @@ export const getAllCategories = async () => {
                     name : true,
                     description : true,
                     iconUrl : true,
-                    tagline : true
+                    tagline : true,
+                    websiteDesc : true,
                   }
                 }                       
             }

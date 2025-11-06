@@ -16,6 +16,10 @@ export const uploadFile = async (req : Request, res : Response) => {
             folder = 'public';
         }
 
+        if(docType === 'blogPoster'){
+            folder = 'blogs';
+        }
+
         if (!file || !docType || !entity) {
         return res.status(404).json(
             new ApiResponse(false, 404, "File or docType or entity not provided")

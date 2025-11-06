@@ -201,7 +201,8 @@ model Category {
 
   iconUrl       String?           @map("icon_url")
   slug          String?            @unique @map("slug")
-  tagline       String?           
+  tagline       String?       
+  websiteDesc   String?    
 
 
 
@@ -221,6 +222,7 @@ model SubCategory {
   iconUrl       String?           @map("icon_url")
   slug          String?            @unique @map("slug")
   tagline       String?
+  websiteDesc   String?
 
 
   @@map("sub_categories")

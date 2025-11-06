@@ -131,7 +131,14 @@ export const therapistService = {
   async profile(therapistId : string){
     try {
       const profile = await prisma.therapistProfile.findUnique({
-        where : {id : therapistId}
+        where : {id : therapistId},
+        include : {
+          user : {
+            select : {
+               profilePhoto : true
+            }
+          }
+        }
       });
 
       if(!profile) throw new ApiError(404, "Therapist Profile not found")

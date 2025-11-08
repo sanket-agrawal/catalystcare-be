@@ -303,6 +303,9 @@ model Booking {
 
   testimonial       Testimonial?          @relation()
 
+  payment           Payment?              
+  paymentStatus     PaymentStatus?        @map("payment_status")
+
   @@index([clientId, status])
   @@index([therapistId, status])
   @@index([startDateTime])
@@ -325,6 +328,7 @@ enum SlotStatus {
   BLOCKED
   COMPLETED
   CANCELLED
+  HELD
 }
 
 enum BookingStatus {
@@ -332,6 +336,7 @@ enum BookingStatus {
   COMPLETED
   CANCELLED
   NO_SHOW
+  PENDING_PAYMENT
 }
 
 model ClientAssesment {
@@ -388,5 +393,29 @@ model Testimonial {
 }
 
 
+model Payment {
+  id               String    @id @default(uuid())
+  razorpayPaymentId String?   @unique @map("razorpay_payment_id")
+  razorpayOrderId   String?   @map("razorpay_order_id")
+  bookingId         String?   @unique @map("booking_id")
+  booking           Booking?  @relation(fields: [bookingId], references: [id])
+  amount            Decimal   @map("amount") // in smallest currency unit (paise)
+  currency          String    @default("INR")
+  status            PaymentStatus @default(PENDING) // PENDING, AUTHORIZED, CAPTURED, FAILED, REFUNDED
+  method            String?   @map("method")
+  capturedAt        DateTime? @map("captured_at")
+  refundedAt        DateTime? @map("refunded_at")
+  rawPayload        Json?     @map("raw_payload") // store webhook payload for audits
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
+  @@map("payments")
+}
 
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}

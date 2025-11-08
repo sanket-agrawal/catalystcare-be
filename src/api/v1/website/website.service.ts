@@ -158,7 +158,15 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
         availability: {
           select: {
             dayOfWeek: true,
-            slots: true,
+            slots: {
+              where: { status: "AVAILABLE" },
+      select: {
+        id: true,
+        startDateTime: true,
+        endDateTime: true,
+        status: true,
+      },
+            },
           },
         },
       },

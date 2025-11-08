@@ -8,6 +8,8 @@ import uploadRoutes from "./upload/upload.routes";
 import adminRoutes from "./admin/admin.routes";
 import clientRoutes from "./client/client.routes";
 import healthRoutes from './health/health.routes';
+import paymentRoutes from './payments/payments.routes';
+
 const router = express.Router();
 
 router.use('/user',userRoutes);
@@ -17,8 +19,9 @@ router.use('/therapist',therapistRoutes);
 router.use('/master-data', masterRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/admin',adminRoutes);
-router.use('/client',clientRoutes)
-router.use('/health',healthRoutes)
+router.use('/client',clientRoutes);
+router.use('/health',healthRoutes);
+router.use('/payments',paymentRoutes)
 
 
 export default router;

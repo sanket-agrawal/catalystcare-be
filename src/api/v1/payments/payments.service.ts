@@ -1,0 +1,273 @@
+import ApiError from "../../../shared/utils/ApiError";
+import { razorpayInstance } from "../../../infrastructure/razorpay";
+import { prisma } from "../../../infrastructure/prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
+import crypto from "crypto"
+import { bookingCleanupQueue } from "../../../infrastructure/queues";
+
+export const paymentService = {
+  createOrderService: async function (clientId: string, slotId: string) {
+    try {
+      // ✅ Fetch slot & therapist details
+      const slot = await prisma.availabilitySlot.findUnique({
+        where: { id: slotId },
+        include: {
+          availability: {
+            include: {
+              therapist: {
+                select: {
+                  id: true,
+                  sessionFee: true,
+                  currency: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!slot) throw new ApiError(404, "Slot not found");
+      if (slot.status !== "AVAILABLE") {
+        throw new ApiError(400, "This slot is no longer available.");
+        }
+
+        // ✅ Immediately block it
+        await prisma.availabilitySlot.update({
+        where: { id: slot.id },
+        data: { status: "HELD" },
+        });
+      const therapist = slot.availability.therapist;
+      if (!therapist) throw new ApiError(404, "Therapist not found for this slot");
+
+      const sessionFee = therapist.sessionFee || new Decimal(0);
+      const currency = therapist.currency || "INR";
+      const amountInPaise = sessionFee.mul(100).toNumber();
+      const shortReceipt = `slot_${slotId.substring(0, 8)}_${Date.now()}`;
+
+      // 1️⃣ Create Razorpay order
+      const order = await razorpayInstance.orders.create({
+        amount: amountInPaise,
+        currency,
+        receipt: shortReceipt,
+      });
+
+      if (!order) throw new ApiError(400, "Unable to create Razorpay order");
+
+      // 2️⃣ Create Payment record
+      const payment = await prisma.payment.create({
+        data: {
+          razorpayOrderId: order.id,
+          amount: sessionFee,
+          currency,
+          status: "PENDING",
+        },
+      });
+
+      // 3️⃣ Create Booking (without directly linking payment.id)
+      const booking = await prisma.booking.create({
+        data: {
+          clientId,
+          therapistId: therapist.id,
+          slotId: slot.id,
+          startDateTime: slot.startDateTime,
+          endDateTime: slot.endDateTime,
+          status: "PENDING_PAYMENT",
+          paymentStatus: "PENDING",
+        },
+      });
+
+      // 4️⃣ Link payment → booking (both sides)
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { bookingId: booking.id },
+      });
+
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: { payment: { connect: { id: payment.id } } },
+      });
+
+      await bookingCleanupQueue.add(
+         "cancelUnpaidBooking",
+  { bookingId: booking.id, slotId: slot.id },
+  { delay: 15 * 60 * 1000 } // 15 minutes
+      )
+
+      return {
+        orderId: order.id,
+        amount: amountInPaise,
+        currency,
+        bookingId: booking.id,
+      };
+    } catch (error) {
+      console.error("createOrderService error:", error);
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(500, "Internal server error during order creation");
+    }
+  },
+  verifyPaymentService: async function (data: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+    bookingId: string;
+  }) {
+    try {
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, bookingId } = data;
+
+      // 1️⃣ Generate expected signature
+      const generatedSignature = crypto
+        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET as string)
+        .update(razorpay_order_id + "|" + razorpay_payment_id)
+        .digest("hex");
+
+      // 2️⃣ Compare signatures
+      if (generatedSignature !== razorpay_signature) {
+        throw new ApiError(400, "Invalid payment signature — possible tampering detected");
+      }
+
+      // 3️⃣ Find payment linked to this order
+      const payment = await prisma.payment.findFirst({
+        where: { razorpayOrderId: razorpay_order_id },
+      });
+
+      if (!payment) throw new ApiError(404, "Payment not found for this order");
+
+      // 4️⃣ Update payment → captured
+      const updatedPayment = await prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          razorpayPaymentId: razorpay_payment_id,
+          status: "CAPTURED",
+          capturedAt: new Date(),
+        },
+      });
+
+      // 5️⃣ Update booking → confirmed
+      const updatedBooking = await prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+          paymentStatus: "CAPTURED",
+          status: "CONFIRMED",
+        },
+      });
+
+      // 6️⃣ Update slot → booked
+      await prisma.availabilitySlot.update({
+        where: { id: updatedBooking.slotId },
+        data: { status: "BOOKED" },
+      });
+
+      return {
+        success: true,
+        message: "Payment verified and booking confirmed",
+        payment: updatedPayment,
+        booking: updatedBooking,
+      };
+    } catch (error) {
+      console.error("verifyPaymentService error:", error);
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(500, "Internal server error during payment verification");
+    }
+  },
+  verifyWebhookSignature: async (payload: any, signature: string) => {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET!;
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(JSON.stringify(payload))
+      .digest("hex");
+
+    if (expectedSignature !== signature) {
+      throw new ApiError(400, "Invalid webhook signature");
+    }
+
+    return true;
+  },
+
+  handlePaymentCaptured: async (payload: any) => {
+    const paymentEntity = payload.payload.payment.entity;
+    const razorpayOrderId = paymentEntity.order_id;
+    const razorpayPaymentId = paymentEntity.id;
+
+    const payment = await prisma.payment.findFirst({
+      where: { razorpayOrderId },
+    });
+
+    if (!payment) {
+      console.warn("No payment found for order", razorpayOrderId);
+      return;
+    }
+
+    // ✅ Update payment + booking
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        razorpayPaymentId,
+        status: "CAPTURED",
+        capturedAt: new Date(),
+        rawPayload: payload,
+      },
+    });
+
+    // Update booking & slot
+    const booking = await prisma.booking.findFirst({
+      where: { payment: { id: payment.id } },
+    });
+
+    if (booking) {
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: { paymentStatus: "CAPTURED", status: "CONFIRMED" },
+      });
+
+      if (booking.slotId) {
+        await prisma.availabilitySlot.update({
+          where: { id: booking.slotId },
+          data: { status: "BOOKED" },
+        });
+      }
+    }
+
+    console.log(`✅ Webhook: Payment ${razorpayPaymentId} captured successfully`);
+  },
+
+  handlePaymentFailed: async (payload: any) => {
+    const paymentEntity = payload.payload.payment.entity;
+    const razorpayOrderId = paymentEntity.order_id;
+    const razorpayPaymentId = paymentEntity.id;
+
+    const payment = await prisma.payment.findFirst({
+      where: { razorpayOrderId },
+    });
+
+    if (!payment) return;
+
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        razorpayPaymentId,
+        status: "FAILED",
+        rawPayload: payload,
+      },
+    });
+
+    const booking = await prisma.booking.findFirst({
+      where: { payment: { id: payment.id } },
+    });
+
+    if (booking) {
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: { paymentStatus: "FAILED", status: "CANCELLED" },
+      });
+
+      if (booking.slotId) {
+        await prisma.availabilitySlot.update({
+          where: { id: booking.slotId },
+          data: { status: "AVAILABLE" },
+        });
+      }
+    }
+
+    console.log(`❌ Webhook: Payment ${razorpayPaymentId} failed`);
+  },
+};

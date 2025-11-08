@@ -71,5 +71,21 @@ export const clientController = {
                 res.status(400).json(new ApiResponse(false,400,"Something went wrong"))
             }
       }
+    },
+    async fetchBookings (req : Request , res : Response){
+      try{
+          const clientId = req.user.userId;
+          const therapists = await clientService.fetchBookings(clientId);
+          res.status(200).json(
+            new ApiResponse(true,200,"Bookings Fetched Successfully",therapists)
+          )
+      }catch(error){
+        console.log("Error in Fetching Client Bookings",error)
+            if(error instanceof ApiError){
+                res.status(error.statusCode).json(new ApiResponse(false,error.statusCode,error.message))
+            }else{
+                res.status(400).json(new ApiResponse(false,400,"Something went wrong"))
+            }
+      }
     }
 };

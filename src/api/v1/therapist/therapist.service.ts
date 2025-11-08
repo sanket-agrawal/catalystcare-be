@@ -149,4 +149,18 @@ export const therapistService = {
       throw error;
     }
   },
+  async fetchBookings(therapistId : string){
+    try{
+        return await prisma.booking.findMany({
+          where : {
+            therapistId : therapistId,
+             paymentStatus: "CAPTURED",
+             status: "CONFIRMED",
+          }
+        });
+    }catch(error){
+       if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
+      throw error;
+    }
+  }
 };

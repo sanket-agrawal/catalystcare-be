@@ -213,5 +213,22 @@ export const clientService = {
             }
             throw error;
         }
+    },
+    async fetchBookings(clientId : string){
+     try{
+        const bookings = await prisma.booking.findMany({
+          where : {
+            clientId : clientId,
+             paymentStatus: "CAPTURED",
+          status: "CONFIRMED",
+          }
+        });
+        return bookings;
+     }catch(error){
+       if(error instanceof ApiError){
+                throw new ApiError(error.statusCode,error.message)
+            }
+            throw error;
+     }
     }
 }

@@ -42,5 +42,22 @@ async profile(req : Request, res : Response) {
             )
         }
     }
+},
+async fetchBookings (req : Request, res : Response){
+    try{
+          const {therapistProfileId} = req.user;
+       const bookings = await therapistService.fetchBookings(therapistProfileId);
+    }catch(error){
+        console.log("Error fetching therapist bookings",error);
+        if(error instanceof ApiError){
+            res.status(error.statusCode).json( 
+                new ApiResponse(false,error.statusCode,error.message)
+            )
+        }else{
+            res.status(400).json(
+                new ApiResponse(false,400,"Internal Server Error")
+            )
+        }
+    }
 }
 }

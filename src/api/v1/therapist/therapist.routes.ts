@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.post('/register',authenticate, therapistController.registeration);
 router.use('/availability',authenticate,availabilityRoutes);
-router.get('/profile',authenticate,therapistController.profile)
+router.get('/profile',authenticate,therapistController.profile);
+router.get('/bookings',authenticate,therapistController.fetchBookings)
 
 export default router;

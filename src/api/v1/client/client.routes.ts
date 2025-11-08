@@ -9,7 +9,8 @@ const router = express.Router()
 router.post('/profile-update',authenticate,clientController.profileUpdate);
 router.post('/assessment-submit',authenticate,validateRequest(createAssessmentSchema),clientController.assessmentSubmit);
 router.get('/get-assessments',authenticate,clientController.getAssessments);
-router.get('/fetch-assessment-based-therapist/:assessmentId',authenticate,clientController.getTherapistsByUserNeeds)
+router.get('/fetch-assessment-based-therapist/:assessmentId',authenticate,clientController.getTherapistsByUserNeeds);
+router.get('/bookings',authenticate,clientController.fetchBookings)
 
 export default router;
 

@@ -156,6 +156,21 @@ export const therapistService = {
             therapistId : therapistId,
              paymentStatus: "CAPTURED",
              status: "CONFIRMED",
+          },
+          include : {
+            client: {
+               select : {
+                id : true,
+                user : {
+                  select : {
+                    firstName : true,
+                    lastName : true,
+                    profilePhoto : true
+                  }
+                }
+               }
+              //  include: { user: true },
+             } 
           }
         });
     }catch(error){

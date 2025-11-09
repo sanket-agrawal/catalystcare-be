@@ -74,7 +74,7 @@ export const clientController = {
     },
     async fetchBookings (req : Request , res : Response){
       try{
-          const clientId = req.user.userId;
+          const clientId = req.user.clientProfileId;
           const therapists = await clientService.fetchBookings(clientId);
           res.status(200).json(
             new ApiResponse(true,200,"Bookings Fetched Successfully",therapists)

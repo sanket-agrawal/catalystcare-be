@@ -46,6 +46,9 @@ model ClientProfile {
   occupation             Occupation?          
   seekingSupportFor      SeekingSupportFor?    @map("seeking_support_for")
   relationShipStatus     RelationShipStatus?   @map("relation_ship_status")
+
+  //bookings
+  bookings               Booking[]   
   
   createdAt              DateTime             @default(now()) @map("created_at")
   updatedAt              DateTime             @updatedAt @map("updated_at")
@@ -168,6 +171,9 @@ model TherapistProfile {
   //testimonials
   testimonials                         Testimonial[]
 
+  //bookings
+  bookings                             Booking[]         
+
   @@map("therapist_profiles")
 }
 
@@ -284,6 +290,9 @@ model Booking {
   id                String                @id @default(uuid())
   clientId          String                @map("client_id")
   therapistId       String                @map("therapist_id")
+
+  client            ClientProfile         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  therapist         TherapistProfile      @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   
   slotId            String                @unique @map("slot_id")
   slot              AvailabilitySlot?

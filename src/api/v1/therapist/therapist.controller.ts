@@ -47,6 +47,7 @@ async fetchBookings (req : Request, res : Response){
     try{
           const {therapistProfileId} = req.user;
        const bookings = await therapistService.fetchBookings(therapistProfileId);
+       res.status(200).json(new ApiResponse(true,200,"Therapist Booking Fetched Successfully",bookings))
     }catch(error){
         console.log("Error fetching therapist bookings",error);
         if(error instanceof ApiError){

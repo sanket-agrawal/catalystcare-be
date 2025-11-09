@@ -220,7 +220,22 @@ export const clientService = {
           where : {
             clientId : clientId,
              paymentStatus: "CAPTURED",
-          status: "CONFIRMED",
+             status: "CONFIRMED",
+          },
+          include : {
+            therapist: {
+               select : {
+                id : true,
+                user : {
+                  select : {
+                    firstName : true,
+                    lastName : true,
+                    profilePhoto : true
+                  }
+                }
+               }
+              //  include: { user: true },
+             } 
           }
         });
         return bookings;

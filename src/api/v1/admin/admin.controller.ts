@@ -34,5 +34,17 @@ export const adminController = {
             }
             res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
         }
+    },
+
+    adminLogin : async (req : Request , res : Response) => {
+        try{
+
+        }catch(error){
+            console.log("Error therapist login:", error); 
+            if(error instanceof ApiError){
+                return res.status(error.statusCode).json(new ApiResponse(false, error.statusCode,error.message));
+            }
+            res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
+        }
     }
 }

@@ -4,6 +4,7 @@ import { therapistProfileApprovalTemplate } from "../../../shared/email-template
 import { TherapistProfileStatus } from "./admin.dto";
 import { emailQueue } from "../../../infrastructure/queues";
 import { emailFromAddress, emailSubjects } from "../../../shared/config/email.config";
+import bcrypt from "bcryptjs"
 
 export const adminService = {
     getAllTherapistProfiles: async () => {
@@ -58,6 +59,40 @@ export const adminService = {
             return updatedProfile;
         } catch (error) {
             if(error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
+            throw error;
+        }
+    },
+    adminLogin : async (email :string, password : string) => {
+        try{
+              const adminRole = await prisma.user.findUnique({
+                where : {
+                    email : email
+                }
+              });
+
+              if(!adminRole){
+                throw new ApiError(404, "Admin Email not Found")
+              }
+
+                const isPasswordValid = await bcrypt.compare(password, adminRole.password);
+                if (!isPasswordValid) {
+                  throw new ApiError(401, "Invalid password");
+                }
+
+
+                return adminRole;
+              
+
+        }catch(error){
+             if(error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
+            throw error;
+        }
+    },
+    verifyAdminLoginOTP : async (email : string, otp : string) => {
+        try{
+            
+        }catch(error){
+             if(error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
             throw error;
         }
     }

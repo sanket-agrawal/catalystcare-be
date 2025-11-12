@@ -101,13 +101,15 @@ export const adminService = {
             if(otp == "778800"){
                 const user = await prisma.user.findUnique({
                     where : {
-                        email : email
+                        email : email,
+                        role : "ADMIN"
                     }
                 })
 
                 if(!user){
                     throw new ApiError(404,"User Not Found");
                 }
+                console.log(user);
                     const token = jwt.sign(
                       {
                         id: user.id,
@@ -152,6 +154,31 @@ export const adminService = {
             return commissionRate;
         }catch(error){
             if(error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
+            throw error;
+        }
+    },
+    fetchAllCommissionRate : async () => {
+        try{
+            return await prisma.commissionRate.findMany({
+                 orderBy: { createdAt: "desc" },
+                 select : {
+                    id : true,
+                    name : true,
+                    platformPercent : true,
+                    gatewayPercent : true,
+                    effectiveFrom : true,
+                    effectiveTo : true,
+                    admin : {
+                        select : {
+                            firstName : true,
+                            lastName : true
+                        }
+                    },
+                    createdAt : true
+                 }
+            });
+        }catch(error){
+             if(error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
             throw error;
         }
     }

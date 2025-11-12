@@ -90,5 +90,19 @@ export const adminController = {
             }
             res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
         }
+    },
+    fetchAllCommissionRate : async (req : Request, res : Response) => {
+        try{
+           const rates = await adminService.fetchAllCommissionRate();
+           res.status(200).json(
+            new ApiResponse(true,200,"Comission Rates Fetched Success",rates)
+           )
+        }catch(error){
+             console.log("Error fetching commission rates:", error); 
+            if(error instanceof ApiError){
+                return res.status(error.statusCode).json(new ApiResponse(false, error.statusCode,error.message));
+            }
+            res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
+        }
     }
 }

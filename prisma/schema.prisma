@@ -9,8 +9,8 @@ datasource db {
 
 model User {
   id               String            @id @default(uuid()) @map("id")
-  firstName        String
-  lastName         String
+  firstName        String            
+  lastName         String            
   email            String            @unique @map("email")
   mobileNumber     String?           @map("mobile_number")
   password         String?
@@ -25,6 +25,9 @@ model User {
   therapistProfile TherapistProfile?
   ClientAssesment  ClientAssesment[]
   testimonials     Testimonial[]
+
+  commissionRates  CommissionRate[]  @relation("UserToCommissionRates")
+
 
   @@map("users")
   @@index([email])
@@ -409,6 +412,7 @@ model Payment {
   bookingId         String?   @unique @map("booking_id")
   booking           Booking?  @relation(fields: [bookingId], references: [id])
   amount            Decimal   @map("amount") // in smallest currency unit (paise)
+  amountPaise       Int?      @map("amount_paise")
   currency          String    @default("INR")
   status            PaymentStatus @default(PENDING) // PENDING, AUTHORIZED, CAPTURED, FAILED, REFUNDED
   method            String?   @map("method")
@@ -417,6 +421,15 @@ model Payment {
   rawPayload        Json?     @map("raw_payload") // store webhook payload for audits
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  commissionRateId    String?   @map("commission_rate_id")
+  commissionRate      CommissionRate? @relation("CommissionRateToPayment", fields: [commissionRateId], references: [id])
+  platformPercent     Decimal?  @map("platform_percent")   // e.g. 15.0
+  gatewayPercent      Decimal?  @map("gateway_percent")    // e.g. 2.2
+  platformFeePaise    Int?      @map("platform_fee_paise") // platform fee
+  gatewayFeePaise     Int?      @map("gateway_fee_paise")  // razorpay fee
+  payoutAmountPaise   Int?      @map("payout_amount_paise")// amount to therapist
+  feeBreakdown        Json?     @map("fee_breakdown")      // JSON for extra details
 
   @@map("payments")
 }
@@ -427,4 +440,24 @@ enum PaymentStatus {
   CAPTURED
   FAILED
   REFUNDED
+}
+
+model CommissionRate {
+  id                 String     @id @default(uuid())
+  name               String?            // e.g. "Default v1"
+  platformPercent    Decimal    @map("platform_percent")// e.g. 15.0
+  gatewayPercent     Decimal    @map("gateway_percent")         // e.g. 2.2
+  effectiveFrom      DateTime   @map("effective_from") @default(now())
+  effectiveTo        DateTime?  @map("effective_to")          // null = still active
+  createdAt          DateTime   @default(now()) @map("created_at")
+  adminId            String     @map("admin_id")
+
+  admin              User       @relation("UserToCommissionRates", fields: [adminId], references: [id], onDelete: Cascade)
+
+  payments           Payment[]  @relation("CommissionRateToPayment")
+
+  
+
+  @@map("commission_rates")
+  @@index([effectiveFrom])
 }

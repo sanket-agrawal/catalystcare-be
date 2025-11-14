@@ -9,6 +9,7 @@ import { sendEmail } from "../../../infrastructure/email";
 import { OTPService } from "../../../shared/utils/otp.service";
 import { serverConfig } from "../../../shared/config/server.config";
 import jwt from "jsonwebtoken";
+import { dmmfToRuntimeDataModel } from "@prisma/client/runtime/library";
 
 export const adminService = {
     getAllTherapistProfiles: async () => {
@@ -181,5 +182,188 @@ export const adminService = {
              if(error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
             throw error;
         }
+    },
+    dashboardService: async () => {
+    try {
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+
+        // Run all queries concurrently
+        const [
+        therapistCount,
+        clientCount,
+        todaysSessions,
+        todayRevenueResult
+        ] = await Promise.all([
+        prisma.therapistProfile.count({
+            where: { status: "APPROVED" }
+        }),
+
+        prisma.clientProfile.count(),
+
+        prisma.booking.count({
+            where: {
+            slot: {
+                startDateTime: {
+                gte: startOfToday,
+                lte: endOfToday
+                }
+            }
+            }
+        }),
+
+        prisma.payment.aggregate({
+            _sum: {
+            platformFeePaise: true,
+            },
+            where: {
+            status: "CAPTURED",
+            capturedAt: {
+                gte: startOfToday,
+                lte: endOfToday,
+            },
+            },
+        }),
+        ]);
+
+        return {
+        therapistCount,
+        clients: clientCount,
+        todaysSessions,
+        todayRevenue: (todayRevenueResult._sum.platformFeePaise || 0) / 100
+        };
+
+    } catch (error) {
+        if (error instanceof ApiError)
+        throw new ApiError(error.statusCode, error.message);
+        throw error;
     }
+    },
+    billingsDashboard : async () => {
+        try{
+              const [
+                totalRevenuePaise,
+                platformRevenuePaise,
+                gatewayRevenuePaise,
+                totalClients,
+                therapistRevenuePaise,
+                transactions
+              ] = await Promise.all([
+                prisma.payment.aggregate({
+                    _sum: {
+                            amountPaise: true,
+                            },
+                            where: {
+                            status: "CAPTURED",
+                        },
+                }),
+                prisma.payment.aggregate({
+                    _sum: {
+                            platformFeePaise: true,
+                            },
+                            where: {
+                            status: "CAPTURED",
+                        },
+                }),
+                prisma.payment.aggregate({
+                    _sum : {
+                        gatewayFeePaise: true,
+                            },
+                            where: {
+                            status: "CAPTURED",
+                    }
+                }),
+                prisma.payment.count({
+                    where : {
+                        status : "CAPTURED"
+                    }
+                }),
+                prisma.payment.aggregate({
+                     _sum : {
+                        payoutAmountPaise: true,
+                            },
+                            where: {
+                            status: "CAPTURED",
+                    }
+                }),
+                prisma.payment.findMany({
+                    select : {
+                        status : true,
+                        amount : true,
+                        createdAt : true,
+                        commissionRate : {
+                            select : {
+                                gatewayPercent : true,
+                                platformPercent : true,
+                            }
+                        },
+                        payoutAmountPaise : true,
+                        gatewayFeePaise :true,
+                        platformFeePaise : true,
+                        booking : {
+                            select : {
+                                client : {
+                                   select : {
+                                    user : {
+                                        select : {
+                                            firstName : true,
+                                            lastName : true,
+                                            email : true,
+                                            mobileNumber : true,
+                                            clientProfile : {
+                                                select : {
+                                                    genderIdentity : true
+                                                }
+                                            }
+                                        }
+                                    }
+                                   }
+                                },
+                                therapist : {
+                                   select : {
+                                    user : {
+                                        select : {
+                                            firstName : true,
+                                            lastName : true,
+                                            email : true,
+                                            mobileNumber : true,
+                                        }
+                                    }
+                                   }
+                                }
+                            }
+                        }
+
+                    }
+                })
+                
+              ])
+              return {
+                totalRevenue : (totalRevenuePaise._sum.amountPaise || 0 )  /  100,
+                platformRevenue : (platformRevenuePaise._sum.platformFeePaise || 0 )  /  100,
+                gatewayFeeRevenue : (gatewayRevenuePaise._sum.gatewayFeePaise || 0 )  /  100,
+                totalClients,
+                therapistRevenue : (therapistRevenuePaise._sum.payoutAmountPaise || 0 )  /  100,
+                completeTherapistPayout : 0,
+                pendingTherapistPayout : 0,
+                transactions
+              };
+        }catch(error){
+            if (error instanceof ApiError)
+            throw new ApiError(error.statusCode, error.message);
+            throw error;
+        }
+    },
+    createPayoutRecord : async () => {
+        try{
+        }catch(error){
+             if (error instanceof ApiError)
+            throw new ApiError(error.statusCode, error.message);
+            throw error;
+        }
+    }
+
 }

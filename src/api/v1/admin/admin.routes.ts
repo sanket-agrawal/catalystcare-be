@@ -12,7 +12,9 @@ router.post('/verify-admin-login-otp',adminController.adminVerifyLoginOtp)
 router.get('/therapist-profiles',authenticate, authorizeRoles("ADMIN"),adminController.fetchTherapistProfiles);
 router.patch('/therapist-profiles/:profileId/approve-reject',authenticate, authorizeRoles("ADMIN"),adminController.approveRejectTherapistProfile); 
 router.post('/commission-rate/create',authenticate,authorizeRoles('ADMIN'),validateRequest(createCommissionRateSchema),adminController.createComissionRate);
-router.get('/commission-rates/all',authenticate,authorizeRoles('ADMIN'),adminController.fetchAllCommissionRate)
+router.get('/commission-rates/all',authenticate,authorizeRoles('ADMIN'),adminController.fetchAllCommissionRate);
+router.get('/dashboard',authenticate,authorizeRoles('ADMIN'),adminController.dashboard);
+router.get('/billing-dashboard',authenticate,authorizeRoles('ADMIN'),adminController.billingDashboard)
 
 
 export default router;

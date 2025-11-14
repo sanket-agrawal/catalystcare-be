@@ -104,5 +104,30 @@ export const adminController = {
             }
             res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
         }
+    },
+    dashboard : async (req : Request, res : Response) => {
+        try{
+            const dashboardData = await adminService.dashboardService();
+            res.status(200).json(new ApiResponse(true, 201,"Dashboard Fetched Successfully" , dashboardData));
+         
+        }catch(error){
+             console.log("Error fetching admin dashboard", error); 
+            if(error instanceof ApiError){
+                return res.status(error.statusCode).json(new ApiResponse(false, error.statusCode,error.message));
+            }
+            res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
+        }
+    },
+    billingDashboard : async (req : Request, res : Response) => {
+        try{
+           const billingData = await adminService.billingsDashboard();
+           res.status(200).json(new ApiResponse(true, 201,"Billing Dashboard Fetched Successfully" , billingData));
+        }catch(error){
+             console.log("Error fetching billing dashboard", error); 
+            if(error instanceof ApiError){
+                return res.status(error.statusCode).json(new ApiResponse(false, error.statusCode,error.message));
+            }
+            res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
+        }
     }
 }

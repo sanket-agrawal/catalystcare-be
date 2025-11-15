@@ -175,7 +175,16 @@ model TherapistProfile {
   testimonials                         Testimonial[]
 
   //bookings
-  bookings                             Booking[]         
+  bookings                             Booking[]    
+
+  //UPI VPA details
+  upiVpaEnc                            Bytes?
+  upiVpaIv                             Bytes?
+  upiVpaTag                            Bytes?
+  upiVpaHash                           String?          @db.VarChar(64)
+  keyVersion                           Int?             
+  upiVerifiedAt                        DateTime?
+  upiNameAtBank                        String?     
 
   @@map("therapist_profiles")
 }

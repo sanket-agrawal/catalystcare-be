@@ -29,5 +29,14 @@ export const TherapistRegisterBody = z.object({
   profilePhoto : z.string()
 });
 
+export const upiVpaSchema = z.object({
+  vpa : z.string({message : "VPA is required"})
+  .trim()
+  .min(5)
+  .max(255)
+  .regex(/^[a-zA-Z0-9.\-_]{2,}@[a-zA-Z]{2,}$/, 'Invalid UPI VPA')
+})
+
 
 export type TherapistRegisterDTO = z.infer<typeof TherapistRegisterBody>;
+export type UpiVpaDTO = z.infer<typeof upiVpaSchema>;

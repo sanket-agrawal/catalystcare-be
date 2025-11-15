@@ -159,6 +159,10 @@ export const verifyOTPService = async (data : verifyOTPInput) => {
 };
 
 export const loginService = async (email: string, password: string) => {
+  if(email == 'admin@catalystcare.in'){
+    throw new ApiError(400,'Insufficient Permission')
+  }
+
   const user = await prisma.user.findFirst({
     where: { email: { equals: email, mode: "insensitive" } },
     select : {
@@ -176,6 +180,10 @@ export const loginService = async (email: string, password: string) => {
 
   if (!user) {
     throw new ApiError(404, "User not found");
+  }
+
+  if(user.role == 'ADMIN'){
+    throw new ApiError(400, "Insufficient Permission")
   }
 
   if(!user.isEmailVerified){

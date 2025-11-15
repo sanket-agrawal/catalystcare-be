@@ -6,6 +6,7 @@ import { registrationTemplate } from "../../../shared/email-templates/therapist"
 import slugify from 'slugify'
 import { emailFromAddress, emailSubjects } from "../../../shared/config/email.config";
 import { emailQueue } from "../../../infrastructure/queues";
+import { decryptStringGCM, encryptStringGCM, normalizeVpa, sha256Hex } from "../../../shared/lib/crypto";
 
 export const therapistService = {
   async register(userId: string, data: TherapistRegisterDTO, userEmail : string, userName : string, lastName : string) {
@@ -177,5 +178,63 @@ export const therapistService = {
        if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
       throw error;
     }
+  },
+  async setTherapistUpiVpa (therapistId : string , vpaRaw : string){
+    try{
+        const normalized = normalizeVpa(vpaRaw);
+        const keyVersion = 1;
+        const {ciphertext, iv, tag} = encryptStringGCM(normalized,keyVersion);
+        const vpaHash = sha256Hex(normalized);
+
+        const therapist = await prisma.therapistProfile.update({
+          where : { id : therapistId},
+          data : {
+            upiVpaEnc: ciphertext,
+            upiVpaIv: iv,
+            upiVpaTag: tag,
+            upiVpaHash: vpaHash,
+            keyVersion
+          }
+        });
+
+        return therapist;
+
+    }catch(error){
+      if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
+      throw error;
+    }
+  },
+async fetchTherapistMaskedVpa(therapistId: string) {
+  try {
+    const t = await prisma.therapistProfile.findUnique({
+      where: { id: therapistId },
+      select: { upiVpaEnc: true, upiVpaIv: true, upiVpaTag: true, keyVersion: true }
+    });
+
+    if (!t) return null;
+
+    if (!t.upiVpaEnc || !t.upiVpaIv || !t.upiVpaTag || !t.keyVersion) {
+      return null; // or: return "UPI not added"
+    }
+
+    const vpa = decryptStringGCM(
+      Buffer.from(t.upiVpaEnc),
+      Buffer.from(t.upiVpaIv),
+      Buffer.from(t.upiVpaTag),
+      t.keyVersion
+    );
+
+    const [user, handle] = vpa.split("@");
+    const masked = `${user[0] ?? ""}${"*".repeat(Math.max(0, user.length - 1))}@${handle}`;
+
+    return masked;
+
+  } catch (error) {
+    if (error instanceof ApiError)
+      throw new ApiError(error.statusCode, error.message);
+
+    throw error;
   }
+}
+
 };

@@ -10,6 +10,7 @@ import { OTPService } from "../../../shared/utils/otp.service";
 import { serverConfig } from "../../../shared/config/server.config";
 import jwt from "jsonwebtoken";
 import { dmmfToRuntimeDataModel } from "@prisma/client/runtime/library";
+import { decryptStringGCM } from "../../../shared/lib/crypto";
 
 export const adminService = {
     getAllTherapistProfiles: async () => {
@@ -364,6 +365,43 @@ export const adminService = {
             throw new ApiError(error.statusCode, error.message);
             throw error;
         }
+    },
+     async fetchTherapistUpiVpa(therapistId: string) {
+  try {
+    const t = await prisma.therapistProfile.findUnique({
+      where: { id: therapistId },
+      select: {
+        upiVpaEnc: true,
+        upiVpaIv: true,
+        upiVpaTag: true,
+        keyVersion: true,
+      },
+    });
+
+    if (!t) {
+      throw new ApiError(404, "Therapist not found");
     }
+
+    // Check if UPI details are present
+    if (!t.upiVpaEnc || !t.upiVpaIv || !t.upiVpaTag || !t.keyVersion) {
+      throw new ApiError(404, "UPI not provided");
+    }
+
+    const vpa = decryptStringGCM(
+      Buffer.from(t.upiVpaEnc), // Convert to Buffer
+      Buffer.from(t.upiVpaIv),
+      Buffer.from(t.upiVpaTag),
+      t.keyVersion
+    );
+
+    return vpa;
+
+  } catch (error) {
+    if (error instanceof ApiError)
+      throw new ApiError(error.statusCode, error.message);
+
+    throw error;
+  }
+},
 
 }

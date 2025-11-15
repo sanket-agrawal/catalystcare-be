@@ -60,5 +60,46 @@ async fetchBookings (req : Request, res : Response){
             )
         }
     }
+},
+async setUPIVPA (req : Request , res : Response){
+    try{
+           const {therapistProfileId} = req.user;
+           const updatedDetails = await therapistService.setTherapistUpiVpa(therapistProfileId,req.body.vpa);
+        res.status(200).json(
+            new ApiResponse(true,200,"Therapist VPA updated successfully",updatedDetails)
+        )
+    }catch(error){
+         console.log("Error seting therapist VPA",error);
+        if(error instanceof ApiError){
+            res.status(error.statusCode).json( 
+                new ApiResponse(false,error.statusCode,error.message)
+            )
+        }else{
+            res.status(400).json(
+                new ApiResponse(false,400,"Internal Server Error")
+            )
+        }
+    }
+},
+async fetchMaskedVPA (req : Request, res : Response){
+    try{
+        const {therapistProfileId} = req.user;
+        const maskedVPA = await therapistService.fetchTherapistMaskedVpa(therapistProfileId);
+        res.status(200).json(
+            new ApiResponse(true,200,"Masked VPA Fetched Successfully",maskedVPA)
+        );
+    }catch(error){
+        console.log("Error fetching therapist Masked VPA",error);
+        if(error instanceof ApiError){
+            res.status(error.statusCode).json( 
+                new ApiResponse(false,error.statusCode,error.message)
+            )
+        }else{
+            res.status(400).json(
+                new ApiResponse(false,400,"Internal Server Error")
+            )
+        }
+    }
+} 
 }
-}
+

@@ -15,6 +15,6 @@ router.post('/commission-rate/create',authenticate,authorizeRoles('ADMIN'),valid
 router.get('/commission-rates/all',authenticate,authorizeRoles('ADMIN'),adminController.fetchAllCommissionRate);
 router.get('/dashboard',authenticate,authorizeRoles('ADMIN'),adminController.dashboard);
 router.get('/billing-dashboard',authenticate,authorizeRoles('ADMIN'),adminController.billingDashboard)
-
+router.get('/therapist/vpa/:therapistId',authenticate,authorizeRoles('ADMIN'),adminController.fetchTherapistVPA);
 
 export default router;

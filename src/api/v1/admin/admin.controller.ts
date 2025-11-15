@@ -129,5 +129,19 @@ export const adminController = {
             }
             res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
         }
+    },
+    fetchTherapistVPA : async  (req : Request, res : Response) => {
+        try {
+            const rawVPA = await adminService.fetchTherapistUpiVpa(req.params.therapistId);
+            res.status(200).json(
+                new ApiResponse(true,200,"Therapist VPA Fetched Success",rawVPA)
+            )
+        } catch (error) {
+            console.log("Error fetching therapist VPA", error); 
+            if(error instanceof ApiError){
+                return res.status(error.statusCode).json(new ApiResponse(false, error.statusCode,error.message));
+            }
+            res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
+        }
     }
 }

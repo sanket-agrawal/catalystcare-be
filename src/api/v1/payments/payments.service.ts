@@ -5,6 +5,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import crypto from "crypto"
 import { bookingCleanupQueue } from "../../../infrastructure/queues";
 import { rupeesToPaise } from "../../../shared/lib/money";
+import { Prisma } from "@prisma/client";
 
 export const paymentService = {
   createOrderService: async function (clientId: string, slotId: string) {
@@ -87,7 +88,7 @@ export const paymentService = {
 
       if (!order) throw new ApiError(400, "Unable to create Razorpay order");
 
-      const { bookingId } = await prisma.$transaction(async (tx) => {
+      const { bookingId } = await prisma.$transaction(async (tx : Prisma.TransactionClient) => {
         // set slot to HELD
         await tx.availabilitySlot.update({
           where: { id: slotId },
@@ -255,7 +256,7 @@ export const paymentService = {
       //   data: { status: "BOOKED" },
       // });
 
-      const updated = await prisma.$transaction(async (tx) => {
+      const updated = await prisma.$transaction(async (tx : Prisma.TransactionClient) => {
         const updatedPayment = await tx.payment.update({
           where: { id: payment.id },
           data: {

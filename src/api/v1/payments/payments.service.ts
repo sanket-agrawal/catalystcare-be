@@ -4,6 +4,7 @@ import { prisma } from "../../../infrastructure/prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import crypto from "crypto"
 import { bookingCleanupQueue } from "../../../infrastructure/queues";
+import { rupeesToPaise } from "../../../shared/lib/money";
 
 export const paymentService = {
   createOrderService: async function (clientId: string, slotId: string) {
@@ -29,76 +30,173 @@ export const paymentService = {
       if (!slot) throw new ApiError(404, "Slot not found");
       if (slot.status !== "AVAILABLE") {
         throw new ApiError(400, "This slot is no longer available.");
-        }
+      }
+
+      const therapist = slot.availability.therapist;
+    if (!therapist) throw new ApiError(404, "Therapist not found for this slot");
+
+          const sessionFeeRupees = Number(therapist.sessionFee || 0);
+          const sessionFeeDecimal = therapist.sessionFee || new Decimal(0);
+      const amountPaise = rupeesToPaise(sessionFeeRupees);
+      const currency = therapist.currency || "INR";
+
+     const now = new Date();
+    const commissionRate = await prisma.commissionRate.findFirst({
+      where: {
+        effectiveFrom: { lte: now },
+        OR: [
+          { effectiveTo: null },
+          { effectiveTo: { gt: now } }
+        ]
+      },
+      orderBy: { effectiveFrom: 'desc' },
+    });
+
+    const platformPercent = Number(commissionRate?.platformPercent || 0);
+      const gatewayPercent = Number(commissionRate?.gatewayPercent || 0);
+
+      const platformFeePaise = Math.round(
+        (amountPaise * platformPercent) / 100
+      );
+      const gatewayFeePaise = Math.round(
+        (amountPaise * gatewayPercent) / 100
+      );
+
+            const payoutAmountPaise = amountPaise - platformFeePaise - gatewayFeePaise;
+
 
         // ✅ Immediately block it
-        await prisma.availabilitySlot.update({
-        where: { id: slot.id },
-        data: { status: "HELD" },
-        });
-      const therapist = slot.availability.therapist;
-      if (!therapist) throw new ApiError(404, "Therapist not found for this slot");
+        // await prisma.availabilitySlot.update({
+        // where: { id: slot.id },
+        // data: { status: "HELD" },
+        // });
+      // const therapist = slot.availability.therapist;
+      // if (!therapist) throw new ApiError(404, "Therapist not found for this slot");
 
-      const sessionFee = therapist.sessionFee || new Decimal(0);
-      const currency = therapist.currency || "INR";
-      const amountInPaise = sessionFee.mul(100).toNumber();
+      // const sessionFee = therapist.sessionFee || new Decimal(0);
+      // const currency = therapist.currency || "INR";
+      // const amountInPaise = sessionFee.mul(100).toNumber();
       const shortReceipt = `slot_${slotId.substring(0, 8)}_${Date.now()}`;
 
       // 1️⃣ Create Razorpay order
       const order = await razorpayInstance.orders.create({
-        amount: amountInPaise,
+        amount: amountPaise,
         currency,
         receipt: shortReceipt,
       });
 
       if (!order) throw new ApiError(400, "Unable to create Razorpay order");
 
-      // 2️⃣ Create Payment record
-      const payment = await prisma.payment.create({
-        data: {
-          razorpayOrderId: order.id,
-          amount: sessionFee,
-          currency,
-          status: "PENDING",
-        },
+      const { bookingId } = await prisma.$transaction(async (tx) => {
+        // set slot to HELD
+        await tx.availabilitySlot.update({
+          where: { id: slotId },
+          data: { status: "HELD" },
+        });
+
+        // create payment
+        const payment = await tx.payment.create({
+          data: {
+            razorpayOrderId: order.id,
+            amount : sessionFeeDecimal,
+            amountPaise,
+            currency,
+            status: "PENDING",
+
+            // Commission snapshot
+            commissionRateId: commissionRate?.id || null,
+            platformPercent: commissionRate?.platformPercent || new Decimal(0),
+            gatewayPercent: commissionRate?.gatewayPercent || new Decimal(0),
+            platformFeePaise,
+            gatewayFeePaise,
+            payoutAmountPaise,
+
+            feeBreakdown: {
+              platformFeePaise,
+              gatewayFeePaise,
+              payoutAmountPaise,
+            },
+          },
+        });
+
+        // create booking
+        const booking = await tx.booking.create({
+          data: {
+            clientId,
+            therapistId: therapist.id,
+            slotId: slot.id,
+            startDateTime: slot.startDateTime,
+            endDateTime: slot.endDateTime,
+            status: "PENDING_PAYMENT",
+            paymentStatus: "PENDING",
+            payment: { connect: { id: payment.id } },
+          },
+        });
+
+        return { bookingId: booking.id };
       });
 
-      // 3️⃣ Create Booking (without directly linking payment.id)
-      const booking = await prisma.booking.create({
-        data: {
-          clientId,
-          therapistId: therapist.id,
-          slotId: slot.id,
-          startDateTime: slot.startDateTime,
-          endDateTime: slot.endDateTime,
-          status: "PENDING_PAYMENT",
-          paymentStatus: "PENDING",
-        },
-      });
-
-      // 4️⃣ Link payment → booking (both sides)
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: { bookingId: booking.id },
-      });
-
-      await prisma.booking.update({
-        where: { id: booking.id },
-        data: { payment: { connect: { id: payment.id } } },
-      });
-
+      // queue cleanup
       await bookingCleanupQueue.add(
-         "cancelUnpaidBooking",
-  { bookingId: booking.id, slotId: slot.id },
-  { delay: 15 * 60 * 1000 } // 15 minutes
-      )
+        "cancelUnpaidBooking",
+        { bookingId, slotId },
+        { delay: 15 * 60 * 1000 }
+      );
 
       return {
         orderId: order.id,
-        amount: amountInPaise,
+        amount: amountPaise,
         currency,
-        bookingId: booking.id,
+        bookingId,
       };
+
+
+      // 2️⃣ Create Payment record
+      // const payment = await prisma.payment.create({
+      //   data: {
+      //     razorpayOrderId: order.id,
+      //     amount: sessionFee,
+      //     currency,
+      //     status: "PENDING",
+      //   },
+      // });
+
+      // 3️⃣ Create Booking (without directly linking payment.id)
+      // const booking = await prisma.booking.create({
+      //   data: {
+      //     clientId,
+      //     therapistId: therapist.id,
+      //     slotId: slot.id,
+      //     startDateTime: slot.startDateTime,
+      //     endDateTime: slot.endDateTime,
+      //     status: "PENDING_PAYMENT",
+      //     paymentStatus: "PENDING",
+      //   },
+      // });
+
+      // 4️⃣ Link payment → booking (both sides)
+  //     await prisma.payment.update({
+  //       where: { id: payment.id },
+  //       data: { bookingId: booking.id },
+  //     });
+
+  //     await prisma.booking.update({
+  //       where: { id: booking.id },
+  //       data: { payment: { connect: { id: payment.id } } },
+  //     });
+
+  //     await bookingCleanupQueue.add(
+  //        "cancelUnpaidBooking",
+  // { bookingId: booking.id, slotId: slot.id },
+  // { delay: 15 * 60 * 1000 } // 15 minutes
+  //     )
+
+      // return {
+      //   orderId: order.id,
+      //   amount: amountInPaise,
+      //   currency,
+      //   bookingId: booking.id,
+      // };
     } catch (error) {
       console.error("createOrderService error:", error);
       if (error instanceof ApiError) throw error;
@@ -133,35 +231,57 @@ export const paymentService = {
       if (!payment) throw new ApiError(404, "Payment not found for this order");
 
       // 4️⃣ Update payment → captured
-      const updatedPayment = await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          razorpayPaymentId: razorpay_payment_id,
-          status: "CAPTURED",
-          capturedAt: new Date(),
-        },
-      });
+      // const updatedPayment = await prisma.payment.update({
+      //   where: { id: payment.id },
+      //   data: {
+      //     razorpayPaymentId: razorpay_payment_id,
+      //     status: "CAPTURED",
+      //     capturedAt: new Date(),
+      //   },
+      // });
 
       // 5️⃣ Update booking → confirmed
-      const updatedBooking = await prisma.booking.update({
-        where: { id: bookingId },
-        data: {
-          paymentStatus: "CAPTURED",
-          status: "CONFIRMED",
-        },
-      });
+      // const updatedBooking = await prisma.booking.update({
+      //   where: { id: bookingId },
+      //   data: {
+      //     paymentStatus: "CAPTURED",
+      //     status: "CONFIRMED",
+      //   },
+      // });
 
       // 6️⃣ Update slot → booked
-      await prisma.availabilitySlot.update({
-        where: { id: updatedBooking.slotId },
-        data: { status: "BOOKED" },
+      // await prisma.availabilitySlot.update({
+      //   where: { id: updatedBooking.slotId },
+      //   data: { status: "BOOKED" },
+      // });
+
+      const updated = await prisma.$transaction(async (tx) => {
+        const updatedPayment = await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            razorpayPaymentId: razorpay_payment_id,
+            status: "CAPTURED",
+            capturedAt: new Date(),
+          },
+        });
+
+        const updatedBooking = await tx.booking.update({
+          where: { id: bookingId },
+          data: { paymentStatus: "CAPTURED", status: "CONFIRMED" },
+        });
+
+        await tx.availabilitySlot.update({
+          where: { id: updatedBooking.slotId },
+          data: { status: "BOOKED" },
+        });
+
+        return { updatedPayment, updatedBooking };
       });
 
       return {
         success: true,
         message: "Payment verified and booking confirmed",
-        payment: updatedPayment,
-        booking: updatedBooking,
+        ...updated
       };
     } catch (error) {
       console.error("verifyPaymentService error:", error);

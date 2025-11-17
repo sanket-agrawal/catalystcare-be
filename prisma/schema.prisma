@@ -420,9 +420,13 @@ model Payment {
   razorpayOrderId   String?   @map("razorpay_order_id")
   bookingId         String?   @unique @map("booking_id")
   booking           Booking?  @relation(fields: [bookingId], references: [id])
+  
+  // canonical amount fields 
   amount            Decimal   @map("amount") // in smallest currency unit (paise)
   amountPaise       Int?      @map("amount_paise")
   currency          String    @default("INR")
+
+  // Status Fields
   status            PaymentStatus @default(PENDING) // PENDING, AUTHORIZED, CAPTURED, FAILED, REFUNDED
   method            String?   @map("method")
   capturedAt        DateTime? @map("captured_at")
@@ -431,10 +435,12 @@ model Payment {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
+  // Fees / Snapshots of commission at time of payment
   commissionRateId    String?   @map("commission_rate_id")
   commissionRate      CommissionRate? @relation("CommissionRateToPayment", fields: [commissionRateId], references: [id])
   platformPercent     Decimal?  @map("platform_percent")   // e.g. 15.0
   gatewayPercent      Decimal?  @map("gateway_percent")    // e.g. 2.2
+  
   platformFeePaise    Int?      @map("platform_fee_paise") // platform fee
   gatewayFeePaise     Int?      @map("gateway_fee_paise")  // razorpay fee
   payoutAmountPaise   Int?      @map("payout_amount_paise")// amount to therapist

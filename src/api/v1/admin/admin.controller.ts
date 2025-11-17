@@ -143,5 +143,19 @@ export const adminController = {
             }
             res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
         }
+    },
+    fetchApprovedTherapist : async(req : Request, res : Response) => {
+        try {
+            const therapist = await adminService.fetchAllApprovedTherapist();
+            res.status(200).json(
+                new ApiResponse(true,200,"Approved Therapist Fetched Success",therapist)
+            )
+        } catch (error) {
+            console.log("Error fetching approved therapist", error); 
+            if(error instanceof ApiError){
+                return res.status(error.statusCode).json(new ApiResponse(false, error.statusCode,error.message));
+            }
+            res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
+        }
     }
 }

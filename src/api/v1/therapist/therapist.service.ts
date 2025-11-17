@@ -235,6 +235,21 @@ async fetchTherapistMaskedVpa(therapistId: string) {
 
     throw error;
   }
-}
-
+},
+async therapistBillingDashboard (therapistId : string){
+  try {
+    const billings = await prisma.payment.findMany({
+      where : {
+        status : "CAPTURED",
+        booking : {
+          therapistId : therapistId
+        }
+      }
+    });
+    return billings;
+  } catch (error) {
+      if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
+      throw error;
+  }
+},
 };

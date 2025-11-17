@@ -13,6 +13,7 @@ router.use('/availability',authenticate,authorizeRoles('THERAPIST'),availability
 router.get('/profile',authenticate,authorizeRoles('THERAPIST'),therapistController.profile);
 router.get('/bookings',authenticate,authorizeRoles('THERAPIST'),therapistController.fetchBookings)
 router.post('/set-vpa',authenticate,authorizeRoles('THERAPIST'),validateRequest(upiVpaSchema),therapistController.setUPIVPA);
-router.get('/fetch-masked-vpa',authenticate,authorizeRoles('THERAPIST'),therapistController.fetchMaskedVPA)
+router.get('/fetch-masked-vpa',authenticate,authorizeRoles('THERAPIST'),therapistController.fetchMaskedVPA);
+router.get('/billing-dashboard',authenticate,authorizeRoles('THERAPIST'),therapistController.therapistBillingDashboard)
 
 export default router;

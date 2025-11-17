@@ -100,6 +100,26 @@ async fetchMaskedVPA (req : Request, res : Response){
             )
         }
     }
-} 
+},
+async therapistBillingDashboard(req : Request, res : Response){
+try{
+    const {therapistProfileId} = req.user;
+   const billings = await therapistService.therapistBillingDashboard(therapistProfileId);
+   res.status(200).json(
+    new ApiResponse(true,200,"Therapist Billing Dashboard Fetched Success",billings)
+   )
+}catch(error){
+    console.log("Error fetching therapist billing dashboard",error);
+        if(error instanceof ApiError){
+            res.status(error.statusCode).json( 
+                new ApiResponse(false,error.statusCode,error.message)
+            )
+        }else{
+            res.status(400).json(
+                new ApiResponse(false,400,"Internal Server Error")
+            )
+        }
+}
+}
 }
 

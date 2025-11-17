@@ -16,6 +16,11 @@ export const adminService = {
     getAllTherapistProfiles: async () => {
         try {
             return await prisma.therapistProfile.findMany({
+                where : {
+                    status : {
+                        not : "APPROVED"
+                    }
+                },
                 include: {
                     user: {
                         select: {
@@ -23,6 +28,19 @@ export const adminService = {
                             lastName: true,
                             email: true,
                             mobileNumber: true,
+                            profilePhoto : true
+                        }
+                    },
+                    categories : {
+                        select : {
+                            id : true,
+                            name : true
+                        }
+                    },
+                    subCategories : {
+                        select : {
+                            id : true,
+                            name : true
                         }
                     }
                 }
@@ -366,7 +384,7 @@ export const adminService = {
             throw error;
         }
     },
-     async fetchTherapistUpiVpa(therapistId: string) {
+    fetchTherapistUpiVpa : async (therapistId: string) => {
   try {
     const t = await prisma.therapistProfile.findUnique({
       where: { id: therapistId },
@@ -402,6 +420,65 @@ export const adminService = {
 
     throw error;
   }
-},
+    },
+    fetchAllApprovedTherapist : async () => {
+        try {
+                const therapists = await prisma.therapistProfile.findMany({
+                    where : {
+                        status : "APPROVED",
+                    },
+
+                    select: {
+                        id : true,
+                        professionalTitle : true,                 
+                        highestQualification  : true,                
+                        graduationYear : true, 
+                        licenseNumber : true, 
+                        licensingAuthority: true, 
+                        yearOfExperience : true, 
+                        languageSpoken : true, 
+                        currentWorkspace  : true, 
+                        practiceType  : true, 
+                        sessionFee  : true, 
+                        currency  : true, 
+                        bgvConsent  : true, 
+                        registrationCert : true, 
+                        degreeCert  : true, 
+                        governmentId  : true, 
+                        addressProof : true, 
+                        about    : true, 
+                        successStories : true, 
+                        geniuneDocumentConsent   : true, 
+                        ethicalAndConfidentialityConsent  : true, 
+                        serviceAndPrivacyPolicyConsent : true, 
+                        user : {
+                            select : {
+                                firstName : true,
+                                lastName : true,
+                                email : true,
+                                profilePhoto : true,
+                                mobileNumber : true
+                            }
+                        },
+                        categories : {
+                            select : {
+                                id : true,
+                                name : true
+                            }
+                        },
+                        subCategories : {
+                            select : {
+                                id : true,
+                                name : true
+                            }
+                        }
+                    },
+                });
+                return therapists;
+        } catch (error) {
+            if (error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
+            throw error;
+        }
+    }
 
 }

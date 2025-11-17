@@ -16,5 +16,6 @@ router.get('/commission-rates/all',authenticate,authorizeRoles('ADMIN'),adminCon
 router.get('/dashboard',authenticate,authorizeRoles('ADMIN'),adminController.dashboard);
 router.get('/billing-dashboard',authenticate,authorizeRoles('ADMIN'),adminController.billingDashboard)
 router.get('/therapist/vpa/:therapistId',authenticate,authorizeRoles('ADMIN'),adminController.fetchTherapistVPA);
+router.get('/approved-therapist',authenticate,authorizeRoles('ADMIN'),adminController.fetchApprovedTherapist);
 
 export default router;

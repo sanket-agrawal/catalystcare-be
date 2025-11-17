@@ -1,1 +1,2 @@
-import './emailWorker'
+import './emailWorker';
+import './bookingCleanupWorker'

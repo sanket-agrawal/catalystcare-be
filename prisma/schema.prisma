@@ -285,8 +285,7 @@ model AvailabilitySlot {
   
   // If booked
   clientId              String?                 @map("client_id")
-  bookingId             String?                 @unique @map("booking_id")
-  booking               Booking?                @relation(fields: [bookingId], references: [id])
+  booking               Booking?                
   
   createdAt             DateTime                @default(now()) @map("created_at")
   updatedAt             DateTime                @updatedAt @map("updated_at")
@@ -307,12 +306,12 @@ model Booking {
   therapist         TherapistProfile      @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   
   slotId            String                @unique @map("slot_id")
-  slot              AvailabilitySlot?
+  slot              AvailabilitySlot?     @relation(fields: [slotId], references: [id])
   
   startDateTime     DateTime              @map("start_date_time")
   endDateTime       DateTime              @map("end_date_time")
   
-  status            BookingStatus         @default(CONFIRMED)
+  status            BookingStatus         @default(PENDING_PAYMENT)
   
   sessionNotes      String?               @map("session_notes")
   cancellationReason String?              @map("cancellation_reason")

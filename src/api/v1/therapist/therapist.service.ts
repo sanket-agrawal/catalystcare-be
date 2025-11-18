@@ -7,6 +7,7 @@ import slugify from 'slugify'
 import { emailFromAddress, emailSubjects } from "../../../shared/config/email.config";
 import { emailQueue } from "../../../infrastructure/queues";
 import { decryptStringGCM, encryptStringGCM, normalizeVpa, sha256Hex } from "../../../shared/lib/crypto";
+import { getDateRange } from "../../../shared/lib/date";
 
 export const therapistService = {
   async register(userId: string, data: TherapistRegisterDTO, userEmail : string, userName : string, lastName : string) {
@@ -236,20 +237,115 @@ async fetchTherapistMaskedVpa(therapistId: string) {
     throw error;
   }
 },
-async therapistBillingDashboard (therapistId : string){
+async therapistBillingDashboard(therapistId: string) {
   try {
-    const billings = await prisma.payment.findMany({
-      where : {
-        status : "CAPTURED",
-        booking : {
-          therapistId : therapistId
+        // const { filterType, page = 1, limit = 10 } = params;
+
+    // const dateRange = getDateRange(filterType);
+
+    //  const dateFilter = dateRange
+    //   ? { gte: dateRange.start, lte: dateRange.end }
+    //   : undefined;
+
+    const [aggregates, totalClients, patientWise] = await Promise.all([
+      // Combined aggregate query (2 queries → 1 query)
+      prisma.payment.aggregate({
+        _sum: {
+          payoutAmountPaise: true,
+          amountPaise: true,
+        },
+        where: {
+          status: "CAPTURED",
+          booking: {
+            therapistId,
+            status: "CONFIRMED",
+          },
+        },
+      }),
+
+      // Count clients
+      prisma.payment.count({
+        where: {
+          status: "CAPTURED",
+          booking: {
+            therapistId,
+            status: "CONFIRMED",
+          },
         }
+      }),
+
+      // Patient wise list
+      prisma.booking.findMany({
+        where: {
+          therapistId,
+          status: "CONFIRMED",
+          payment: { status: "CAPTURED" }
+        },
+        select: {
+          client: {
+            select: {
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  profilePhoto: true
+                }
+              }
+            }
+          },
+          payment: {
+            select: {
+              amountPaise: true,
+              payoutAmountPaise: true,
+              gatewayFeePaise: true,
+              platformFeePaise: true,
+              gatewayPercent: true,
+              platformPercent: true,
+              updatedAt: true
+            }
+          },
+          slot : {
+            select : {
+              startDateTime : true,
+              endDateTime : true
+            }
+          }
+        },
+        orderBy: {
+          payment: { updatedAt: "desc" }
+        }
+      })
+    ]);
+
+    // Convert paise → rupees
+    const format = (p: number | null | undefined) => (p ?? 0) / 100;
+
+    const formattedPatientWise = patientWise.map((p) => ({
+      ...p,
+      payment: {
+        gatewayPercent : p.payment?.gatewayPercent,
+        platformPercent : p.payment?.platformPercent,
+        paymentDate : p.payment?.updatedAt,
+        amount: format(p.payment?.amountPaise),
+        payoutAmount: format(p.payment?.payoutAmountPaise),
+        gatewayFee: format(p.payment?.gatewayFeePaise),
+        platformFee: format(p.payment?.platformFeePaise),
       }
-    });
-    return billings;
+    }));
+
+    return {
+      netEarnings: format(aggregates._sum.payoutAmountPaise),
+      totalRevenue: format(aggregates._sum.amountPaise),
+      totalClients,
+      totalSessionCompleted: 0, // you can compute later if needed
+      patientWise: formattedPatientWise
+    };
+
   } catch (error) {
-      if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
-      throw error;
+    if (error instanceof ApiError) {
+      throw new ApiError(error.statusCode, error.message);
+    }
+    throw error;
   }
 },
 };

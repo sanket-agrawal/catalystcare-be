@@ -320,7 +320,7 @@ async therapistBillingDashboard(therapistId: string) {
     // Convert paise → rupees
     const format = (p: number | null | undefined) => (p ?? 0) / 100;
 
-    const formattedPatientWise = patientWise.map((p) => ({
+    const formattedPatientWise = patientWise.map((p : typeof patientWise[number]) => ({
       ...p,
       payment: {
         gatewayPercent : p.payment?.gatewayPercent,

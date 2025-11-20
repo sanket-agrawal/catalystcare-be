@@ -3,6 +3,7 @@ import { startOfDay, endOfDay, addDays, parseISO, format, parse, addMinutes, isB
 import {prisma} from '../../../../infrastructure/prisma/client';
 import ApiError from "../../../../shared/utils/ApiError";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { slotQueue } from "../../../../infrastructure/queues";
 
 
 const timeZone = 'Asia/Kolkata';
@@ -109,7 +110,7 @@ export class AvailabilityService{
 
         // Ensure end time > start time
         if (!this.isEndTimeAfterStartTime(startTime, endTime)) {
-          throw new ApiError(400, `End time must be after start time for ${dayOfWeek}`);
+          throw new ApiError(400, `End time ${endTime} must be after start time ${startTime} for ${dayOfWeek}`);
         }
 
         // Check overlapping availability for same day
@@ -145,6 +146,16 @@ export class AvailabilityService{
         createdAvailabilities.push(availability);
       }
     }
+
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(startDate.getDate() + 30);
+
+      await slotQueue.add("generate_slots", {
+        therapistId,
+        dateFrom: startDate.toISOString(),
+        dateTo: endDate.toISOString()
+      });
 
     return createdAvailabilities;
   } catch (error) {
@@ -292,14 +303,18 @@ export class AvailabilityService{
     };
     }
 
-    async updateAvailability(availabilityId: string, input: UpdateAvailabilityInput) {
+    async updateAvailability(availabilityId: string, input: UpdateAvailabilityInput, therapistId : string) {
       try{
-    const availability = await prisma.therapistAvailability.findUnique({
+    const old = await prisma.therapistAvailability.findUnique({
       where: { id: availabilityId }
     });
 
-    if (!availability) {
+    if (!old) {
       throw new ApiError(404,'Availability not found');
+    }
+
+    if(old.therapistId !== therapistId){
+      throw new ApiError(403, "Unauthorized availability update");
     }
 
     if (input.startTime) this.validateTimeFormat(input.startTime);
@@ -309,10 +324,52 @@ export class AvailabilityService{
       throw new ApiError(400,'End time must be after start time');
     }
 
-    return await prisma.therapistAvailability.update({
+      await prisma.therapistAvailability.updateMany({
       where: { id: availabilityId },
-      data: input
+      data: {
+        isActive: false,
+        effectiveTo: new Date()
+      }
     });
+
+     const newData = {
+      therapistId,
+      dayOfWeek: old.dayOfWeek,
+      startTime: input.startTime ?? old.startTime,
+      endTime: input.endTime ?? old.endTime,
+      slotDuration: input.slotDuration ?? old.slotDuration,
+      effectiveFrom: input.effectiveFrom
+        ? new Date(input.effectiveFrom)
+        : old.effectiveFrom,
+      effectiveTo: input.effectiveTo
+        ? new Date(input.effectiveTo)
+        : old.effectiveTo,
+      isActive: true
+    };
+
+    const newAvailability = await prisma.therapistAvailability.create({
+      data: newData
+    });
+
+    const now = new Date();
+    const end = new Date();
+    end.setDate(now.getDate() + 30);
+
+    await slotQueue.add("update_single_availability", {
+      therapistId,
+      oldAvailabilityId: availabilityId,
+      newAvailabilityId: newAvailability.id,
+      dateFrom: now.toISOString(),
+      dateTo: end.toISOString()
+    });
+
+
+    return newAvailability;
+
+    // return await prisma.therapistAvailability.update({
+    //   where: { id: availabilityId },
+    //   data: input
+    // });
   
     }catch(error){
        if (error instanceof ApiError) throw error;

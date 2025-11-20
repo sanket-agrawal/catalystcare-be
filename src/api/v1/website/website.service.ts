@@ -124,6 +124,10 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
         slug: therapistSlug,
         status: "APPROVED",
         user: { isEmailVerified: true },
+        availability : {
+            some: { isActive: true } 
+        }
+
       },
       select: {
         slug: true,

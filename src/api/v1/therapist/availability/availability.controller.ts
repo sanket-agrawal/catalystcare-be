@@ -20,7 +20,7 @@ export class AvailabilityController {
 
       // Authorization check: ensure therapist can only create their own availability
       // req.user should be populated by auth middleware
-      if (req.user?.role !== 'THERAPIST' && req.user?.role !== 'ADMIN') {
+      if (req.user?.role !== 'THERAPIST') {
         return res.status(403).json({ error: 'Unauthorized' });
       }
 
@@ -31,14 +31,6 @@ export class AvailabilityController {
       const availability = await availabilityService.createMultipleAvailabilities({
         therapistId,
         availabilities : availabilities
-      });
-
-      // Generate slots for next 30 days
-      const today = new Date();
-      await availabilityService.generateSlots({
-        therapistId,
-        startDate: today,
-        endDate: addDays(today, 30)
       });
 
       res.status(201).json( new ApiResponse(
@@ -207,7 +199,7 @@ export class AvailabilityController {
         return res.status(403).json(new ApiResponse(false,403,'Unauthorized'));
       }
 
-      const updated = await availabilityService.updateAvailability(availabilityId, updateData);
+      const updated = await availabilityService.updateAvailability(availabilityId, updateData,therapistId);
 
       res.status(200).json( new ApiResponse(
         true,

@@ -6,6 +6,7 @@ import morgan from "morgan";
 import routes from './api/index'
 import './infrastructure/redis/index'
 import bullMqRouter from "./infrastructure/bullMq/index";
+import { registerRepeatableJobs } from "./infrastructure/jobs/daily-jobs";
 
 dotenv.config();
 
@@ -17,6 +18,10 @@ app.use(morgan("combined")); // logging
 
 app.use('/api',routes);
 
-app.use('/admin/queues',bullMqRouter)
+app.use('/admin/queues',bullMqRouter);
+
+(async () => {
+  await registerRepeatableJobs();
+})();
 
 export default app;

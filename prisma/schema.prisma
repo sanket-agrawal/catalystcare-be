@@ -264,6 +264,7 @@ model TherapistAvailability {
   updatedAt         DateTime                    @updatedAt @map("updated_at")
   
   slots             AvailabilitySlot[]
+  version           Int                         @default(1)
 
 
   @@index([therapistId, isActive])

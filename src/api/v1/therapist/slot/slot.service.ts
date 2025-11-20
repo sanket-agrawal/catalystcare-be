@@ -13,6 +13,18 @@ const DAY_NAME_TO_INDEX: Record<string, number> = {
   SATURDAY: 6
 };
 
+type Avail = {
+  id: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  slotDuration: number;
+  effectiveFrom?: Date | null;
+  effectiveTo?: Date | null;
+  isActive: boolean;
+};
+
+
 
 function getDatesInRange(start: Date, end: Date) {
    const dates: Date[] = [];
@@ -63,8 +75,8 @@ class SlotService {
     for (const d of dates) {
       const dow = d.getDay(); // 0..6
       // find availabilities that match day index
-      const rowsForDay = activeAvail.filter((a) => {
-        const idx = DAY_NAME_TO_INDEX[a.dayOfWeek as keyof typeof DAY_NAME_TO_INDEX];
+      const rowsForDay = activeAvail.filter((a : Avail) => {
+        const idx = DAY_NAME_TO_INDEX[a.dayOfWeek];
         return idx === dow;
       });
       if (rowsForDay.length === 0) continue;

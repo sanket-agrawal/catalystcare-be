@@ -63,7 +63,7 @@ class SlotService {
     for (const d of dates) {
       const dow = d.getDay(); // 0..6
       // find availabilities that match day index
-      const rowsForDay = activeAvail.filter(a => {
+      const rowsForDay = activeAvail.filter((a) => {
         const idx = DAY_NAME_TO_INDEX[a.dayOfWeek as keyof typeof DAY_NAME_TO_INDEX];
         return idx === dow;
       });

@@ -242,15 +242,11 @@ export class AvailabilityService{
     };
   }
 
-    async getAvailableSlots(therapistId: string, startDate: Date, endDate: Date) {
+    async getAvailableSlots(therapistId: string) {
     const slots = await prisma.availabilitySlot.findMany({
       where: {
         therapistId,
-        status: SlotStatus.AVAILABLE,
-        startDateTime: {
-          gte: startDate,
-          lte: endDate
-        }
+        status: {not : SlotStatus.CANCELLED},
       },
       orderBy: {
         startDateTime: 'asc'
@@ -614,7 +610,8 @@ export class AvailabilityService{
         startTime: format(toZonedTime(slot.startDateTime, timeZone), 'HH:mm'),
         endTime: format(toZonedTime(slot.endDateTime, timeZone), 'HH:mm'),
         startDateTime: slot.startDateTime,
-        endDateTime: slot.endDateTime
+        endDateTime: slot.endDateTime,
+        status : slot.status
       });
       return acc;
     }, {} as Record<string, any[]>);

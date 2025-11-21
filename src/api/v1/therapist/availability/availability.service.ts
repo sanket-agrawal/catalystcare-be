@@ -263,9 +263,6 @@ export class AvailabilityService{
     }
 
     async getTherapistWithAvailability(therapistId: string, daysAhead: number = 30) {
-    const startDate = new Date();
-    const endDate = addDays(startDate, daysAhead);
-
     const therapist = await prisma.therapistProfile.findUnique({
       where: { id: therapistId },
       include: {
@@ -287,7 +284,7 @@ export class AvailabilityService{
       throw new Error('Therapist not found');
     }
 
-    const availableSlots = await this.getAvailableSlots(therapistId, startDate, endDate);
+    const availableSlots = await this.getAvailableSlots(therapistId);
 
     return {
       ...therapist,

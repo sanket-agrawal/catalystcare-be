@@ -104,19 +104,22 @@ export class AvailabilityController {
     try {
      
       const { therapistId } = req.params;
-      const { startDate, endDate, daysAhead } = req.query;
 
-      const start = startDate ? parseISO(startDate as string) : new Date();
-      const end = endDate ? parseISO(endDate as string) : addDays(start, parseInt(daysAhead as string) || 30);
-
-      const slots = await availabilityService.getAvailableSlots(therapistId, start, end);
+      const slots = await availabilityService.getAvailableSlots(therapistId);
 
       res.status(200).json({
         success: true,
         data: slots
       });
     } catch (error) {
-      next(error);
+      console.log("Error in Fetching Available slots",error);
+      if(error instanceof ApiError){
+        res.status(error.statusCode).json(
+          new ApiResponse(false,error.statusCode,error.message)
+        )
+      }else{
+        res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+      }
     }
   }
 

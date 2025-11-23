@@ -186,6 +186,15 @@ model TherapistProfile {
   upiVerifiedAt                        DateTime?
   upiNameAtBank                        String?     
 
+  googleUserId                         String?          @map("google_user_id")
+  googleEmail                          String?          @map("google_email")
+
+  accessToken                          String?           @map("access_token")
+  refreshToken                         String?           @map("refresh_token")
+  expiryDate                           DateTime?        @map("expiry_date") // when accessToken expires
+
+  calendarId                           String?          @map("calendar_id")
+
   @@map("therapist_profiles")
 }
 
@@ -326,6 +335,10 @@ model Booking {
 
   payment           Payment?              
   paymentStatus     PaymentStatus?        @map("payment_status")
+
+  meetingLink      String?                @map("meeting_link")
+  calendarEventId  String?                @map("calendar_event_id")
+  meetingProvider  String?                @map("meeting_provider") // e.g. 'GOOGLE_MEET'
 
   @@index([clientId, status])
   @@index([therapistId, status])

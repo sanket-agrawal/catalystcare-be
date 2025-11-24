@@ -7,10 +7,10 @@ export const googleAuthController = {
     authenticate : async (req : Request, res : Response) => {
         try {
             const url = await connectCalendarService.authenticate(req.user);
-            res.redirect(url);
-            // res.status(200).json(
-            //     new ApiResponse(true,200,"Google Auth URL Generated Successfully",{url})
-            // )
+            // res.redirect(url);
+            res.status(200).json(
+                new ApiResponse(true,200,"Google Auth URL Generated Successfully",{url})
+            )
         } catch (error) {
             console.log("Google Auth URL Generation Error:",error);
             if(error instanceof ApiError){

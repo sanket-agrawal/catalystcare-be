@@ -7,7 +7,6 @@ export const googleAuthController = {
     authenticate : async (req : Request, res : Response) => {
         try {
             const url = await connectCalendarService.authenticate(req.user);
-            // res.redirect(url);
             res.status(200).json(
                 new ApiResponse(true,200,"Google Auth URL Generated Successfully",{url})
             )
@@ -40,9 +39,11 @@ export const googleAuthController = {
 
     const url = await connectCalendarService.callback(codeParam, stateParam);
 
-    res.status(200).json(
-      new ApiResponse(true, 200, "Google Calendar Connected Successfully", { url })
-    );
+     res.redirect(url);
+
+    // res.status(200).json(
+    //   new ApiResponse(true, 200, "Google Calendar Connected Successfully", { url })
+    // );
 
   } catch (error) {
     console.log("Google Callback Error:", error);

@@ -3,7 +3,7 @@ import { razorpayInstance } from "../../../infrastructure/razorpay";
 import { prisma } from "../../../infrastructure/prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import crypto from "crypto"
-import { bookingCleanupQueue } from "../../../infrastructure/queues";
+import { bookingCleanupQueue, meetingQueue } from "../../../infrastructure/queues";
 import { rupeesToPaise } from "../../../shared/lib/money";
 import { Prisma } from "@prisma/client";
 
@@ -278,6 +278,20 @@ export const paymentService = {
 
         return { updatedPayment, updatedBooking };
       });
+
+      await meetingQueue.add(
+    "create-google-meet",
+    { bookingId },
+    {
+      attempts: 5,
+      backoff: {
+        type: "exponential",
+        delay: 10_000,
+      },
+      removeOnComplete: true,
+      removeOnFail: false,
+    }
+  );
 
       return {
         success: true,

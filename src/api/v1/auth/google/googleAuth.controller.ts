@@ -1,4 +1,4 @@
-import { connectCalendarService } from "../../../../infrastructure/googleAuth/connectCalendar.service";
+import { connectCalendarService } from "../../../../infrastructure/google/connectCalendar.service";
 import ApiError from "../../../../shared/utils/ApiError";
 import ApiResponse from "../../../../shared/utils/ApiResponse";
 import { Request, Response } from "express";

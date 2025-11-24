@@ -4,7 +4,7 @@ import {prisma} from "../prisma/client";
 import { authenticatedUser } from "api/v1/user/user.types";
 import ApiError from "../../shared/utils/ApiError";
 import { therapistCalendarConnectedTemplate } from "../../shared/email-templates/calendarConnection";
-import { emailQueue } from "../../infrastructure/queues";
+import { emailQueue } from "../queues";
 import { emailFromAddress, emailSubjects } from "../../shared/config/email.config";
 
 

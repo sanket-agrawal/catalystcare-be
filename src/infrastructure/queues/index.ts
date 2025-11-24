@@ -11,3 +11,17 @@ export const bookingCleanupQueue = new Queue("bookingCleanupQueue", {
 
 //slot generation queue
 export const slotQueue = new Queue("slot-queue", { connection : redisConnection });
+
+export interface CreateMeetingJobData {
+  bookingId: string;
+}
+
+
+
+// meeting generation queue
+export const meetingQueue = new Queue<CreateMeetingJobData>(
+  "google-meeting-queue",
+  {
+    connection : redisConnection,
+  }
+);

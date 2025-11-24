@@ -3,6 +3,9 @@ import { oauth2Client, CALENDAR_SCOPES } from "./index";
 import {prisma} from "../prisma/client";
 import { authenticatedUser } from "api/v1/user/user.types";
 import ApiError from "../../shared/utils/ApiError";
+import { therapistCalendarConnectedTemplate } from "../../shared/email-templates/calendarConnection";
+import { emailQueue } from "../../infrastructure/queues";
+import { emailFromAddress, emailSubjects } from "../../shared/config/email.config";
 
 
 /**
@@ -76,7 +79,7 @@ export const connectCalendarService = {
     : null;
 
       // Upsert therapist google calendar config
-      await prisma.therapistProfile.update({
+      const updatedTherapistProfile = await prisma.therapistProfile.update({
         where: { id: therapist.id },
         data: {
           googleUserId: googleUser.id,
@@ -86,11 +89,19 @@ export const connectCalendarService = {
           expiryDate,
           calendarId: "primary",
         },
+        include : {user : true}
       });
+
+      await emailQueue.add('therapistCalendarConnection',{
+                        to : updatedTherapistProfile.googleEmail,
+                        subject : emailSubjects().therapistCalendarConnection,
+                        html : therapistCalendarConnectedTemplate(updatedTherapistProfile.user.firstName),
+                        sender : emailFromAddress().onboarding
+      }); 
 
       const redirectUrl =
         process.env.FRONTEND_DASHBOARD_URL ??
-        "https://your-frontend.com/therapist/integrations";
+        "https://catalystcare.in/therapist-dashboard";
 
       return `${redirectUrl}?googleCalendarConnected=true`;
     } catch (error) {

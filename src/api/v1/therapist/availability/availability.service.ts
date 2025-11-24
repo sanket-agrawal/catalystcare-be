@@ -59,6 +59,10 @@ export class AvailabilityService{
       const therapist = await prisma.therapistProfile.findUnique({ where: { id: therapistId } });
       if (!therapist) throw new ApiError(400, "Therapist not found");
 
+      if(!therapist.googleUserId){
+        throw new ApiError(400, "Therapist has not connected Google Calendar");
+      }
+
       const overlapping = await this.checkOverlappingAvailability(
         therapistId,
         dayOfWeek,

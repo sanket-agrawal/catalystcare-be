@@ -13,6 +13,7 @@ export const emailSubjects = () => ({
     feedbackRequest : "We Value Your Feedback - CatalystCare",
     subscriptionRenewal : "Your Subscription is Renewing Soon - CatalystCare",
     accountDeactivation : "We're Sorry to See You Go - CatalystCare",
+    therapistCalendarConnection : "Your Google Calendar Is Now Connected to Catalyst Care ✔"
 });
 
 export const emailFromAddress = () => ({

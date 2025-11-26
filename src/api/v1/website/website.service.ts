@@ -130,6 +130,7 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
         about: true,
         yearOfExperience: true,
         languageSpoken: true,
+        sessionFee : true,
         categories: {
           select: { slug: true, name: true },
         },

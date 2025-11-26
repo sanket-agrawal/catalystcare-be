@@ -63,7 +63,7 @@ export async function createGoogleMeetForBooking(
   const startIso = startDateTime.toISOString();
   const endIso = endDateTime.toISOString();
 
-  const summary = "Therapy Session";
+  const summary = `Catalystcare Therapy session with ${booking.client.user.firstName} ${booking.client.user.lastName}`;
   const description = `Therapy session with ${booking.client.user.firstName} ${booking.client.user.lastName}`;
 
   const calendarId = therapistIntegration.calendarId ?? "primary";

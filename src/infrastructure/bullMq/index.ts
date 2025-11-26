@@ -1,7 +1,7 @@
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
-import { bookingCleanupQueue, emailQueue, slotQueue } from '../../infrastructure/queues';
+import { bookingCleanupQueue, emailQueue, meetingQueue, slotQueue } from '../../infrastructure/queues';
 import express, { NextFunction, Request, Response } from 'express';
 import dotenv from 'dotenv';
 
@@ -15,6 +15,7 @@ createBullBoard({
     new BullMQAdapter(emailQueue),
     new BullMQAdapter(slotQueue),
     new BullMQAdapter(bookingCleanupQueue),
+    new BullMQAdapter(meetingQueue)
     
 
   ],

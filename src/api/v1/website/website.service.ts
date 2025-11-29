@@ -40,6 +40,8 @@ export const fetchTherapistProfileService = async (categoryId : string, subCateg
   where: {
     therapistProfile: {
       status: 'APPROVED',
+      googleUserId : { not: null },
+      slug : { not: null },
     },
   },
   select: {

@@ -477,6 +477,40 @@ export class AvailabilityService{
     return result;
   }
 
+async fetchAvailabilityRules(therapistId: string) {
+  try {
+    // Run DB queries in parallel
+    const [availabilities, profile] = await Promise.all([
+      prisma.therapistAvailability.findMany({
+        where: { therapistId, isActive: true },
+        orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }]
+      }),
+      prisma.therapistProfile.findUnique({
+        where: { id: therapistId },
+        select: { googleUserId: true }
+      })
+    ]);
+
+    const calendarConnected = !!profile?.googleUserId;
+    const availabilityCreated = availabilities.length > 0;
+
+    return {
+      availabilities,
+      timelineData: {
+        calendarConnected,
+        availabilityCreated,
+        setToTakeBookings: calendarConnected && availabilityCreated
+      }
+    };
+
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(400, (error as Error).message);
+  }
+}
+
+  
+
   // PRIVATE Helpers
   private validateTimeFormat(time: string): void {
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;

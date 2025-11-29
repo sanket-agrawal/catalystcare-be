@@ -154,22 +154,15 @@ export class AvailabilityController {
     try {
       const { therapistProfileId : therapistId } = req.user;
 
-      const availabilities = await prisma.therapistAvailability.findMany({
-        where: {
-          therapistId,
-          isActive: true
-        },
-        orderBy: [
-          { dayOfWeek: 'asc' },
-          { startTime: 'asc' }
-        ]
-      });
-
+      const {availabilities, timelineData} = await availabilityService.fetchAvailabilityRules(therapistId)
       res.status(200).json( new ApiResponse(
         true,
         200,
         'Availability fetched successfully',
-        availabilities
+        {
+          availabilities ,
+          timelineData 
+        }
       ));
     } catch (error) {
       console.log("Error in Fetching Availability Rules",error);

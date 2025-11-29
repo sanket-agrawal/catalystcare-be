@@ -8,6 +8,11 @@ export const paymentController = {
         try{
             const {clientProfileId} = req.user;
             const {slotId } = req.body;
+
+            if(req.user.role !== 'CLIENT'){
+                throw new ApiError(403,"Only clients can book therapy sessions")
+            }
+
              const order = await paymentService.createOrderService(clientProfileId,slotId);
 
              res.status(201).json(new ApiResponse(true,201,"Order Created Sucessfully",order))

@@ -28,6 +28,8 @@ model User {
 
   commissionRates  CommissionRate[]  @relation("UserToCommissionRates")
 
+  lastLogin        DateTime          @default(now()) @map("last_login")    
+
 
   @@map("users")
   @@index([email])

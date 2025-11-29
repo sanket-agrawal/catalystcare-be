@@ -6,6 +6,7 @@ import ApiError from "../../shared/utils/ApiError";
 import { therapistCalendarConnectedTemplate } from "../../shared/email-templates/calendarConnection";
 import { emailQueue } from "../queues";
 import { emailFromAddress, emailSubjects } from "../../shared/config/email.config";
+import { frontendConfig } from "../../shared/config/frontend.config";
 
 
 /**
@@ -99,11 +100,7 @@ export const connectCalendarService = {
                         sender : emailFromAddress().onboarding
       }); 
 
-      const redirectUrl =
-        process.env.FRONTEND_DASHBOARD_URL ??
-        "https://catalystcare.in/therapist-dashboard/availability";
-
-      return `${redirectUrl}?googleCalendarConnected=true`;
+      return `${frontendConfig.therapistAvailabilityPage}?googleCalendarConnected=true`;
     } catch (error) {
       if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message)
        throw error;

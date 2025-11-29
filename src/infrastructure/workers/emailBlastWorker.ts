@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 import {prisma} from "../prisma/client";
 import { sendEmail } from "../email/index";
 import { redisConnection } from "../redis/index";
+import { emailFromAddress } from "../../shared/config/email.config";
 
 interface BlastData {
   target: string;
@@ -21,14 +22,14 @@ export const emailBlastWorker = new Worker(
       const users = await prisma.user.findMany({
         select: { email: true },
       });
-      recipients = users.map((u) => u.email);
+      recipients = users.map((u : {email : string}) => u.email);
     }
 
     if (target === "ALL_THERAPISTS") {
       const therapists = await prisma.therapistProfile.findMany({
         select: { user: { select: { email: true } } },
       });
-      recipients = therapists.map((t) => t.user.email);
+      recipients = therapists.map((t : { user : {email : string}}) => t.user.email);
     }
 
     if (target === "INACTIVE_USERS") {
@@ -40,7 +41,7 @@ export const emailBlastWorker = new Worker(
         },
         select: { email: true },
       });
-      recipients = users.map((u) => u.email);
+      recipients = users.map((u : {email : string}) => u.email);
     }
 
     if (target === "CUSTOM_CSV") {
@@ -49,11 +50,12 @@ export const emailBlastWorker = new Worker(
 
     // ----- Send emails -----
     for (const email of recipients) {
-      await sendEmail({
-        to: email,
+      await sendEmail(
+        email,
         subject,
-        html: content,
-      });
+        content,
+        emailFromAddress().onboarding
+      );
     }
 
     return { sent: recipients.length };

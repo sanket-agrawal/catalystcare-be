@@ -49,16 +49,24 @@ if (job.name === "update_single_availability") {
 
   console.log("⛔ Cancelling old future slots...");
 
-  await prisma.availabilitySlot.updateMany({
-    where: {
-      availabilityId: oldAvailabilityId,
-      status: "AVAILABLE",
-      startDateTime: { gte: new Date(dateFrom) }
-    },
-    data: {
-      status: "CANCELLED"
-    }
-  });
+  // await prisma.availabilitySlot.updateMany({
+  //   where: {
+  //     availabilityId: oldAvailabilityId,
+  //     status: "AVAILABLE",
+  //     startDateTime: { gte: new Date(dateFrom) }
+  //   },
+  //   data: {
+  //     status: "CANCELLED"
+  //   }
+  // });
+
+  await prisma.availabilitySlot.deleteMany({
+  where: {
+    availabilityId: oldAvailabilityId,
+    status: "AVAILABLE",
+    startDateTime: { gte: new Date(dateFrom) }
+  }
+});
 
   console.log("🔄 Generating new slots...");
 

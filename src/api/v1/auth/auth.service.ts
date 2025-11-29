@@ -199,6 +199,11 @@ export const loginService = async (email: string, password: string) => {
     throw new ApiError(401, "Invalid password");
   }
 
+    await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLogin: new Date() },
+  });
+
   let isClientProfileFilled = false;
 let isTherapistProfileFilled = false;
 let therapistProfileId =  null;

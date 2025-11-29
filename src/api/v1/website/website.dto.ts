@@ -1,13 +1,10 @@
+import { DateTime } from "luxon";
+
 export type SlotForResponse = {
   id: string;
   startTime: string;
   endTime: string;
   status: string;
-};
-
-export type SlotGroupByDate = {
-  date: string;
-  slots: SlotForResponse[];
 };
 
 export type TestimonialsWithClient = {
@@ -30,4 +27,31 @@ export type TherapistResponse = {
   averageRating: number | null;
   totalReviews: number;
   shareUrl: string;
+};
+
+
+export type AvailabilitySlotType = {
+  id: string;
+  startDateTime: Date;
+  endDateTime: Date;
+  status: string;
+};
+
+export type ProcessedSlot = {
+  id: string;
+  status: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  startIST: DateTime;
+};
+
+export type SlotGroupByDate = {
+  date: string;
+  slots: {
+    id: string;
+    startTime: string;
+    endTime: string;
+    status: string;
+  }[];
 };

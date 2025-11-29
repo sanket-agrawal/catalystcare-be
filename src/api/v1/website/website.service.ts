@@ -2,7 +2,7 @@ import ApiError from "../../../shared/utils/ApiError"
 import { prisma } from "../../../infrastructure/prisma/client";
 import { serverConfig } from "../../../shared/config/server.config";
 import { DateTime } from "luxon";
-import { SlotGroupByDate } from "./website.dto";
+import { AvailabilitySlotType, ProcessedSlot, SlotGroupByDate } from "./website.dto";
 import { frontendConfig } from "../../../shared/config/frontend.config";
 
 export const getAllCategories = async () => {
@@ -133,13 +133,9 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
         about: true,
         yearOfExperience: true,
         languageSpoken: true,
-        sessionFee : true,
-        categories: {
-          select: { slug: true, name: true },
-        },
-        subCategories: {
-          select: { slug: true, name: true },
-        },
+        sessionFee: true,
+        categories: { select: { slug: true, name: true } },
+        subCategories: { select: { slug: true, name: true } },
         user: {
           select: {
             firstName: true,
@@ -149,12 +145,7 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
         },
         testimonials: {
           select: {
-            client: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
-            },
+            client: { select: { firstName: true, lastName: true } },
             text: true,
             rating: true,
           },
@@ -179,21 +170,20 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
       throw new ApiError(404, "Therapist not found");
     }
 
-    const allSlots = therapist.availability.flatMap(
-      (a) => a.slots
+    // --------- Types added here ---------
+    const allSlots: AvailabilitySlotType[] = therapist.availability.flatMap(
+      (a: { slots: AvailabilitySlotType[] }) => a.slots
     );
 
-       const nowIST = DateTime.now().setZone("Asia/Kolkata");
+    const nowIST = DateTime.now().setZone("Asia/Kolkata");
 
-       const processedSlots = allSlots
-      .map((slot) => {
-        const startIST = DateTime.fromJSDate(slot.startDateTime, {
-          zone: "utc",
-        }).setZone("Asia/Kolkata");
+    const processedSlots: ProcessedSlot[] = allSlots
+      .map((slot: AvailabilitySlotType): ProcessedSlot => {
+        const startIST = DateTime.fromJSDate(slot.startDateTime, { zone: "utc" })
+          .setZone("Asia/Kolkata");
 
-        const endIST = DateTime.fromJSDate(slot.endDateTime, {
-          zone: "utc",
-        }).setZone("Asia/Kolkata");
+        const endIST = DateTime.fromJSDate(slot.endDateTime, { zone: "utc" })
+          .setZone("Asia/Kolkata");
 
         return {
           id: slot.id,
@@ -204,13 +194,18 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
           startIST,
         };
       })
-      .filter((slot) => slot.startIST >= nowIST)
-      .sort((a, b) => a.startIST.toMillis() - b.startIST.toMillis());
+      .filter((slot: ProcessedSlot) => slot.startIST >= nowIST)
+      .sort(
+        (a: ProcessedSlot, b: ProcessedSlot) =>
+          a.startIST.toMillis() - b.startIST.toMillis()
+      );
 
-      const groupedByDate: SlotGroupByDate[] = [];
+    const groupedByDate: SlotGroupByDate[] = [];
 
     for (const slot of processedSlots) {
-      let group = groupedByDate.find((g) => g.date === slot.date);
+      let group = groupedByDate.find(
+        (g: SlotGroupByDate) => g.date === slot.date
+      );
 
       if (!group) {
         group = { date: slot.date, slots: [] };
@@ -225,20 +220,24 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
       });
     }
 
-
-   const ratings = therapist.testimonials.map((t) => t.rating);
+    const ratings: number[] = therapist.testimonials.map(
+      (t: { rating: number }) => t.rating
+    );
 
     const avg =
       ratings.length > 0
         ? parseFloat(
             (
-              ratings.reduce((sum, r) => sum + r, 0) / ratings.length
+              ratings.reduce(
+                (sum: number, r: number) => sum + r,
+                0
+              ) / ratings.length
             ).toFixed(1)
           )
         : null;
 
     return {
-      slug : therapist.slug,
+      slug: therapist.slug,
       about: therapist.about,
       yearOfExperience: therapist.yearOfExperience,
       languageSpoken: therapist.languageSpoken,

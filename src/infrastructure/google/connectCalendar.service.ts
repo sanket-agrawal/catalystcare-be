@@ -101,7 +101,7 @@ export const connectCalendarService = {
 
       const redirectUrl =
         process.env.FRONTEND_DASHBOARD_URL ??
-        "https://catalystcare.in/therapist-dashboard";
+        "https://catalystcare.in/therapist-dashboard/availability";
 
       return `${redirectUrl}?googleCalendarConnected=true`;
     } catch (error) {

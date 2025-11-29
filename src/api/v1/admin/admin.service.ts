@@ -129,7 +129,6 @@ export const adminService = {
                 if(!user){
                     throw new ApiError(404,"User Not Found");
                 }
-                console.log(user);
                     const token = jwt.sign(
                       {
                         id: user.id,

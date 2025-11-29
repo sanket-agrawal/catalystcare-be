@@ -372,7 +372,7 @@ export class AvailabilityService{
        if (error instanceof ApiError) throw error;
       throw new ApiError(400, (error as Error).message);
     }
-  }
+    }
 
     async deleteAvailability(availabilityId: string) {
       try{
@@ -479,7 +479,6 @@ export class AvailabilityService{
 
 async fetchAvailabilityRules(therapistId: string) {
   try {
-    // Run DB queries in parallel
     const [availabilities, profile] = await Promise.all([
       prisma.therapistAvailability.findMany({
         where: { therapistId, isActive: true },

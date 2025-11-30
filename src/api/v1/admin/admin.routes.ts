@@ -17,5 +17,6 @@ router.get('/dashboard',authenticate,authorizeRoles('ADMIN'),adminController.das
 router.get('/billing-dashboard',authenticate,authorizeRoles('ADMIN'),adminController.billingDashboard)
 router.get('/therapist/vpa/:therapistId',authenticate,authorizeRoles('ADMIN'),adminController.fetchTherapistVPA);
 router.get('/approved-therapist',authenticate,authorizeRoles('ADMIN'),adminController.fetchApprovedTherapist);
+router.get('/email-blast-logs',authenticate,authorizeRoles('ADMIN'),adminController.fetchEmailBlastLogs);
 
 export default router;

@@ -2,11 +2,12 @@ import { Request, Response } from "express";
 import { emailService } from "./email.service";
 import ApiResponse from "../../../shared/utils/ApiResponse";
 import ApiError from "../../../shared/utils/ApiError";
+import { emailBlastQueue } from "../../../infrastructure/queues";
 
 export const emailController = {
     emailBlast : async (req: Request, res: Response) => {
   try {
-    const { target, subject, content } = req.body;
+    const { target, subject, content, reason, singleEmail } = req.body;
 
     const csvFile = req.file;
 
@@ -15,11 +16,13 @@ export const emailController = {
       subject,
       content,
       csvFile,
+      reason,
+      adminId : req.user.id,
+      singleEmail
     });
 
     // Add job to queue
-    // const job = await emailBlastQueue.add("email-blast", payload);
-    let job = {id : 1};
+    const job = await emailBlastQueue.add("email-blast", payload);
 
     return res.status(200).json(
       new ApiResponse(

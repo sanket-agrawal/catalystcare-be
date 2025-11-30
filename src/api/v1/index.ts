@@ -9,7 +9,7 @@ import adminRoutes from "./admin/admin.routes";
 import clientRoutes from "./client/client.routes";
 import healthRoutes from './health/health.routes';
 import paymentRoutes from './payments/payments.routes';
-// import emailRoutes from "./email/email.routes"
+import emailRoutes from "./email/email.routes"
 
 const router = express.Router();
 
@@ -23,7 +23,7 @@ router.use('/admin',adminRoutes);
 router.use('/client',clientRoutes);
 router.use('/health',healthRoutes);
 router.use('/payments',paymentRoutes);
-// router.use('/email',emailRoutes);
+router.use('/email',emailRoutes);
 
 
 export default router;

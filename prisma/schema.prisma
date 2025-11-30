@@ -505,7 +505,7 @@ model EmailBlastLog {
 
   subject            String
   content            String     
-  singleEmail        String?
+  singleEmail        String?    @map("single_email")
 
   @@map("email_blast_logs")
 }

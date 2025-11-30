@@ -5,19 +5,25 @@ interface EmailBlastPayload {
   target: string;
   subject: string;
   content: string;
+  reason : string;
+  adminId : string;
   csvFile?: Express.Multer.File | undefined;
+  singleEmail? : string;
 }
 
 export const emailService = {
     emailBlastService : async ({
+      reason,
   target,
   subject,
   content,
   csvFile,
+  singleEmail,
+  adminId
 }: EmailBlastPayload) => {
   try {
-    if (!target || !subject || !content) {
-      throw new ApiError(400, "Target, subject & content are required");
+    if (!target || !subject || !content || !reason) {
+      throw new ApiError(400, "Target, subject & content, reason are required");
     }
 
     let csvEmails: string[] = [];
@@ -33,10 +39,13 @@ export const emailService = {
     }
 
     return {
+      reason,
+      singleEmail,
       target,
       subject,
       content,
       csvEmails,
+      adminId
     };
   } catch (error) {
     if (error instanceof ApiError) throw error;

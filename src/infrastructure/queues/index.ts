@@ -25,3 +25,8 @@ export const meetingQueue = new Queue<CreateMeetingJobData>(
     connection : redisConnection,
   }
 );
+
+
+export const emailBlastQueue = new Queue("email-blast-queue", {
+  connection: redisConnection,
+});

@@ -478,6 +478,18 @@ export const adminService = {
             if (error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
             throw error;
         }
+    },
+    fetchEmailBlastLogs : async() => {
+        try{
+            return await prisma.emailBlastLog.findMany({
+                orderBy : {
+                    initiatedAt : "desc"
+                }
+            });
+        }catch(error){
+            if (error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
+            throw error;
+        }
     }
 
 }

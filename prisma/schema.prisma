@@ -30,6 +30,7 @@ model User {
 
   lastLogin        DateTime          @default(now()) @map("last_login")    
 
+  emailBlasts      EmailBlastLog[]  @relation("EmailBlastInitiated")
 
   @@map("users")
   @@index([email])
@@ -490,4 +491,21 @@ model CommissionRate {
 
   @@map("commission_rates")
   @@index([effectiveFrom])
+}
+
+model EmailBlastLog {
+  id                 String     @id @default(uuid())
+  reason             String?    
+  carriedFor         String?    @map("carried_for")   
+  totalEmailSent     Int        @default(0) @map("total_email_sent")
+  initiatedAt        DateTime   @default(now()) @map("initiated_at")
+  adminId            String     @map("admin_id")
+
+  admin              User       @relation("EmailBlastInitiated", fields: [adminId], references: [id], onDelete: Cascade)
+
+  subject            String
+  content            String     
+  singleEmail        String?
+
+  @@map("email_blast_logs")
 }

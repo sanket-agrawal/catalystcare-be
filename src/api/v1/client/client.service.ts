@@ -236,6 +236,9 @@ export const clientService = {
                }
               //  include: { user: true },
              } 
+          },
+          orderBy : {
+            updatedAt : 'desc'
           }
         });
         return bookings;

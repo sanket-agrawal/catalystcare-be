@@ -173,6 +173,9 @@ export const therapistService = {
                }
               //  include: { user: true },
              } 
+          },
+          orderBy : {
+            updatedAt : 'desc'
           }
         });
     }catch(error){

@@ -448,7 +448,7 @@ async getAvailableSlots(therapistId: string) {
         // dateTo = now + 30 days
         dateTo: DateTime.fromJSDate(nowUtc).plus({ days: 30 }).toUTC().toISO()
       };
-    }).then(async (jobPayload: UpdateAvailabilityJobPayload) {
+    }).then(async (jobPayload: UpdateAvailabilityJobPayload) => {
       // queue job idempotently so retries don't create duplicate jobs
       const jobId = `update_single_availability_${jobPayload.newAvailabilityId}_${jobPayload.dateFrom.slice(0,10)}`;
       await slotQueue.add(

@@ -195,12 +195,12 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
     }
 
     // ---------- AVERAGE RATING ----------
-    const ratings = therapist.testimonials.map(t => t.rating);
+    const ratings = therapist.testimonials.map((t: { rating: number }) => t.rating);
 
     const averageRating =
       ratings.length > 0
         ? parseFloat(
-            (ratings.reduce((acc, r) => acc + r, 0) / ratings.length).toFixed(1)
+            (ratings.reduce((acc: number, r: number) => acc + r, 0) / ratings.length).toFixed(1)
           )
         : null;
 

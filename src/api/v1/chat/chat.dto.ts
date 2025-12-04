@@ -1,2 +1,2 @@
-export type MessageType = "TEXT" | "IMAGE" | "FILE" | "SYSTEM";
+export type MessageType = "TEXT" | "FILE" | "LINK";
 

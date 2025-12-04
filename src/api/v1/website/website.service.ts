@@ -154,7 +154,6 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
         slots: {
           where: {
             status: { not: "CANCELLED" },
-            startDateTime: { gte: new Date() }   // ⭐ FUTURE SLOTS ONLY
           },
           select: {
             id: true,

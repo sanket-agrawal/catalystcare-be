@@ -7,7 +7,6 @@ import slugify from 'slugify'
 import { emailFromAddress, emailSubjects } from "../../../shared/config/email.config";
 import { emailQueue } from "../../../infrastructure/queues";
 import { decryptStringGCM, encryptStringGCM, normalizeVpa, sha256Hex } from "../../../shared/lib/crypto";
-import { getDateRange } from "../../../shared/lib/date";
 
 export const therapistService = {
   async register(userId: string, data: TherapistRegisterDTO, userEmail : string, userName : string, lastName : string) {

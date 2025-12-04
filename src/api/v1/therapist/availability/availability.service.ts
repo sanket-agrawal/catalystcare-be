@@ -5,6 +5,7 @@ import ApiError from "../../../../shared/utils/ApiError";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { slotQueue } from "../../../../infrastructure/queues";
 import { DateTime } from "luxon";
+import { Prisma } from "@prisma/client";
 
 
 const timeZone = 'Asia/Kolkata';
@@ -55,6 +56,13 @@ export type GroupedSlots = {
     endDateTimeIST: string;
   }[];
 };
+
+interface UpdateAvailabilityJobPayload {
+  newAvailabilityId: string;
+  therapistId: string;
+  dateFrom: string;
+  dateTo: string;
+}
 
 
 export class AvailabilityService{
@@ -379,7 +387,7 @@ async getAvailableSlots(therapistId: string) {
 
 
     // return newAvailability;
-    return await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx : Prisma.TransactionClient) => {
       // overlap check against other active availabilities
       const overlaps = await this.checkOverlappingAvailabilityTx(
         tx,
@@ -440,7 +448,7 @@ async getAvailableSlots(therapistId: string) {
         // dateTo = now + 30 days
         dateTo: DateTime.fromJSDate(nowUtc).plus({ days: 30 }).toUTC().toISO()
       };
-    }).then(async (jobPayload) => {
+    }).then(async (jobPayload: UpdateAvailabilityJobPayload) {
       // queue job idempotently so retries don't create duplicate jobs
       const jobId = `update_single_availability_${jobPayload.newAvailabilityId}_${jobPayload.dateFrom.slice(0,10)}`;
       await slotQueue.add(
@@ -458,7 +466,7 @@ async getAvailableSlots(therapistId: string) {
       // return the newly created availability object for API response
       const created = await prisma.therapistAvailability.findUnique({ where: { id: jobPayload.newAvailabilityId } });
       return created;
-    }).catch((err) => {
+    }).catch((err : unknown) => {
       // bubble ApiError
       if (err instanceof ApiError) throw err;
       throw new ApiError(400, (err as Error).message);
@@ -473,7 +481,7 @@ async getAvailableSlots(therapistId: string) {
     async deleteAvailability(availabilityId: string, therapistId: string) {
   const now = new Date();
 
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx : Prisma.TransactionClient) => {
     // 1. Fetch availability
     const availability = await tx.therapistAvailability.findUnique({
       where: { id: availabilityId }
@@ -661,7 +669,7 @@ async fetchAvailabilityRules(therapistId: string) {
   }
 
    private async checkOverlappingAvailabilityTx(
-    tx: any,
+    tx: Prisma.TransactionClient,
     therapistId: string,
     dayOfWeek: string,
     startTime: string,

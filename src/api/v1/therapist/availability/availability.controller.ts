@@ -103,7 +103,7 @@ export class AvailabilityController {
   async getAvailableSlots(req: Request, res: Response, next: NextFunction) {
     try {
      
-      const { therapistId } = req.params;
+      const { therapistProfileId : therapistId} = req.user;
 
       const slots = await availabilityService.getAvailableSlots(therapistId);
 
@@ -154,13 +154,13 @@ export class AvailabilityController {
     try {
       const { therapistProfileId : therapistId } = req.user;
 
-      const {availabilities, timelineData} = await availabilityService.fetchAvailabilityRules(therapistId)
+      const {availabilityByDay, timelineData} = await availabilityService.fetchAvailabilityRules(therapistId)
       res.status(200).json( new ApiResponse(
         true,
         200,
         'Availability fetched successfully',
         {
-          availabilities ,
+          availabilities : availabilityByDay,
           timelineData 
         }
       ));
@@ -233,7 +233,7 @@ export class AvailabilityController {
         return res.status(403).json(new ApiResponse(false,403,'Unauthorized'));
       }
 
-      await availabilityService.deleteAvailability(availabilityId);
+      await availabilityService.deleteAvailability(availabilityId, therapistId);
 
       res.status(200).json(new ApiResponse(
         true,
@@ -311,14 +311,6 @@ export class AvailabilityController {
     } catch (error) {
       next(error);
     }
-  }
-
-  async blockDate(req : Request, res : Response){
-   try{
-
-   }catch(error){
-
-   }
   }
 }
 

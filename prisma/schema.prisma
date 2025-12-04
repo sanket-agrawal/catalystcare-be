@@ -32,6 +32,9 @@ model User {
 
   emailBlasts      EmailBlastLog[]  @relation("EmailBlastInitiated")
 
+  messages         Message[]        @relation("UserMessages")
+
+
   @@map("users")
   @@index([email])
 }
@@ -198,6 +201,8 @@ model TherapistProfile {
 
   calendarId                           String?          @map("calendar_id")
 
+  slots                                AvailabilitySlot[]
+
   @@map("therapist_profiles")
 }
 
@@ -290,6 +295,7 @@ model AvailabilitySlot {
   availability          TherapistAvailability   @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
   
   therapistId           String                  @map("therapist_id")
+  therapist             TherapistProfile        @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   
   startDateTime         DateTime                @map("start_date_time")
   endDateTime           DateTime                @map("end_date_time")
@@ -342,6 +348,8 @@ model Booking {
   meetingLink      String?                @map("meeting_link")
   calendarEventId  String?                @map("calendar_event_id")
   meetingProvider  String?                @map("meeting_provider") // e.g. 'GOOGLE_MEET'
+
+  conversation   Conversation?
 
   @@index([clientId, status])
   @@index([therapistId, status])
@@ -508,4 +516,68 @@ model EmailBlastLog {
   singleEmail        String?    @map("single_email")
 
   @@map("email_blast_logs")
+}
+
+model Conversation {
+  id             String    @id @default(uuid())
+  bookingId      String?   @unique @map("booking_id")
+  booking        Booking?  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  clientId       String?   @map("client_id")
+  therapistId    String?   @map("therapist_id")
+
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  lastMessageAt  DateTime? @map("last_message_at")
+
+  messages       Message[]
+
+  clientLastReadAt    DateTime?  @map("client_last_read_at")
+  therapistLastReadAt DateTime?  @map("therapist_last_read_at")
+
+
+  @@index([clientId])
+  @@index([therapistId])
+  @@map("conversations")
+}
+
+enum MessageType {
+  TEXT
+  LINK
+  FILE
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String       @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId       String       @map("sender_id")
+  sender         User         @relation("UserMessages",fields: [senderId], references: [id], onDelete: Cascade)
+
+  type           MessageType  @default(TEXT)
+  content        String?      
+  meta           Json?        
+
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  attachments    Attachment[]
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+model Attachment {
+  id         String   @id @default(uuid())
+  messageId  String   @map("message_id")
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  url        String  
+  filename   String
+  mimeType   String   @map("mime_type")
+  sizeBytes  Int      @map("size_bytes")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([messageId])
+  @@map("attachments")
 }

@@ -38,6 +38,7 @@ if (job.name === "regenerate_future_slots") {
   console.log("🧠 Daily slot regeneration complete.");
 }
 
+// slot.worker.ts (only relevant excerpt)
 if (job.name === "update_single_availability") {
   const {
     therapistId,
@@ -47,37 +48,27 @@ if (job.name === "update_single_availability") {
     dateTo
   } = job.data;
 
-  console.log("⛔ Cancelling old future slots...");
-
-  // await prisma.availabilitySlot.updateMany({
-  //   where: {
-  //     availabilityId: oldAvailabilityId,
-  //     status: "AVAILABLE",
-  //     startDateTime: { gte: new Date(dateFrom) }
-  //   },
-  //   data: {
-  //     status: "CANCELLED"
-  //   }
-  // });
+  console.log("⛔ Cancelling old future AVAILABLE slots for old availability...", oldAvailabilityId);
 
   await prisma.availabilitySlot.deleteMany({
-  where: {
-    availabilityId: oldAvailabilityId,
-    status: "AVAILABLE",
-    startDateTime: { gte: new Date(dateFrom) }
-  }
-});
+    where: {
+      availabilityId: oldAvailabilityId,
+      status: "AVAILABLE",
+      startDateTime: { gte: new Date(dateFrom) }
+    }
+  });
 
-  console.log("🔄 Generating new slots...");
+  console.log("🔄 Generating new slots for new availability only...");
 
-  // only regenerate for new availability
+  // Only generate slots for the new availability (scoped)
   return await slotService.generateSlots({
     therapistId,
     dateFrom,
-    dateTo
+    dateTo,
+    availabilityId: newAvailabilityId
   });
-
 }
+
 
 
 

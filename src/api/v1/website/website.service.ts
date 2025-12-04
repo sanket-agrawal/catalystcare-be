@@ -4,6 +4,7 @@ import { serverConfig } from "../../../shared/config/server.config";
 import { DateTime } from "luxon";
 import { AvailabilitySlotType, ProcessedSlot, SlotGroupByDate } from "./website.dto";
 import { frontendConfig } from "../../../shared/config/frontend.config";
+import { GroupedSlots } from "../therapist/availability/availability.service";
 
 export const getAllCategories = async () => {
     try {
@@ -124,13 +125,15 @@ subCategories : {
 
 export const fetchTherapistBySlugService = async (therapistSlug: string) => {
   try {
+    // ---------- FETCH THERAPIST BASIC DETAILS ----------
     const therapist = await prisma.therapistProfile.findFirst({
       where: {
         slug: therapistSlug,
         status: "APPROVED",
-        user: { isEmailVerified: true },
+        user: { isEmailVerified: true }
       },
       select: {
+        id: true,
         slug: true,
         about: true,
         yearOfExperience: true,
@@ -138,103 +141,66 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
         sessionFee: true,
         categories: { select: { slug: true, name: true } },
         subCategories: { select: { slug: true, name: true } },
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            profilePhoto: true,
-          },
-        },
+        user: { select: { firstName: true, lastName: true, profilePhoto: true } },
         testimonials: {
           select: {
             client: { select: { firstName: true, lastName: true } },
             text: true,
-            rating: true,
-          },
+            rating: true
+          }
         },
-        availability: {
+
+        // 🔥 RETURN ONLY FUTURE SLOTS FROM NOW
+        slots: {
+          where: {
+            status: { not: "CANCELLED" },
+          },
           select: {
-            slots: {
-              where: { status: "AVAILABLE" },
-              select: {
-                id: true,
-                startDateTime: true,
-                endDateTime: true,
-                status: true,
-              },
-            },
+            id: true,
+            startDateTime: true,
+            endDateTime: true,
+            status: true
           },
-        },
-      },
+          orderBy: { startDateTime: "asc" }
+        }
+      }
     });
 
     if (!therapist) {
       throw new ApiError(404, "Therapist not found");
     }
 
-    // --------- Types added here ---------
-    const allSlots: AvailabilitySlotType[] = therapist.availability.flatMap(
-      (a: { slots: AvailabilitySlotType[] }) => a.slots
-    );
+    // ---------- GROUP SLOTS BY IST DATE ----------
+    const grouped: Record<string, any[]> = {};
 
-    const nowIST = DateTime.now().setZone("Asia/Kolkata");
+    for (const s of therapist.slots) {
+      const startIST = DateTime.fromJSDate(s.startDateTime, { zone: "utc" })
+        .setZone("Asia/Kolkata");
 
-    const processedSlots: ProcessedSlot[] = allSlots
-      .map((slot: AvailabilitySlotType): ProcessedSlot => {
-        const startIST = DateTime.fromJSDate(slot.startDateTime, { zone: "utc" })
-          .setZone("Asia/Kolkata");
+      const endIST = DateTime.fromJSDate(s.endDateTime, { zone: "utc" })
+        .setZone("Asia/Kolkata");
 
-        const endIST = DateTime.fromJSDate(slot.endDateTime, { zone: "utc" })
-          .setZone("Asia/Kolkata");
+      const dayKey = startIST.toFormat("yyyy-MM-dd");
 
-        return {
-          id: slot.id,
-          status: slot.status,
-          date: startIST.toFormat("yyyy-MM-dd"),
-          startTime: startIST.toFormat("HH:mm"),
-          endTime: endIST.toFormat("HH:mm"),
-          startIST,
-        };
-      })
-      .filter((slot: ProcessedSlot) => slot.startIST >= nowIST)
-      .sort(
-        (a: ProcessedSlot, b: ProcessedSlot) =>
-          a.startIST.toMillis() - b.startIST.toMillis()
-      );
+      if (!grouped[dayKey]) grouped[dayKey] = [];
 
-    const groupedByDate: SlotGroupByDate[] = [];
-
-    for (const slot of processedSlots) {
-      let group = groupedByDate.find(
-        (g: SlotGroupByDate) => g.date === slot.date
-      );
-
-      if (!group) {
-        group = { date: slot.date, slots: [] };
-        groupedByDate.push(group);
-      }
-
-      group.slots.push({
-        id: slot.id,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        status: slot.status,
+      grouped[dayKey].push({
+        id: s.id,
+        startTime: startIST.toFormat("HH:mm"),
+        endTime: endIST.toFormat("HH:mm"),
+        status: s.status,
+        startDateTimeIST: startIST.toISO()!,
+        endDateTimeIST: endIST.toISO()!
       });
     }
 
-    const ratings: number[] = therapist.testimonials.map(
-      (t: { rating: number }) => t.rating
-    );
+    // ---------- AVERAGE RATING ----------
+    const ratings = therapist.testimonials.map(t => t.rating);
 
-    const avg =
+    const averageRating =
       ratings.length > 0
         ? parseFloat(
-            (
-              ratings.reduce(
-                (sum: number, r: number) => sum + r,
-                0
-              ) / ratings.length
-            ).toFixed(1)
+            (ratings.reduce((acc, r) => acc + r, 0) / ratings.length).toFixed(1)
           )
         : null;
 
@@ -248,15 +214,13 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
       categories: therapist.categories,
       subCategories: therapist.subCategories,
       testimonials: therapist.testimonials,
-      slots: groupedByDate,
-      averageRating: avg,
+      slots: grouped, // grouped IST slots
+      averageRating,
       totalReviews: ratings.length,
-      shareUrl: `${frontendConfig.therapistProfilePage}/${therapist.slug}`,
+      shareUrl: `${frontendConfig.therapistProfilePage}/${therapist.slug}`
     };
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw new ApiError(error.statusCode, error.message);
-    }
-    throw error;
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(400, (error as Error).message);
   }
 };

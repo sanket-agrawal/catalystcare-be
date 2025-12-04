@@ -1,7 +1,6 @@
 // services/slot.service.ts
 import {prisma} from '../../../../infrastructure/prisma/client';
-import { addDays, startOfDay } from "date-fns";
-import { normalizeToUTCDate, timeStrToDate } from '../../../../shared/lib/date';
+import { timeStrToDate } from '../../../../shared/lib/date';
 
 const DAY_NAME_TO_INDEX: Record<string, number> = {
   SUNDAY: 0,
@@ -26,19 +25,24 @@ type Avail = {
 
 
 
-function getDatesInRange(start: Date, end: Date) {
-   const dates: Date[] = [];
+function stripTimeKeepDate(date: Date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
 
-  let cur = normalizeToUTCDate(start);
-  const last = normalizeToUTCDate(end);
+function getDatesInRange(start: Date, end: Date) {
+  const dates: Date[] = [];
+  let cur = stripTimeKeepDate(start);
+  const last = stripTimeKeepDate(end);
 
   while (cur <= last) {
     dates.push(new Date(cur));
-    cur = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth(), cur.getUTCDate() + 1));
+    cur = new Date(cur.getTime() + 24 * 60 * 60 * 1000);
   }
 
   return dates;
 }
+
+
 
 function generateSlotsForInterval(dayDate: Date, startTime: string, endTime: string, durationMin: number) {
   const slots = [];
@@ -56,80 +60,80 @@ function generateSlotsForInterval(dayDate: Date, startTime: string, endTime: str
 
 class SlotService {
   // generateSlots: given therapistId and date range ISO strings
-  async generateSlots(payload: { therapistId: string; dateFrom: string; dateTo: string, availabilityId?: string }) {
-    const { therapistId, dateFrom, dateTo } = payload;
-    const start = new Date(dateFrom);
-    const end = new Date(dateTo);
+// slot.service.ts (relevant changes)
+async generateSlots(payload: { therapistId: string; dateFrom: string; dateTo: string; availabilityId?: string }) {
+  const { therapistId, dateFrom, dateTo, availabilityId } = payload;
+  const start = new Date(dateFrom);
+  const end = new Date(dateTo);
 
-    // Fetch active availabilities for therapist
-    const activeAvail = await prisma.therapistAvailability.findMany({
-      where: { therapistId, isActive: true }
+  // Load availabilities scoped to availabilityId if provided
+  const availWhere: any = { therapistId, isActive: true };
+  if (availabilityId) {
+    availWhere.id = availabilityId;
+  }
+  const activeAvail = await prisma.therapistAvailability.findMany({
+    where: availWhere
+  });
+
+  if (!activeAvail || activeAvail.length === 0) return { created: 0 };
+
+  const dates = getDatesInRange(start, end);
+  const createManyData: any[] = [];
+  const now = new Date();
+
+  for (const d of dates) {
+    const dow = d.getDay(); // 0..6
+    const rowsForDay = activeAvail.filter((a: Avail) => {
+      const idx = DAY_NAME_TO_INDEX[a.dayOfWeek];
+      return idx === dow;
     });
-    if (!activeAvail || activeAvail.length === 0) return { created: 0 };
+    if (rowsForDay.length === 0) continue;
 
-    const dates = getDatesInRange(start, end);
+    for (const row of rowsForDay) {
+      // effectiveFrom/effectiveTo date comparison — treat as UTC day boundaries
+      if (row.effectiveFrom && d < new Date(row.effectiveFrom.toString())) continue;
+      if (row.effectiveTo && d > new Date(row.effectiveTo.toString())) continue;
 
-    const createManyData: any[] = [];
-    const now = new Date();
+      const intervalSlots = generateSlotsForInterval(d, row.startTime, row.endTime, row.slotDuration);
 
-    for (const d of dates) {
-      const dow = d.getDay(); // 0..6
-      // find availabilities that match day index
-      const rowsForDay = activeAvail.filter((a : Avail) => {
-        const idx = DAY_NAME_TO_INDEX[a.dayOfWeek];
-        return idx === dow;
-      });
-      if (rowsForDay.length === 0) continue;
+      for (const s of intervalSlots) {
+        // skip past slots
+        if (s.end <= now) continue;
 
-      for (const row of rowsForDay) {
-        // if effectiveFrom/effectiveTo range check
-        if (row.effectiveFrom && d < row.effectiveFrom) continue;
-        if (row.effectiveTo && d > row.effectiveTo) continue;
-
-        const intervalSlots = generateSlotsForInterval(d, row.startTime, row.endTime, row.slotDuration);
-
-        for (const s of intervalSlots) {
-          // skip past slots
-          if (s.end <= now) continue;
-
-          createManyData.push({
-            id:  undefined, // Prisma will auto-generate if omitted
-            availabilityId: row.id,
-            therapistId,
-            startDateTime: s.start,
-            endDateTime: s.end,
-            status: "AVAILABLE",
-            createdAt: new Date(),
-            updatedAt: new Date()
-          });
-        }
+        createManyData.push({
+          availabilityId: row.id,
+          therapistId,
+          startDateTime: s.start,
+          endDateTime: s.end,
+          status: "AVAILABLE",
+        });
       }
     }
-
-    if (createManyData.length === 0) return { created: 0 };
-
-    // Use createMany with skipDuplicates to avoid unique constraint errors
-    // Prisma expects Date objects; ensure your DB supports skipDuplicates (Postgres does)
-    const batchSize = 500; // safe batch size
-    let createdCount = 0;
-    for (let i = 0; i < createManyData.length; i += batchSize) {
-      const chunk = createManyData.slice(i, i + batchSize);
-      const res = await prisma.availabilitySlot.createMany({
-        data: chunk.map(c => ({
-          availabilityId: c.availabilityId,
-          therapistId: c.therapistId,
-          startDateTime: c.startDateTime,
-          endDateTime: c.endDateTime,
-          status: c.status,
-        })),
-        skipDuplicates: true
-      });
-      // createMany returns count in Prisma as number of created rows
-      createdCount += (res.count ?? 0);
-    }
-
-    return { created: createdCount };
   }
+
+  if (createManyData.length === 0) return { created: 0 };
+
+  // batch create using skipDuplicates
+  const batchSize = 500;
+  let createdCount = 0;
+  for (let i = 0; i < createManyData.length; i += batchSize) {
+    const chunk = createManyData.slice(i, i + batchSize);
+    const res = await prisma.availabilitySlot.createMany({
+      data: chunk.map(c => ({
+        availabilityId: c.availabilityId,
+        therapistId: c.therapistId,
+        startDateTime: c.startDateTime,
+        endDateTime: c.endDateTime,
+        status: c.status,
+      })),
+      skipDuplicates: true
+    });
+    createdCount += (res.count ?? 0);
+  }
+
+  return { created: createdCount };
+}
+
 
   // optional helper to delete outdated available slots before regenerating (for update flow)
   async deleteUnbookedSlotsInRange(therapistId: string, dateFrom: Date, dateTo: Date) {

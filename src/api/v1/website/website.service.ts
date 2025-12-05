@@ -153,7 +153,7 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
         // 🔥 RETURN ONLY FUTURE SLOTS FROM NOW
         slots: {
           where: {
-            status: { not: "CANCELLED" },
+            status: "AVAILABLE",
           },
           select: {
             id: true,

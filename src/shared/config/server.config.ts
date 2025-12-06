@@ -4,7 +4,7 @@ dotenv.config();
 export const serverConfig = {
   port: process.env.PORT || 4000,
   nodeEnv: process.env.NODE_ENV || 'development',
-  baseFrontendUrl : "https://www.catalystcare.in",
+  baseFrontendUrl : process.env.FRONTEND_BASE_URL as string,
   superAdminEmail : process.env.SUPER_ADMIN_EMAIL as string,
 };
 

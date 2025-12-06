@@ -1,8 +1,7 @@
 import ApiError from "../../../shared/utils/ApiError";
 import ApiResponse from "../../../shared/utils/ApiResponse";
-import {prisma} from '../../../infrastructure/prisma/client'
 import { Request, Response } from "express";
-import { uploadFileToS3 } from "../../../infrastructure/aws/s3";
+import { uploadFileToAzureBlob } from "../../../infrastructure/azure/blob";
 
 export const uploadFile = async (req : Request, res : Response) => {
     try {
@@ -26,8 +25,9 @@ export const uploadFile = async (req : Request, res : Response) => {
         );
         }
 
-        const key = `/${entity}/${folder}/${userId}/${docType}-${Date.now()}.${file.mimetype.split('/')[1]}`;
-        await uploadFileToS3(file.buffer, key, file.mimetype);
+        const key = `${entity}/${folder}/${userId}/${docType}-${Date.now()}.${file.mimetype.split('/')[1]}`;
+        // await uploadFileToS3(file.buffer, key, file.mimetype);
+        await uploadFileToAzureBlob(file.buffer,key,file.mimetype)
 
         res.status(200).json(
             new ApiResponse(true, 200, "File uploaded successfully", { fileUrl: key })

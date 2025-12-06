@@ -17,7 +17,7 @@ RUN npm ci
 COPY . .
 
 # Build TypeScript
-RUN npm run build
+RUN NODE_OPTIONS="--max-old-space-size=1024" npm run build
 
 # Copy Prisma schema first (better layer caching)
 COPY prisma ./prisma/

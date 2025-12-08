@@ -74,10 +74,22 @@ export const verifyOTPService = async (data : verifyOTPInput) => {
     let isTherapistProfileFilled = false;
 
     if (user.role === "CLIENT") {
-      const clientProfile = await prisma.clientProfile.findUnique({
+      let clientProfile = null;
+      clientProfile = await prisma.clientProfile.findUnique({
         where: { userId: user.id },
       });
-      isClientProfileFilled = !!clientProfile;
+
+      if(clientProfile){
+        isClientProfileFilled = true;
+      }else{
+          clientProfile = await prisma.clientProfile.create({
+              data: {
+                userId: user.id,
+              },
+            });
+        isClientProfileFilled = false;
+      }
+      // isClientProfileFilled = !!clientProfile;
 
       // Step 5: Generate JWT
     const token = jwt.sign(
@@ -88,6 +100,7 @@ export const verifyOTPService = async (data : verifyOTPInput) => {
         email: user.email,
         phone: user.mobileNumber,
         role: user.role,
+        clientProfileId : clientProfile ? clientProfile.id : null
       },
       process.env.JWT_SECRET as string,
       { expiresIn: "7d" }

@@ -17,3 +17,18 @@ export const userProfile = async (req : Request, res : Response) => {
         }
     }
 }
+
+export const updateUserProfile = async (req : Request, res : Response) => {
+    try{
+         const updateData = req.body;
+            const updatedUser = await userService.updateUserProfileService(req.user, updateData);
+            res.status(200).json(new ApiResponse(true, 200,"User profile updated successfully",updatedUser));
+    }catch(error){
+         console.log('updating user profile failed', error);
+        if(error instanceof ApiError){
+            res.status(error.statusCode).json(new ApiResponse(false, error.statusCode,error.message));
+        }else{
+            res.status(500).json(new ApiResponse(false, 500,"Something went wrong while fetching user profile"));
+        }
+    }
+}

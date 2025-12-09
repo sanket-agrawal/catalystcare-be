@@ -70,6 +70,7 @@ export async function createGoogleMeetForBooking(
 
   const event = await calendar.events.insert({
     calendarId,
+    sendUpdates: "none",
     conferenceDataVersion: 1,
     requestBody: {
       summary,

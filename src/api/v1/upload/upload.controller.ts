@@ -10,6 +10,7 @@ export const uploadFile = async (req : Request, res : Response) => {
         const entity = req.query.entity;
         const file = req.file;
         let folder = 'private';
+        let key;
 
         if(docType === 'profilePic'){
             folder = 'public';
@@ -25,7 +26,15 @@ export const uploadFile = async (req : Request, res : Response) => {
         );
         }
 
-        const key = `${entity}/${folder}/${userId}/${docType}-${Date.now()}.${file.mimetype.split('/')[1]}`;
+        // console.log(file.mimetype.split("/")[1])
+
+         if (docType === "profilePic") {
+        key = `${entity}/${folder}/${userId}/profile.${file.mimetype.split("/")[1]}`;
+        } else {
+        key = `${entity}/${folder}/${userId}/${docType}-${Date.now()}.${file.mimetype.split("/")[1]}`;
+        }
+
+        // key = `${entity}/${folder}/${userId}/${docType}-${Date.now()}.${file.mimetype.split('/')[1]}`;
         // await uploadFileToS3(file.buffer, key, file.mimetype);
         await uploadFileToAzureBlob(file.buffer,key,file.mimetype)
 

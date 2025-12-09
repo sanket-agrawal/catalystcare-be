@@ -19,4 +19,6 @@ export const CALENDAR_SCOPES = [
   "email",
   "profile",
   "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/userinfo.profile",
 ];

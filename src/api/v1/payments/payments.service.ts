@@ -288,7 +288,7 @@ export const paymentService = {
         type: "exponential",
         delay: 10_000,
       },
-      removeOnComplete: true,
+      removeOnComplete: false,
       removeOnFail: false,
     }
   );

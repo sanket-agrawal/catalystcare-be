@@ -1,3 +1,5 @@
+import { serverConfig } from "../../shared/config/server.config";
+
 export const clientBookingConfirmationTemplate = (
   clientFirstName: string,
   therapistName: string,
@@ -26,7 +28,7 @@ export const clientBookingConfirmationTemplate = (
               <!-- Header -->
               <tr>
                 <td align="center" style="padding: 20px;">
-                  <img src="https://catalystcare.in/assets/favicon.ico" 
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" 
                        alt="Catalyst Care" width="120" style="display:block;">
                 </td>
               </tr>
@@ -68,8 +70,8 @@ export const clientBookingConfirmationTemplate = (
                 <td align="center" style="background-color: #f3f4f6; padding: 12px; 
                     font-size: 13px; color: #555;">
                   © Catalyst Care |
-                  <a href="https://catalystcare.in" 
-                     style="color: #007bff; text-decoration: none;">catalystcare.in</a>
+                  <a href="${serverConfig.baseFrontendUrl}" 
+                     style="color: #007bff; text-decoration: none;">${serverConfig.baseFrontendUrl}</a>
                 </td>
               </tr>
 
@@ -112,7 +114,7 @@ export const therapistBookingConfirmationTemplate = (
               <!-- Header -->
               <tr>
                 <td align="center" style="padding: 20px;">
-                  <img src="https://catalystcare.in/assets/favicon.ico" 
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" 
                        alt="Catalyst Care" width="120" style="display:block;">
                 </td>
               </tr>
@@ -154,8 +156,8 @@ export const therapistBookingConfirmationTemplate = (
                 <td align="center" style="background-color: #f3f4f6; padding: 12px; 
                     font-size: 13px; color: #555;">
                   © Catalyst Care |
-                  <a href="https://catalystcare.in" style="color: #28a745; text-decoration: none;">
-                    catalystcare.in
+                  <a href="${serverConfig.baseFrontendUrl}" style="color: #28a745; text-decoration: none;">
+                    ${serverConfig.baseFrontendUrl}
                   </a>
                 </td>
               </tr>

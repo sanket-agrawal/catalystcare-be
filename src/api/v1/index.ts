@@ -10,6 +10,8 @@ import clientRoutes from "./client/client.routes";
 import healthRoutes from './health/health.routes';
 import paymentRoutes from './payments/payments.routes';
 import emailRoutes from "./email/email.routes";
+import { authorizeRoles } from "../../shared/middlewares/rbac";
+import { authenticate } from "../../shared/middlewares/authenticatation";
 // import chatRoutes from "./chat/chat.routes";
 
 const router = express.Router();
@@ -18,7 +20,7 @@ router.use('/user',userRoutes);
 router.use('/auth',authRoutes);
 router.use('/website',websiteRoutes);
 router.use('/therapist',therapistRoutes);
-router.use('/master-data', masterRoutes);
+router.use('/master-data', authenticate,authorizeRoles('ADMIN'),masterRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/admin',adminRoutes);
 router.use('/client',clientRoutes);

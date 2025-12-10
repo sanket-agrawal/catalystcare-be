@@ -13,7 +13,7 @@ model User {
   lastName         String            
   email            String            @unique @map("email")
   mobileNumber     String?           @map("mobile_number")
-  password         String
+  password         String?
   role             UserRole          @default(CLIENT) @map("role")
   isEmailVerified  Boolean           @default(false) @map("is_email_verified")
   isMobileVerified Boolean           @default(false) @map("is_mobile_verified")
@@ -34,9 +34,19 @@ model User {
 
   messages         Message[]        @relation("UserMessages")
 
+  authProvider     AuthProvider     @default(LOCAL) @map("auth_provider")
+  googleAuthId     String?          @unique @map("google_auth_id")
+  googleEmail      String?          @map("google_email")
+
 
   @@map("users")
   @@index([email])
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  HYBRID
 }
 
 enum UserRole {

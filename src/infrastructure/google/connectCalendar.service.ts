@@ -20,6 +20,15 @@ export const connectCalendarService = {
       ts: Date.now(),
     });
 
+    const therapist = await prisma.therapistProfile.findUnique({
+      where: { userId: user.id },
+      select: { id: true, status : true },
+    });
+
+    if(therapist?.status !== 'APPROVED'){
+      throw new ApiError(403,"Only approved therapists can connect Google Calendar");
+    }
+
     const url = oauth2Client.generateAuthUrl({
       access_type: "offline",
       prompt: "consent",
@@ -67,11 +76,25 @@ export const connectCalendarService = {
       // Find therapistProfile by userId
       const therapist = await prisma.therapistProfile.findUnique({
         where: { userId },
-        select: { id: true },
+        select: { id: true , status : true, user : {select : {email : true}} },
       });
 
       if (!therapist) {
         throw new ApiError(400,"Therapist profile not found");
+      }
+
+      if(therapist.status !== 'APPROVED'){
+      throw new ApiError(403,"Only approved therapists can connect Google Calendar");
+    }
+
+      if (
+        therapist.user.email &&
+        therapist.user.email !== googleUser.email
+      ) {
+        throw new ApiError(
+          400,
+          `Email Id match failed. Logged in user email (${therapist.user.email}) does not match Google account email (${googleUser.email})`
+        );
       }
 
       const expiryDate =

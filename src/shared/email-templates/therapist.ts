@@ -1,3 +1,5 @@
+import { serverConfig } from "../../shared/config/server.config";
+
 export const registrationTemplate = (therapistName: string) => {
   return `
   <!DOCTYPE html>
@@ -15,7 +17,7 @@ export const registrationTemplate = (therapistName: string) => {
           <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
           <tr>
                 <td align="center" style="padding: 20px;">
-                  <img src="https://catalystcare.in/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
                 </td>
               </tr>
             <tr>
@@ -74,7 +76,7 @@ export const registrationTemplate = (therapistName: string) => {
 
                         <tr>
                 <td align="center" style="background-color: #f3f4f6; padding: 12px; font-size: 13px; color: #555;">
-                  © Catalyst Care | <a href="https://catalystcare.in" style="color: #007bff; text-decoration: none;">catalystcare.in</a>
+                  © Catalyst Care | <a href="${serverConfig.baseFrontendUrl}" style="color: #007bff; text-decoration: none;">${serverConfig.baseFrontendUrl}</a>
                 </td>
               </tr>
           </table>

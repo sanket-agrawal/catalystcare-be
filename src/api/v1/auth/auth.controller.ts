@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { forgotPasswordService, loginService, registerUserService, resetPasswordService, verifyForgotPasswordOTPService, verifyOTPService } from "./auth.service";
 import ApiResponse from "../../../shared/utils/ApiResponse";
 import ApiError from "../../../shared/utils/ApiError";
+import { googleSignInService } from "../../../infrastructure/google/googleSignin.service";
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -129,3 +130,25 @@ export const verifyForgotPasswordOTP = async (req : Request, res : Response)=> {
     }
   }
 }
+
+export const googleSignin = async (req: Request, res: Response) => {
+  try {
+    const { idToken } = req.body;
+    const result = await googleSignInService(idToken);
+    res
+      .status(200)
+      .json(new ApiResponse(true, 200,"Google Sign Successful", result));
+  } catch (error) {
+    console.error("Google Signin Error:", error);
+    if (error instanceof ApiError) {
+      res
+        .status(error.statusCode)
+        .json(new ApiResponse(false, error.statusCode, error.message));
+    }
+    else {
+      res
+        .status(500)
+        .json(new ApiResponse(false, 500, "Internal Server Error"));
+    }
+  }
+} 

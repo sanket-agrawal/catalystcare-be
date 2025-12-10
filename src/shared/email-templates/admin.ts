@@ -1,3 +1,5 @@
+import { serverConfig } from "../../shared/config/server.config";
+
 export const therapistProfileApprovalTemplate = (firstName: string, approve: boolean) => {
   const heading = approve
     ? `Your Profile Has Been Approved!`
@@ -7,8 +9,8 @@ export const therapistProfileApprovalTemplate = (firstName: string, approve: boo
     : `After reviewing your therapist profile, we’re unable to approve it at this time. Please review the submitted details and make sure all information and documents meet our verification standards before reapplying.`;
   const buttonText = approve ? `Go to Dashboard` : `Review Your Profile`;
   const buttonLink = approve
-    ? `https://catalystcare.in/dashboard`
-    : `https://catalystcare.in/profile`;
+    ? `${serverConfig.baseFrontendUrl}/dashboard`
+    : `${serverConfig.baseFrontendUrl}/profile`;
   const buttonColor = approve ? `#28a745` : `#dc3545`;
 
   return `
@@ -28,7 +30,7 @@ export const therapistProfileApprovalTemplate = (firstName: string, approve: boo
               <!-- Header -->
               <tr>
                 <td align="center" style="padding: 20px;">
-                  <img src="https://catalystcare.in/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
                 </td>
               </tr>
 
@@ -57,7 +59,7 @@ export const therapistProfileApprovalTemplate = (firstName: string, approve: boo
               <!-- Footer -->
               <tr>
                 <td align="center" style="background-color: #f3f4f6; padding: 12px; font-size: 13px; color: #555;">
-                  © Catalyst Care | <a href="https://catalystcare.in" style="color: #007bff; text-decoration: none;">catalystcare.in</a>
+                  © Catalyst Care | <a href="${serverConfig.baseFrontendUrl}" style="color: #007bff; text-decoration: none;">${serverConfig.baseFrontendUrl}</a>
                 </td>
               </tr>
 

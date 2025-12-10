@@ -1,3 +1,5 @@
+import { serverConfig } from "../../shared/config/server.config";
+
 export const otpVerificationTemplate = (firstName: string, otp: string) => {
   return `
   <!DOCTYPE html>
@@ -16,7 +18,7 @@ export const otpVerificationTemplate = (firstName: string, otp: string) => {
               <!-- Header -->
               <tr>
                 <td align="center" style="padding: 20px;">
-                  <img src="https://catalystcare.in/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
                 </td>
               </tr>
 
@@ -45,7 +47,7 @@ export const otpVerificationTemplate = (firstName: string, otp: string) => {
               <!-- Footer -->
               <tr>
                 <td align="center" style="background-color: #f3f4f6; padding: 12px; font-size: 13px; color: #555;">
-                  © Catalyst Care | <a href="https://catalystcare.in" style="color: #007bff; text-decoration: none;">catalystcare.in</a>
+                  © Catalyst Care | <a href="${serverConfig.baseFrontendUrl}" style="color: #007bff; text-decoration: none;">${serverConfig.baseFrontendUrl}</a>
                 </td>
               </tr>
 
@@ -76,7 +78,7 @@ export const welcomeEmailTemplate = (firstName: string) => {
               <!-- Header -->
               <tr>
                 <td align="center" style="padding: 20px;">
-                  <img src="https://catalystcare.in/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
                 </td>
               </tr>
 
@@ -90,7 +92,7 @@ export const welcomeEmailTemplate = (firstName: string) => {
                   <p style="color: #555; font-size: 15px; margin-top: 15px;">
                     Start exploring personalized care, wellness, and therapy sessions — all in one place.
                   </p>
-                  <a href="https://catalystcare.in" 
+                  <a href="${serverConfig.baseFrontendUrl}" 
                      style="display:inline-block; margin-top:20px; padding:10px 20px; background-color:#007bff; color:#fff; border-radius:6px; text-decoration:none; font-size:14px;">
                      Visit Website
                   </a>
@@ -100,7 +102,7 @@ export const welcomeEmailTemplate = (firstName: string) => {
               <!-- Footer -->
               <tr>
                 <td align="center" style="background-color: #f3f4f6; padding: 12px; font-size: 13px; color: #555;">
-                  © Catalyst Care | <a href="https://catalystcare.in" style="color: #007bff; text-decoration: none;">catalystcare.in</a>
+                  © Catalyst Care | <a href="${serverConfig.baseFrontendUrl}" style="color: #007bff; text-decoration: none;">${serverConfig.baseFrontendUrl}</a>
                 </td>
               </tr>
 
@@ -131,7 +133,7 @@ export const forgotPasswordOtpTemplate = (firstName: string, otp: string) => {
               <!-- Header -->
               <tr>
                 <td align="center" style="padding: 20px;">
-                  <img src="https://catalystcare.in/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
                 </td>
               </tr>
 
@@ -164,7 +166,7 @@ export const forgotPasswordOtpTemplate = (firstName: string, otp: string) => {
               <!-- Footer -->
               <tr>
                 <td align="center" style="background-color: #f3f4f6; padding: 12px; font-size: 13px; color: #555;">
-                  © Catalyst Care | <a href="https://catalystcare.in" style="color: #007bff; text-decoration: none;">catalystcare.in</a>
+                  © Catalyst Care | <a href="${serverConfig.baseFrontendUrl}" style="color: #007bff; text-decoration: none;">${serverConfig.baseFrontendUrl}</a>
                 </td>
               </tr>
 

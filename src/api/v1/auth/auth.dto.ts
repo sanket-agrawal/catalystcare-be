@@ -57,7 +57,3 @@ export type verifyOTPInput = {
   mobileNumber : string;
   role? : UserRole
 }
-
-export interface GoogleSignInInput {
-  idToken: string;
-}

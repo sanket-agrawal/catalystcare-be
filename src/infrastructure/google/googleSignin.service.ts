@@ -1,17 +1,20 @@
 // src/modules/auth/googleSignIn.service.ts
 
 import jwt from "jsonwebtoken";
-import { oauth2Client } from "./index";
 import { prisma } from "../prisma/client";
 import ApiError from "../../shared/utils/ApiError";
-import { GoogleSignInInput } from "api/v1/auth/auth.dto";
 import { emailFromAddress, emailSubjects } from "../../shared/config/email.config";
 import { welcomeEmailTemplate } from "../../shared/email-templates/auth";
 import { emailQueue } from "../../infrastructure/queues";
+import { OAuth2Client } from "google-auth-library";
+
+export const googleAuthClient = new OAuth2Client(
+  process.env.GOOGLE_AUTH_CLIENT_ID
+);
 
 
 
-export const googleSignInService = async ( idToken: GoogleSignInInput) => {
+export const googleSignInService = async ( idToken: string) => {
   // 1. Verify Google ID token
 
     let isClientProfileFilled = false;
@@ -19,7 +22,7 @@ let isTherapistProfileFilled = false;
 let therapistProfileId =  null;
 let clientProfileId = null;
 
-  const ticket = await oauth2Client.verifyIdToken({
+  const ticket = await googleAuthClient.verifyIdToken({
     idToken,
     audience: process.env.GOOGLE_CLIENT_ID,
   });

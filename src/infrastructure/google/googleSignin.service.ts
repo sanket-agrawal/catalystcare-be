@@ -13,9 +13,23 @@ export const googleAuthClient = new OAuth2Client(
 );
 
 
+type userResponseObj = {
+  firstName : string;
+  lastName : string;
+  email : string;
+  role : string;
+  id : string;
+  isClientProfileFilled ?: boolean;
+  isTherapistProfileFilled ?: boolean;
+}
+
+
 
 export const googleSignInService = async ( idToken: string) => {
   // 1. Verify Google ID token
+
+
+  console.log(idToken)
 
     let isClientProfileFilled = false;
 let isTherapistProfileFilled = false;
@@ -86,17 +100,26 @@ let clientProfileId = null;
       therapistProfileId = therapistProfile ? therapistProfile.id : null
     }
 
+    const userResponseObject : userResponseObj = {
+      id : user.id,
+      firstName : user.firstName,
+      lastName : user.lastName,
+      email : user.email,
+      role : user.role,
+      isClientProfileFilled,
+      isTherapistProfileFilled
+    }
+
+
       const token = jwt.sign(
         { id: user.id, email: user.email, phone : user.mobileNumber ,role: user.role, firstName : user.firstName, lastName : user.lastName, profilePhoto : user.profilePhoto, therapistProfileId, clientProfileId },
         process.env.JWT_SECRET as string,
         { expiresIn: "7d" }
       );
 
-    return {token, user};
-  }
-
-  // 4. New user → always CLIENT
-  user = await prisma.user.create({
+    return {token, user : userResponseObject};
+  }else {
+       const newUser = await prisma.user.create({
     data: {
       email,
       firstName: payload.given_name ?? "User",
@@ -111,11 +134,11 @@ let clientProfileId = null;
   });
 
   const clientProfile = await prisma.clientProfile.create({
-    data: { userId: user.id },
+    data: { userId: newUser.id },
   });
 
   user = await prisma.user.findUniqueOrThrow({
-    where: { id: user.id },
+    where: { id: newUser.id },
     include: {
       clientProfile: true,
       therapistProfile: true,
@@ -124,12 +147,12 @@ let clientProfileId = null;
 
    const token = jwt.sign(
         {
-          id: user.id,
-          firstName : user.firstName,
-          lastName : user.lastName,
-          email: user.email,
-          phone: user.mobileNumber,
-          role: user.role,
+          id: newUser.id,
+          firstName : newUser.firstName,
+          lastName : newUser.lastName,
+          email: newUser.email,
+          phone: newUser.mobileNumber,
+          role: newUser.role,
           clientProfileId : clientProfile ? clientProfile.id : null
         },
         process.env.JWT_SECRET as string,
@@ -139,10 +162,25 @@ let clientProfileId = null;
       await emailQueue.add('clientWelcome',{
         to : email,
         subject : emailSubjects().welcome,
-        html : welcomeEmailTemplate(user.firstName),
+        html : welcomeEmailTemplate(newUser.firstName),
         sender : emailFromAddress().otpVerification
       });
 
 
-  return {token, user};
+          const userResponseObject : userResponseObj = {
+      id : newUser.id,
+      firstName : newUser.firstName,
+      lastName : newUser.lastName,
+      email : newUser.email,
+      role : newUser.role,
+      isClientProfileFilled : false,
+      isTherapistProfileFilled : false
+    }
+
+
+  return {token, user : userResponseObject};
+  }
+
+  // 4. New user → always CLIENT
+ 
 };

@@ -204,7 +204,7 @@ export const loginService = async (email: string, password: string) => {
   }
 
   if (!user.password) {
-    throw new ApiError(400, "Invalid login method for this account");
+    throw new ApiError(400, "This account does not support password login. Use Google Sign-In");
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.password);

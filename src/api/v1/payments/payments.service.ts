@@ -6,6 +6,7 @@ import crypto from "crypto"
 import { bookingCleanupQueue, meetingQueue } from "../../../infrastructure/queues";
 import { rupeesToPaise } from "../../../shared/lib/money";
 import { Prisma } from "@prisma/client";
+import { slotConfig } from "../../../shared/config/slot.config";
 
 export const paymentService = {
   createOrderService: async function (clientId: string, slotId: string) {
@@ -130,6 +131,7 @@ export const paymentService = {
             endDateTime: slot.endDateTime,
             status: "PENDING_PAYMENT",
             paymentStatus: "PENDING",
+            isActive : true,
             payment: { connect: { id: payment.id } },
           },
         });
@@ -141,7 +143,7 @@ export const paymentService = {
       await bookingCleanupQueue.add(
         "cancelUnpaidBooking",
         { bookingId, slotId },
-        { delay: 15 * 60 * 1000 }
+        { delay: slotConfig.REGAIN_AVAILABLE_SLOTS * 60 * 1000 }
       );
 
       return {

@@ -1,3 +1,5 @@
+import { serverConfig } from "../../shared/config/server.config";
+
 export const therapistCalendarConnectedTemplate = (firstName: string) => {
   return `
   <!DOCTYPE html>
@@ -16,7 +18,7 @@ export const therapistCalendarConnectedTemplate = (firstName: string) => {
               <!-- Header -->
               <tr>
                 <td align="center" style="padding: 20px;">
-                  <img src="https://catalystcare.in/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
                 </td>
               </tr>
 
@@ -45,7 +47,7 @@ export const therapistCalendarConnectedTemplate = (firstName: string) => {
                     You can manage or disconnect your calendar anytime from your Dashboard.
                   </p>
 
-                  <a href="https://catalystcare.in/dashboard"
+                  <a href="${serverConfig.baseFrontendUrl}/dashboard"
                      style="display:inline-block; margin-top:20px; padding:10px 20px; background-color:#007bff; color:#fff; border-radius:6px; text-decoration:none; font-size:14px;">
                     Go to Dashboard
                   </a>
@@ -56,7 +58,7 @@ export const therapistCalendarConnectedTemplate = (firstName: string) => {
               <tr>
                 <td align="center" style="background-color: #f3f4f6; padding: 12px; font-size: 13px; color: #555;">
                   © Catalyst Care | 
-                  <a href="https://catalystcare.in" style="color: #007bff; text-decoration: none;">catalystcare.in</a>
+                  <a href="${serverConfig.baseFrontendUrl}" style="color: #007bff; text-decoration: none;">${serverConfig.baseFrontendUrl}</a>
                 </td>
               </tr>
 

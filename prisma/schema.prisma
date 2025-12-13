@@ -13,7 +13,7 @@ model User {
   lastName         String            
   email            String            @unique @map("email")
   mobileNumber     String?           @map("mobile_number")
-  password         String
+  password         String?
   role             UserRole          @default(CLIENT) @map("role")
   isEmailVerified  Boolean           @default(false) @map("is_email_verified")
   isMobileVerified Boolean           @default(false) @map("is_mobile_verified")
@@ -34,9 +34,19 @@ model User {
 
   messages         Message[]        @relation("UserMessages")
 
+  authProvider     AuthProvider     @default(LOCAL) @map("auth_provider")
+  googleAuthId     String?          @unique @map("google_auth_id")
+  googleEmail      String?          @map("google_email")
+
 
   @@map("users")
   @@index([email])
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  HYBRID
 }
 
 enum UserRole {
@@ -304,7 +314,7 @@ model AvailabilitySlot {
   
   // If booked
   clientId              String?                 @map("client_id")
-  booking               Booking?                
+  booking               Booking[]                
   
   createdAt             DateTime                @default(now()) @map("created_at")
   updatedAt             DateTime                @updatedAt @map("updated_at")
@@ -324,8 +334,8 @@ model Booking {
   client            ClientProfile         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   therapist         TherapistProfile      @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   
-  slotId            String                @unique @map("slot_id")
-  slot              AvailabilitySlot?     @relation(fields: [slotId], references: [id])
+  slotId            String                @map("slot_id")
+  slot              AvailabilitySlot     @relation(fields: [slotId], references: [id])
   
   startDateTime     DateTime              @map("start_date_time")
   endDateTime       DateTime              @map("end_date_time")
@@ -350,7 +360,10 @@ model Booking {
   meetingProvider  String?                @map("meeting_provider") // e.g. 'GOOGLE_MEET'
 
   conversation   Conversation?
+  
+  isActive          Boolean               @default(true) @map("is_active")
 
+  @@unique([slotId, isActive], name: "unique_active_slot_booking")
   @@index([clientId, status])
   @@index([therapistId, status])
   @@index([startDateTime])

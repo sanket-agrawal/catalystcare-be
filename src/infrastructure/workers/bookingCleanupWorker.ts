@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 import { redisConnection } from "../redis/index";
 import { prisma } from "../prisma/client";
 import { slotConfig } from "../../shared/config/slot.config";
+import { Prisma } from "@prisma/client";
 
 export const bookingCleanupWorker = new Worker(
   "bookingCleanupQueue",
@@ -20,7 +21,7 @@ if (!booking || booking.status !== "PENDING_PAYMENT") {
 
     console.log(`⏰ Cancelling unpaid booking ${bookingId}`);
 
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx : Prisma.TransactionClient) => {
       // ✅ Set isActive = false to release the unique constraint
       await tx.booking.update({
         where: { id: bookingId },

@@ -1,6 +1,7 @@
 import { Worker } from "bullmq";
 import { redisConnection } from "../redis/index";
 import { prisma } from "../prisma/client";
+import { slotConfig } from "../../shared/config/slot.config";
 
 export const bookingCleanupWorker = new Worker(
   "bookingCleanupQueue",
@@ -9,26 +10,40 @@ export const bookingCleanupWorker = new Worker(
 
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
+       include: { payment: true }
     });
 
-    // Only cancel if still pending payment
-    if (!booking || booking.status !== "PENDING_PAYMENT") {
+if (!booking || booking.status !== "PENDING_PAYMENT") {
+      console.log(`⏭️  Skipping cleanup for booking ${bookingId} - status: ${booking?.status}`);
       return;
     }
 
     console.log(`⏰ Cancelling unpaid booking ${bookingId}`);
 
-    await prisma.booking.update({
-      where: { id: bookingId },
-      data: {
-        status: "CANCELLED",
-        paymentStatus: "FAILED",
-      },
-    });
+        await prisma.$transaction(async (tx) => {
+      // ✅ Set isActive = false to release the unique constraint
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: "CANCELLED",
+          paymentStatus: "FAILED",
+          isActive: false, // ✅ This allows the slot to be booked again
+          cancelledAt: new Date(),
+          cancellationReason: `Payment timeout - ${slotConfig.REGAIN_AVAILABLE_SLOTS} minutes expired`,
+        },
+      });
 
-    await prisma.availabilitySlot.update({
-      where: { id: slotId },
-      data: { status: "AVAILABLE" },
+      if (booking.payment) {
+        await tx.payment.update({
+          where: { id: booking.payment.id },
+          data: { status: "FAILED" },
+        });
+      }
+
+      await tx.availabilitySlot.update({
+        where: { id: slotId },
+        data: { status: "AVAILABLE" },
+      });
     });
 
     console.log(`✅ Slot ${slotId} unblocked`);

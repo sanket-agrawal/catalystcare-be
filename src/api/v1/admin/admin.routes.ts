@@ -18,5 +18,6 @@ router.get('/billing-dashboard',authenticate,authorizeRoles('ADMIN'),adminContro
 router.get('/therapist/vpa/:therapistId',authenticate,authorizeRoles('ADMIN'),adminController.fetchTherapistVPA);
 router.get('/approved-therapist',authenticate,authorizeRoles('ADMIN'),adminController.fetchApprovedTherapist);
 router.get('/email-blast-logs',authenticate,authorizeRoles('ADMIN'),adminController.fetchEmailBlastLogs);
+router.post('/put-on-hold-therapist',authenticate, authorizeRoles("ADMIN"),adminController.putTherapistProfileOnHold);
 
 export default router;

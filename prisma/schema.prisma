@@ -221,6 +221,7 @@ enum TherapistStatus {
   PENDING
   APPROVED
   REJECTED
+  ON_HOLD
 }
 
 model OTPVerification {

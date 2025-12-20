@@ -70,6 +70,9 @@ export const fetchTherapistProfileService = async (categoryId : string, subCateg
         }
     }
   },
+  orderBy : {
+    updatedAt : 'desc'
+  }
 });
 
     } catch (error) {

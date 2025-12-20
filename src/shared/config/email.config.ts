@@ -16,6 +16,7 @@ export const emailSubjects = () => ({
     therapistCalendarConnection : "Your Google Calendar Is Now Connected to Catalyst Care ✔",
     clientBookingConfirmation : "Your Therapy Session Is Confirmed - CatalystCare ✔",
     therapistBookingConfirmation : "New Therapy Session Scheduled - CatalystCare 🗓",
+    therapistProfileHold : "Action Required: Your Therapist Profile Is On Hold - CatalystCare",
 });
 
 export const emailFromAddress = () => ({

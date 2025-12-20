@@ -1,6 +1,6 @@
 import ApiError from "../../../shared/utils/ApiError"
 import {prisma} from '../../../infrastructure/prisma/client';
-import { therapistProfileApprovalTemplate } from "../../../shared/email-templates/admin";
+import { therapistProfileApprovalTemplate, therapistProfileOnHoldTemplate } from "../../../shared/email-templates/admin";
 import { CreateCommissionRateInput, TherapistProfileStatus } from "./admin.dto";
 import { emailQueue } from "../../../infrastructure/queues";
 import { emailFromAddress, emailSubjects } from "../../../shared/config/email.config";
@@ -424,12 +424,15 @@ export const adminService = {
         try {
                 const therapists = await prisma.therapistProfile.findMany({
                     where : {
-                        status : "APPROVED",
+                        status: {
+                            in: ["APPROVED", "ON_HOLD"],
+                            },
                     },
 
                     select: {
                         id : true,
-                        professionalTitle : true,                 
+                        professionalTitle : true,    
+                        status : true,             
                         highestQualification  : true,                
                         graduationYear : true, 
                         licenseNumber : true, 
@@ -472,6 +475,7 @@ export const adminService = {
                             }
                         }
                     },
+                    orderBy : { updatedAt : "desc" }
                 });
                 return therapists;
         } catch (error) {
@@ -487,6 +491,41 @@ export const adminService = {
                 }
             });
         }catch(error){
+            if (error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
+            throw error;
+        }
+    },
+    putTherapistProfileOnHold : async (therapistId: string, message : string) => {
+        try {
+            const profile = await prisma.therapistProfile.findUnique({
+                where: { id: therapistId },
+                include : {
+                    user : {
+                        select : {
+                            firstName : true,
+                            email : true
+                        }
+                    }
+                }
+            });
+            if (!profile) {
+                throw new ApiError(404, "Therapist profile not found");
+            }
+            if (profile.status !== 'APPROVED') {
+                throw new ApiError(400, "Only approved profiles can be put on hold");
+            }
+            const updatedProfile = await prisma.therapistProfile.update({
+                where: { id: therapistId },
+                data: { status: TherapistProfileStatus.ON_HOLD },
+            });
+            await emailQueue.add('putTherapistOnHold',{
+                  to : profile.user.email,
+                  subject :emailSubjects().therapistProfileHold,
+                  html : therapistProfileOnHoldTemplate(profile.user.firstName, message),
+                  sender : emailFromAddress().infoEmail
+                });
+            return updatedProfile;
+        } catch (error) {
             if (error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
             throw error;
         }

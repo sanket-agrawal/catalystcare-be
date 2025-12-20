@@ -3,7 +3,8 @@ import {z} from "zod";
 export enum TherapistProfileStatus {
   APPROVED = "APPROVED",
   PENDING = "PENDING",
-  REJECTED = "REJECTED"
+  REJECTED = "REJECTED",
+  ON_HOLD = "ON_HOLD"
 }
 
 export const createCommissionRateSchema = z.object({

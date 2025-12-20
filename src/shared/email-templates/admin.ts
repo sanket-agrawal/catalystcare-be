@@ -154,3 +154,78 @@ const message = `
   </html>
   `;
 };
+
+export const therapistProfileHoldRemovedTemplate = (
+  firstName: string
+) => {
+  const heading = `Your Profile Is Active Again`;
+
+  const message = `
+    We’re happy to inform you that the review of your therapist profile on Catalyst Care has been completed.
+    Your profile is no longer on hold and is now <strong>active and visible to clients</strong>.
+  `;
+
+  return `
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Therapist Profile Active</title>
+    </head>
+    <body style="font-family: Roboto, Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9f9f9; padding: 30px 0;">
+        <tr>
+          <td align="center">
+            <table width="500" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+              
+              <!-- Header -->
+              <tr>
+                <td align="center" style="padding: 20px;">
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
+                </td>
+              </tr>
+
+              <!-- Body -->
+              <tr>
+                <td style="padding: 25px; text-align: center;">
+                  <h2 style="color: #333; margin-bottom: 10px;">Hi ${firstName},</h2>
+
+                  <h3 style="color: #28a745; margin-bottom: 15px;">
+                    ${heading}
+                  </h3>
+
+                  <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0;">
+                    ${message}
+                  </p>
+
+                  <p style="color: #555; font-size: 15px; margin-top: 15px;">
+                    You can now continue accepting bookings and connecting with clients on the platform.
+                  </p>
+
+                  <a href="${serverConfig.baseFrontendUrl}/dashboard"
+                     style="display:inline-block; margin-top:20px; padding:10px 20px; background-color:#ffffff; color:#333; border-radius:6px; text-decoration:none; font-size:14px; border:1px solid #ccc; cursor:pointer;">
+                     Go to Dashboard
+                  </a>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td align="center" style="background-color: #f3f4f6; padding: 12px; font-size: 13px; color: #555;">
+                  © Catalyst Care | 
+                  <a href="${serverConfig.baseFrontendUrl}" style="color: #007bff; text-decoration: none;">
+                    ${serverConfig.baseFrontendUrl}
+                  </a>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+  </html>
+  `;
+};
+

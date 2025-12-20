@@ -17,6 +17,7 @@ export const emailSubjects = () => ({
     clientBookingConfirmation : "Your Therapy Session Is Confirmed - CatalystCare ✔",
     therapistBookingConfirmation : "New Therapy Session Scheduled - CatalystCare 🗓",
     therapistProfileHold : "Action Required: Your Therapist Profile Is On Hold - CatalystCare",
+    therapistProfileHoldRemoved : "Your Therapist Profile Is Active Again - CatalystCare",
 });
 
 export const emailFromAddress = () => ({

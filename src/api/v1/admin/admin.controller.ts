@@ -184,5 +184,19 @@ export const adminController = {
             }
             res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
         }
+    },
+    removeTherapistProfileHold : async (req : Request, res : Response) => {
+        try{
+            const { therapistId } = req.body;
+            const updatedProfile = await adminService.removeTherapistProfileFromHold(therapistId);
+            res.status(200).json(new ApiResponse(true, 200, `Therapist profile hold removed successfully`, updatedProfile));
+        }catch(error){
+            console.log("Error removing therapist profile on hold:", error);
+            if(error instanceof ApiError){
+                return res.status(error.statusCode).json(new ApiResponse(false, error.statusCode,error.message));
+            }
+            res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
+        }
+
     }
 }

@@ -1,6 +1,6 @@
 import ApiError from "../../../shared/utils/ApiError"
 import {prisma} from '../../../infrastructure/prisma/client';
-import { therapistProfileApprovalTemplate, therapistProfileOnHoldTemplate } from "../../../shared/email-templates/admin";
+import { therapistProfileApprovalTemplate, therapistProfileHoldRemovedTemplate, therapistProfileOnHoldTemplate } from "../../../shared/email-templates/admin";
 import { CreateCommissionRateInput, TherapistProfileStatus } from "./admin.dto";
 import { emailQueue } from "../../../infrastructure/queues";
 import { emailFromAddress, emailSubjects } from "../../../shared/config/email.config";
@@ -522,6 +522,41 @@ export const adminService = {
                   to : profile.user.email,
                   subject :emailSubjects().therapistProfileHold,
                   html : therapistProfileOnHoldTemplate(profile.user.firstName, message),
+                  sender : emailFromAddress().infoEmail
+                });
+            return updatedProfile;
+        } catch (error) {
+            if (error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
+            throw error;
+        }
+    },
+    removeTherapistProfileFromHold : async (therapistId: string) => {
+        try {
+            const profile = await prisma.therapistProfile.findUnique({
+                where: { id: therapistId },
+                include : {
+                    user : {
+                        select : {
+                            firstName : true,
+                            email : true
+                        }
+                    }
+                }
+            });
+            if (!profile) {
+                throw new ApiError(404, "Therapist profile not found");
+            }
+            if (profile.status !== 'ON_HOLD') {
+                throw new ApiError(400, "Only profiles on hold can be removed from hold");
+            }
+            const updatedProfile = await prisma.therapistProfile.update({
+                where: { id: therapistId },
+                data: { status: TherapistProfileStatus.APPROVED },
+            });
+             await emailQueue.add('removeTherapistOnHold',{
+                  to : profile.user.email,
+                  subject :emailSubjects().therapistProfileHoldRemoved,
+                  html : therapistProfileHoldRemovedTemplate(profile.user.firstName),
                   sender : emailFromAddress().infoEmail
                 });
             return updatedProfile;

@@ -18,6 +18,8 @@ export const emailSubjects = () => ({
     therapistBookingConfirmation : "New Therapy Session Scheduled - CatalystCare 🗓",
     therapistProfileHold : "Action Required: Your Therapist Profile Is On Hold - CatalystCare",
     therapistProfileHoldRemoved : "Your Therapist Profile Is Active Again - CatalystCare",
+    contactFormSubmissionClientCopy : "We Received Your Message - CatalystCare",
+    contactFormSubmissionAdminCopy : "New Contact Form Submission - CatalystCare"
 });
 
 export const emailFromAddress = () => ({

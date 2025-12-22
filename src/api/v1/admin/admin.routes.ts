@@ -4,6 +4,7 @@ import { authorizeRoles } from '../../../shared/middlewares/rbac';
 import { authenticate } from '../../../shared/middlewares/authenticatation';
 import { validateRequest } from '../../../shared/middlewares/validate';
 import { createCommissionRateSchema } from './admin.dto';
+import { fetchAllContactFormSubmissions } from '../../../infrastructure/mongodb/controllers/contact.controller';
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.get('/approved-therapist',authenticate,authorizeRoles('ADMIN'),adminContr
 router.get('/email-blast-logs',authenticate,authorizeRoles('ADMIN'),adminController.fetchEmailBlastLogs);
 router.post('/put-on-hold-therapist',authenticate, authorizeRoles("ADMIN"),adminController.putTherapistProfileOnHold);
 router.post('/remove-hold-therapist',authenticate, authorizeRoles("ADMIN"),adminController.removeTherapistProfileHold);
+router.get('/contact-form-submissions',authenticate,authorizeRoles('ADMIN'),fetchAllContactFormSubmissions);
 
 export default router;

@@ -43,7 +43,8 @@ export const adminService = {
                             name : true
                         }
                     }
-                }
+                },
+                orderBy : { updatedAt : "desc"}
             });
         } catch (error) {
             if(error instanceof ApiError) throw new ApiError(error.statusCode, error.message);

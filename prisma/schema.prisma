@@ -364,6 +364,9 @@ model Booking {
   
   isActive          Boolean               @default(true) @map("is_active")
 
+  rescheduledFromId String?               @map("rescheduled_from_id")
+  rescheduledAt     DateTime?             @map("rescheduled_at")
+
   @@unique([slotId, isActive], name: "unique_active_slot_booking")
   @@index([clientId, status])
   @@index([therapistId, status])

@@ -12,8 +12,8 @@ export const therapistProfileApprovalTemplate = (firstName: string, approve: boo
   const buttonText = approve ? `Go to Dashboard` : `Review Your Profile`;
 
   const buttonLink = approve
-    ? `${serverConfig.baseFrontendUrl}/dashboard`
-    : `${serverConfig.baseFrontendUrl}/profile`;
+    ? `${serverConfig.baseFrontendUrl}/therapist-dashboard`
+    : `${serverConfig.baseFrontendUrl}/therapist-dashboard/therapist-profile`;
 
   const buttonColor = approve ? `#28a745` : `#dc3545`;
 

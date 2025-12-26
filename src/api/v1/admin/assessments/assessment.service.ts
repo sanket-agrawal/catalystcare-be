@@ -198,10 +198,10 @@ export const assessmentService = {
     const answerMap: Record<string, number> = {};
 
     for (const ans of answers) {
-      const question = assessment.questions.find(q => q.id === ans.questionId);
+      const question = assessment.questions.find( (q: { id: string; order: number; options: { id: string; weight: number }[] }) => q.id === ans.questionId);
       if (!question) continue;
 
-      const option = question.options.find(o => o.id === ans.optionId);
+      const option = question.options.find((o: { id: string; weight: number }) => o.id === ans.optionId);
       if (!option) continue;
 
       answerMap[`Q${question.order}`] = option.weight;

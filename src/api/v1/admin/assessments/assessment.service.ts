@@ -1,6 +1,10 @@
+import { emailQueue } from "../../../../infrastructure/queues";
 import { prisma } from "../../../../infrastructure/prisma/client";
 import ApiError from "../../../../shared/utils/ApiError";
 import slugify from "slugify";
+import { calculateBurnoutScore, mapBurnoutResult } from "../../../../shared/lib/burnout.scoring";
+import { emailFromAddress, emailSubjects } from "../../../../shared/config/email.config";
+import { assessmentResultTemplate } from "../../../../shared/email-templates/assessmentResults";
 
 interface CreateAssessmentInput {
   title: string;
@@ -14,6 +18,18 @@ interface UpdateAssessmentInput {
   description?: string;
   icon?: string;
   poster?: string;
+}
+
+export interface AssessmentAnswerPayload {
+  questionId: string;
+  optionId: string;
+}
+
+export interface SubmitAssessmentPayload {
+  slug : string;
+  email: string;
+  name?: string;
+  answers: AssessmentAnswerPayload[];
 }
 
 export const assessmentService = {
@@ -156,4 +172,73 @@ export const assessmentService = {
       }
     });
   },
+
+  async submitAssessment(data: SubmitAssessmentPayload) {
+    const { email, name, answers, slug } = data;
+
+    if (!email || !answers?.length) {
+      throw new ApiError(400, "Email and answers are required");
+    }
+
+    const assessment = await prisma.assessment.findFirst({
+      where: { slug, isActive: true },
+      include: {
+        questions: {
+          where: { isActive: true },
+          include: { options: true }
+        }
+      }
+    });
+
+    if (!assessment) {
+      throw new ApiError(404, "Assessment not found");
+    }
+
+    // Validate answers
+    const answerMap: Record<string, number> = {};
+
+    for (const ans of answers) {
+      const question = assessment.questions.find(q => q.id === ans.questionId);
+      if (!question) continue;
+
+      const option = question.options.find(o => o.id === ans.optionId);
+      if (!option) continue;
+
+      answerMap[`Q${question.order}`] = option.weight;
+    }
+
+    // Scoring strategy
+    const rawScore = calculateBurnoutScore(answerMap);
+    const mapped = mapBurnoutResult(rawScore.burnoutIndex);
+
+    const finalResult = {
+  ...rawScore,
+  ...mapped
+};
+
+    // Optional persistence
+    await prisma.assessmentSubmission.create({
+      data: {
+        assessmentId: assessment.id,
+        email,
+        name,
+        assessmentIndex: rawScore.burnoutIndex,
+        dominantArea: rawScore.dominant
+      }
+    });
+
+    // Increment takers
+    await prisma.assessment.update({
+      where: { id: assessment.id },
+      data: { totalTakers: { increment: 1 } }
+    });
+
+    // Email async
+   await emailQueue.add('send-assessment-result',{
+      to : email,
+      subject : emailSubjects(undefined, undefined, assessment.title).assessmentResults,
+      html : assessmentResultTemplate(name, assessment.title, finalResult),
+      sender : emailFromAddress().infoEmail
+    });
+  }
 };

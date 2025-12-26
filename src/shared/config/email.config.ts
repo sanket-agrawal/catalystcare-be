@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const emailSubjects = (therapistName? : string, clientName? : string) => ({
+export const emailSubjects = (therapistName? : string, clientName? : string, assessmentName? : string) => ({
     otpVerification: "Your OTP Code - Verify Your Email - CatalystCare",
     welcome : "Welcome to Catalystcare! See how your life is going to change.",
     forgotPassword : "Reset Your Password - CatalystCare",
@@ -22,6 +22,7 @@ export const emailSubjects = (therapistName? : string, clientName? : string) => 
     contactFormSubmissionAdminCopy : "New Contact Form Submission - CatalystCare",
     rescheduleSessionConfirmationClient : `Your Therapy Session with ${therapistName} Has Been Rescheduled - CatalystCare ✔`,
     rescheduleSessionConfirmationTherapist : `Schedule Update : Therapy Session with ${clientName} Rescheduled - CatalystCare 🗓`,
+    assessmentResults : `Your ${assessmentName} Results Are Here - CatalystCare ✔`
 });
 
 export const emailFromAddress = () => ({

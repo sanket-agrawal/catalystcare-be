@@ -1,3 +1,4 @@
+import { assessmentService } from "../../admin/assessments/assessment.service";
 import { prisma } from "../../../../infrastructure/prisma/client";
 import ApiError from "../../../../shared/utils/ApiError";
 import ApiResponse from "../../../../shared/utils/ApiResponse";
@@ -97,6 +98,32 @@ export const AssessmentController = {
             )
         }catch(error){
              console.log("Error fetching assessment by Slug : ", error);
+            if(error instanceof ApiError){
+                res.status(error.statusCode).json(
+                    new ApiResponse(false,error.statusCode,error.message)
+                )
+            }else{
+                res.status(500).json(
+                    new ApiResponse(false,500,"Internal Server Error")
+                )
+            }
+        }
+    },
+    submitAssessment : async (req : Request , res : Response) => {
+        try {
+            const result = await assessmentService.submitAssessment(req.body);
+
+            res.status(200).json(
+                new ApiResponse(
+                    true,
+                    200,
+                    "Assessment submitted successfully",
+                    result
+                )
+            )
+            
+        } catch (error) {
+            console.log("Error submiting assessments : ", error);
             if(error instanceof ApiError){
                 res.status(error.statusCode).json(
                     new ApiResponse(false,error.statusCode,error.message)

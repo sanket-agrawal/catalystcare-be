@@ -612,6 +612,7 @@ model Assessment {
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
   questions   AssessmentQuestion[]
+  submissions AssessmentSubmission[]
 
   @@index([slug,isActive])
   @@map("assessments")
@@ -644,5 +645,21 @@ model AssessmentOption {
   @@index([label,order])
   @@map("assessment_options")
 }
+
+model AssessmentSubmission {
+  id            String   @id @default(uuid())
+  assessmentId  String   @map("assessment_id")
+  email         String
+  name          String?
+  assessmentIndex  Int?     @map("assessment_index")
+  dominantArea  String?  @map("dominant_area")
+  createdAt     DateTime @default(now())@map("created_at")
+
+  assessment    Assessment @relation(fields: [assessmentId], references: [id])
+
+  @@index([email, assessmentId])
+  @@map("assessment_submissions")
+}
+
 
 

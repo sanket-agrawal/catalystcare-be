@@ -227,3 +227,4 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
     throw new ApiError(400, (error as Error).message);
   }
 };
+

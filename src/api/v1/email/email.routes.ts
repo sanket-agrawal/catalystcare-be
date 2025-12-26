@@ -2,9 +2,10 @@ import { authenticate } from "../../../shared/middlewares/authenticatation";
 import { authorizeRoles } from "../../../shared/middlewares/rbac";
 import express from "express";
 import { emailController } from "./email.controller";
+import multer from "multer";
 
 const router = express.Router();
 
-router.post('/email-blast',authenticate,authorizeRoles('ADMIN'),emailController.emailBlast)
+router.post('/email-blast',authenticate,authorizeRoles('ADMIN'),multer().single("file"),emailController.emailBlast)
 
 export default router;

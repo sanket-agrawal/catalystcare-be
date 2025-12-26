@@ -517,7 +517,7 @@ export const adminService = {
             }
             const updatedProfile = await prisma.therapistProfile.update({
                 where: { id: therapistId },
-                data: { status: TherapistProfileStatus.ON_HOLD },
+                data: { status: TherapistProfileStatus.ON_HOLD, rejectionReason : message },
             });
             await emailQueue.add('putTherapistOnHold',{
                   to : profile.user.email,
@@ -552,7 +552,7 @@ export const adminService = {
             }
             const updatedProfile = await prisma.therapistProfile.update({
                 where: { id: therapistId },
-                data: { status: TherapistProfileStatus.APPROVED },
+                data: { status: TherapistProfileStatus.APPROVED, rejectionReason : null },
             });
              await emailQueue.add('removeTherapistOnHold',{
                   to : profile.user.email,

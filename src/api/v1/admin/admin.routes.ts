@@ -5,6 +5,7 @@ import { authenticate } from '../../../shared/middlewares/authenticatation';
 import { validateRequest } from '../../../shared/middlewares/validate';
 import { createCommissionRateSchema } from './admin.dto';
 import { fetchAllContactFormSubmissions } from '../../../infrastructure/mongodb/controllers/contact.controller';
+import assessmentRoutes from "./assessments/assessment.route"
 
 const router = express.Router();
 
@@ -22,5 +23,6 @@ router.get('/email-blast-logs',authenticate,authorizeRoles('ADMIN'),adminControl
 router.post('/put-on-hold-therapist',authenticate, authorizeRoles("ADMIN"),adminController.putTherapistProfileOnHold);
 router.post('/remove-hold-therapist',authenticate, authorizeRoles("ADMIN"),adminController.removeTherapistProfileHold);
 router.get('/contact-form-submissions',authenticate,authorizeRoles('ADMIN'),fetchAllContactFormSubmissions);
+router.use('/assessments',authenticate,authorizeRoles('ADMIN'),assessmentRoutes);
 
 export default router;

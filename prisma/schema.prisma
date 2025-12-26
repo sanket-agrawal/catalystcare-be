@@ -598,3 +598,51 @@ model Attachment {
   @@index([messageId])
   @@map("attachments")
 }
+
+
+model Assessment {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  icon        String?
+  poster      String?
+  slug        String 
+  totalTakers Int          @default(0) @map("total_takers")
+  isActive    Boolean      @default(true) @map("is_active")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  questions   AssessmentQuestion[]
+
+  @@index([slug,isActive])
+  @@map("assessments")
+}
+
+model AssessmentQuestion {
+  id            String   @id @default(uuid())
+  assessmentId  String   @map("assessment_id")
+  text          String
+  order         Int
+  category      String? 
+  isActive      Boolean @default(true)@map("is_active")
+
+  assessment    Assessment @relation(fields: [assessmentId], references: [id])
+  options       AssessmentOption[]
+
+  @@index([isActive,order,text])
+  @@map("assessment_questions")
+}
+
+model AssessmentOption {
+  id          String @id @default(uuid())
+  questionId  String @map("question_id")
+  label       String
+  weight      Int
+  order       Int
+
+  question    AssessmentQuestion @relation(fields: [questionId], references: [id])
+
+  @@index([label,order])
+  @@map("assessment_options")
+}
+
+

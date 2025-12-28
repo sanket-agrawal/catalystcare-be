@@ -22,16 +22,20 @@ export const emailService = {
   adminId
 }: EmailBlastPayload) => {
   try {
-    if (!target || !subject || !content || !reason) {
-      throw new ApiError(400, "Target, subject & content, reason are required");
-    }
+    // if (!target || !subject || !content || !reason) {
+    //   throw new ApiError(400, "Target, subject & content, reason are required");
+    // }
 
     let csvEmails: string[] = [];
 
     if (target === "CUSTOM_CSV") {
       if (!csvFile) throw new ApiError(400, "CSV file is required");
 
+      console.log(csvFile.path)
+
       csvEmails = await parseCSV(csvFile.path);
+
+      console.log(csvEmails)
 
       if (csvEmails.length === 0) {
         throw new ApiError(400, "No valid emails found in CSV");

@@ -22,14 +22,14 @@ export const emailController = {
     });
 
     // Add job to queue
-    const job = await emailBlastQueue.add("email-blast", payload);
+    // const job = await emailBlastQueue.add("email-blast", payload);
 
     return res.status(200).json(
       new ApiResponse(
         true,
         200,
         "Email blast initiated successfully",
-        { jobId: job.id }
+        // { jobId: job.id }
       )
     );
   } catch (error) {

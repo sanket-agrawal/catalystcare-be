@@ -87,5 +87,39 @@ export const clientController = {
                 res.status(400).json(new ApiResponse(false,400,"Something went wrong"))
             }
       }
+    },
+    async rescheduleTherapySession( req : Request, res : Response){
+      try{
+           const {clientId} = req.user;
+           const { bookingId, newSlotId, reason } = req.body;
+           const updatedBooking = await clientService.rescheduleTherapySession(bookingId,newSlotId, clientId, reason);
+           res.status(200).json(
+            new ApiResponse(true, 200, 'Therapy Session Rescheduled Successfully', updatedBooking)
+           )
+      }catch(error){
+        console.log("Error in Client Session Rescheduling",error)
+            if(error instanceof ApiError){
+                res.status(error.statusCode).json(new ApiResponse(false,error.statusCode,error.message))
+            }else{
+                res.status(400).json(new ApiResponse(false,400,"Something went wrong"))
+            }
+      }
+    },
+    async cancelTherapySession( req : Request, res : Response){
+      try{
+           const {clientId} = req.user;
+           const { bookingId, reason } = req.body;
+           await clientService.cancelTherapySession(clientId,bookingId,reason);
+           res.status(200).json(
+            new ApiResponse(true, 200, 'Therapy Session Cancelled Successfully')
+           )
+      }catch(error){
+        console.log("Error in Client Session Rescheduling",error)
+            if(error instanceof ApiError){
+                res.status(error.statusCode).json(new ApiResponse(false,error.statusCode,error.message))
+            }else{
+                res.status(400).json(new ApiResponse(false,400,"Something went wrong"))
+            }
+      }
     }
 };

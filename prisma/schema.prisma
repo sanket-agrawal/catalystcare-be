@@ -351,7 +351,7 @@ model Booking {
   createdAt         DateTime              @default(now()) @map("created_at")
   updatedAt         DateTime              @updatedAt @map("updated_at")
 
-  testimonial       Testimonial?          @relation()
+  testimonial       Testimonial?          
 
   payment           Payment?              
   paymentStatus     PaymentStatus?        @map("payment_status")
@@ -363,6 +363,9 @@ model Booking {
   conversation   Conversation?
   
   isActive          Boolean               @default(true) @map("is_active")
+
+  rescheduledFromId String?               @map("rescheduled_from_id")
+  rescheduledAt     DateTime?             @map("rescheduled_at")
 
   @@unique([slotId, isActive], name: "unique_active_slot_booking")
   @@index([clientId, status])
@@ -440,16 +443,28 @@ model Testimonial {
   client         User             @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   bookingId      String           @unique @map("booking_id")
-  booking        Booking?         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking        Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
-  rating         Int              @default(5)
+  rating         Int              @default(0)
   text           String?
+
+  status         TestimonialStatus        @default(PENDING)
+  isVisible      Boolean           @default(true)
+
 
   createdAt      DateTime         @default(now()) @map("created_at")
 
-  @@unique([therapistId, clientId]) 
+  @@index([therapistId, status])
+  @@index([clientId])
   @@map("testimonials")
 }
+
+enum TestimonialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 
 
 model Payment {
@@ -595,3 +610,68 @@ model Attachment {
   @@index([messageId])
   @@map("attachments")
 }
+
+
+model Assessment {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  icon        String?
+  poster      String?
+  slug        String 
+  totalTakers Int          @default(0) @map("total_takers")
+  isActive    Boolean      @default(true) @map("is_active")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  questions   AssessmentQuestion[]
+  submissions AssessmentSubmission[]
+
+  @@index([slug,isActive])
+  @@map("assessments")
+}
+
+model AssessmentQuestion {
+  id            String   @id @default(uuid())
+  assessmentId  String   @map("assessment_id")
+  text          String
+  order         Int
+  category      String? 
+  isActive      Boolean @default(true)@map("is_active")
+
+  assessment    Assessment @relation(fields: [assessmentId], references: [id])
+  options       AssessmentOption[]
+
+  @@index([isActive,order,text])
+  @@map("assessment_questions")
+}
+
+model AssessmentOption {
+  id          String @id @default(uuid())
+  questionId  String @map("question_id")
+  label       String
+  weight      Int
+  order       Int
+
+  question    AssessmentQuestion @relation(fields: [questionId], references: [id])
+
+  @@index([label,order])
+  @@map("assessment_options")
+}
+
+model AssessmentSubmission {
+  id            String   @id @default(uuid())
+  assessmentId  String   @map("assessment_id")
+  email         String
+  name          String?
+  assessmentIndex  Int?     @map("assessment_index")
+  dominantArea  String?  @map("dominant_area")
+  createdAt     DateTime @default(now())@map("created_at")
+
+  assessment    Assessment @relation(fields: [assessmentId], references: [id])
+
+  @@index([email, assessmentId])
+  @@map("assessment_submissions")
+}
+
+
+

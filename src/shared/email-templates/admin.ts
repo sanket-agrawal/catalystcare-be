@@ -12,8 +12,8 @@ export const therapistProfileApprovalTemplate = (firstName: string, approve: boo
   const buttonText = approve ? `Go to Dashboard` : `Review Your Profile`;
 
   const buttonLink = approve
-    ? `${serverConfig.baseFrontendUrl}/dashboard`
-    : `${serverConfig.baseFrontendUrl}/profile`;
+    ? `${serverConfig.baseFrontendUrl}/therapist-dashboard`
+    : `${serverConfig.baseFrontendUrl}/therapist-dashboard/therapist-profile`;
 
   const buttonColor = approve ? `#28a745` : `#dc3545`;
 
@@ -261,3 +261,168 @@ export const therapistProfileHoldRemovedTemplate = (
   `;
 };
 
+export const adminTherapistProfileSubmissionTemplate = (
+  therapistName: string,
+  therapistEmail: string
+) => {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Therapist Profile Submission</title>
+</head>
+<body style="margin:0; padding:0; font-family: Roboto, Arial, sans-serif; background-color:#f7f7f7;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f7f7; padding:30px 0;">
+  <tr>
+    <td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+
+        <tr>
+          <td align="center" style="padding:20px;">
+            <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" alt="Catalyst Care" width="120" />
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="background-color:#4f46e5; padding:20px;">
+            <h2 style="color:#ffffff; margin:0;">Therapist Profile Submitted</h2>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:30px;">
+
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:6px; margin:24px 0;">
+              <tr style="background:#f9fafb;">
+                <td style="padding:12px 16px; font-size:14px; width:35%;">
+                  <strong>Name</strong>
+                </td>
+                <td style="padding:12px 16px; font-size:14px;">
+                  ${therapistName}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px; font-size:14px;">
+                  <strong>Email</strong>
+                </td>
+                <td style="padding:12px 16px; font-size:14px;">
+                  ${therapistEmail}
+                </td>
+              </tr>
+            </table>
+
+            <p style="font-size:15px; color:#444; margin-top:24px;">
+              CatalystCare System
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="background:#f3f4f6; padding:12px; font-size:13px; color:#555;">
+            © CatalystCare Admin Panel
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>
+`;
+};
+
+
+export const adminTherapistResubmissionTemplate = (
+  therapistName: string,
+  therapistEmail: string
+) => {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Therapist Profile Resubmitted</title>
+</head>
+<body style="margin:0; padding:0; font-family: Roboto, Arial, sans-serif; background-color:#f7f7f7;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f7f7; padding:30px 0;">
+  <tr>
+    <td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+
+        <tr>
+          <td align="center" style="padding:20px;">
+            <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" alt="Catalyst Care" width="120" />
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="background-color:#4f46e5; padding:20px;">
+            <h2 style="color:#ffffff; margin:0;">Therapist Profile Resubmitted</h2>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:30px;">
+            <p style="font-size:15px; color:#333;">
+              A therapist has resubmitted their profile after making the requested updates.
+            </p>
+
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:6px; margin:24px 0;">
+              <tr style="background:#f9fafb;">
+                <td style="padding:12px 16px; font-size:14px; width:35%;">
+                  <strong>Name</strong>
+                </td>
+                <td style="padding:12px 16px; font-size:14px;">
+                  ${therapistName}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px; font-size:14px;">
+                  <strong>Email</strong>
+                </td>
+                <td style="padding:12px 16px; font-size:14px;">
+                  ${therapistEmail}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px; font-size:14px;">
+                  <strong>Status</strong>
+                </td>
+                <td style="padding:12px 16px; font-size:14px;">
+                  Pending Review
+                </td>
+              </tr>
+            </table>
+
+            <p style="font-size:15px; color:#444;">
+              Please review the updated profile and take the appropriate action.
+            </p>
+
+            <p style="font-size:15px; color:#444; margin-top:24px;">
+              CatalystCare System
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="background:#f3f4f6; padding:12px; font-size:13px; color:#555;">
+            © CatalystCare Admin Panel
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>
+`;
+};

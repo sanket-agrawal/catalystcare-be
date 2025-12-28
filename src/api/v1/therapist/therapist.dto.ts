@@ -37,6 +37,27 @@ export const upiVpaSchema = z.object({
   .regex(/^[a-zA-Z0-9.\-_]{2,}@[a-zA-Z]{2,}$/, 'Invalid UPI VPA')
 })
 
+export interface TherapistProfileUpdatDTO {
+  professionalTitle?: string;
+  highestQualification?: string;
+  graduationYear?: string;
+  licenseNumber?: string;
+  licensingAuthority?: string;
+  yearOfExperience?: string;
+  languageSpoken?: string[];
+  currentWorkspace?: string;
+  practiceType?: string;
+  sessionFee?: string | null; // send decimal as string (or number) - we'll normalize
+  currency?: string;
+  about?: string | null;
+  successStories?: string | null;
+  categories?: string[];
+  subCategories?: string[];
+  registrationCert?: string;
+  degreeCert?: string;
+  governmentId?: string;
+  addressProof?: string;
+}
 
 export type TherapistRegisterDTO = z.infer<typeof TherapistRegisterBody>;
 export type UpiVpaDTO = z.infer<typeof upiVpaSchema>;

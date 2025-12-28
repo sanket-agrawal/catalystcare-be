@@ -444,6 +444,9 @@ async therapistBillingDashboard(therapistId: string) {
         }
       });
 
+       
+         if(updatedProfile.status === 'PENDING'){
+            
        await emailQueue.add('therapistProfileResubmission',{
           to : updatedProfile.user.email,
           subject : emailSubjects().therapistProfileSubmissionAcknowledgement,
@@ -457,6 +460,8 @@ async therapistBillingDashboard(therapistId: string) {
           html : adminTherapistResubmissionTemplate(`${updatedProfile.user.firstName} ${updatedProfile.user.lastName}`, updatedProfile.user.email),
           sender : emailFromAddress().onboarding
         });
+         }
+
 
       return updatedProfile;
     });

@@ -404,5 +404,16 @@ export const clientService = {
             }
             throw error;
       }
-    }
+    },
+    async clientPendingActionList (clientId : string){
+      try{
+
+      }catch(error){
+          if(error instanceof ApiError){
+            throw new ApiError(error.statusCode,error.message)
+          }else{
+            throw error;
+          }
+      }
+    } 
 }

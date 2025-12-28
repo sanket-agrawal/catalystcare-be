@@ -14,6 +14,7 @@ router.get('/profile',authenticate,authorizeRoles('THERAPIST'),therapistControll
 router.get('/bookings',authenticate,authorizeRoles('THERAPIST'),therapistController.fetchBookings)
 router.post('/set-vpa',authenticate,authorizeRoles('THERAPIST'),validateRequest(upiVpaSchema),therapistController.setUPIVPA);
 router.get('/fetch-masked-vpa',authenticate,authorizeRoles('THERAPIST'),therapistController.fetchMaskedVPA);
-router.get('/billing-dashboard',authenticate,authorizeRoles('THERAPIST'),therapistController.therapistBillingDashboard)
+router.get('/billing-dashboard',authenticate,authorizeRoles('THERAPIST'),therapistController.therapistBillingDashboard);
+router.put('/profile-update',authenticate,authorizeRoles('THERAPIST'),therapistController.updateTherapistProfile)
 
 export default router;

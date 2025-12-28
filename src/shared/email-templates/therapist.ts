@@ -87,3 +87,92 @@ export const registrationTemplate = (therapistName: string) => {
   </html>
   `;
 };
+
+export const therapistResubmissionTemplate = (therapistName: string) => {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile Resubmitted</title>
+</head>
+<body style="margin:0; padding:0; font-family: Roboto, Arial, sans-serif; background-color:#f7f7f7;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f7f7; padding:30px 0;">
+  <tr>
+    <td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+
+        <tr>
+          <td align="center" style="padding:20px;">
+            <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" alt="Catalyst Care" width="120" />
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="background-color:#16b7c2; padding:20px;">
+            <h2 style="color:#ffffff; margin:0;">Profile Resubmitted Successfully</h2>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:30px;">
+            <p style="font-size:16px; color:#333;">
+              Dear <strong>${therapistName}</strong>,
+            </p>
+
+            <p style="font-size:15px; color:#444; line-height:1.6;">
+              Thank you for updating and resubmitting your therapist profile on CatalystCare.
+              We have successfully received your revised information and documents.
+            </p>
+
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:6px; margin:24px 0;">
+              <tr style="background:#f9fafb;">
+                <td style="padding:12px 16px; font-size:14px; width:35%;">
+                  <strong>Status</strong>
+                </td>
+                <td style="padding:12px 16px; font-size:14px;">
+                  Pending Review
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px; font-size:14px;">
+                  <strong>Resubmission Date</strong>
+                </td>
+                <td style="padding:12px 16px; font-size:14px;">
+                  ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}
+                </td>
+              </tr>
+            </table>
+
+            <p style="font-size:15px; color:#444; line-height:1.6;">
+              Our verification team will review your profile again. You will be notified by email
+              once the review is completed.
+            </p>
+
+            <p style="font-size:15px; color:#444; margin-top:24px;">
+              Warm regards,<br />
+              <strong>CatalystCare Support Team</strong>
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="background:#f3f4f6; padding:12px; font-size:13px; color:#555;">
+            © CatalystCare |
+            <a href="${serverConfig.baseFrontendUrl}" style="color:#007bff; text-decoration:none;">
+              ${serverConfig.baseFrontendUrl}
+            </a>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>
+`;
+};

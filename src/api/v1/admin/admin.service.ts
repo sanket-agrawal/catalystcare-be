@@ -67,9 +67,10 @@ export const adminService = {
             });
             if(!profile) throw new ApiError(404, "Therapist profile not found");
             if(profile.status !== 'PENDING') throw new ApiError(400, "Therapist profile already reviewed");
-            const data: { status: TherapistProfileStatus; approvedAt?: Date } = { status : approve ? TherapistProfileStatus.APPROVED : TherapistProfileStatus.REJECTED };
+            const data: { status: TherapistProfileStatus; approvedAt?: Date , rejectionReason? : string | null} = { status : approve ? TherapistProfileStatus.APPROVED : TherapistProfileStatus.REJECTED };
             if(approve){
                 data['approvedAt'] = new Date();
+                data['rejectionReason'] = null;
             }
             const updatedProfile = await prisma.therapistProfile.update({
                 where: { id: profileId },

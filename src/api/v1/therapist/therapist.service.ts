@@ -1,12 +1,13 @@
 import ApiError from "../../../shared/utils/ApiError";
-import { TherapistRegisterDTO } from "./therapist.dto";
+import { TherapistProfileUpdatDTO, TherapistRegisterDTO } from "./therapist.dto";
 import { prisma } from "../../../infrastructure/prisma/client";
 import { Prisma } from "@prisma/client"; 
-import { registrationTemplate } from "../../../shared/email-templates/therapist";
+import { registrationTemplate, therapistResubmissionTemplate } from "../../../shared/email-templates/therapist";
 import slugify from 'slugify'
 import { emailFromAddress, emailSubjects } from "../../../shared/config/email.config";
 import { emailQueue } from "../../../infrastructure/queues";
 import { decryptStringGCM, encryptStringGCM, normalizeVpa, sha256Hex } from "../../../shared/lib/crypto";
+import { adminTherapistProfileSubmissionTemplate, adminTherapistResubmissionTemplate } from "../../../shared/email-templates/admin";
 
 export const therapistService = {
   async register(userId: string, data: TherapistRegisterDTO, userEmail : string, userName : string, lastName : string) {
@@ -116,6 +117,13 @@ export const therapistService = {
           sender : emailFromAddress().onboarding
         });
 
+        await emailQueue.add('therapistRegistrationAdmin',{
+          to : 'admin@catalystcare.in',
+          subject : emailSubjects().therapistProfileSubmissionAdmin,
+          html : adminTherapistProfileSubmissionTemplate(userName, userEmail),
+          sender : emailFromAddress().infoEmail
+        });
+
         return profile;
       });
 
@@ -134,6 +142,8 @@ export const therapistService = {
       const profile = await prisma.therapistProfile.findUnique({
         where : {id : therapistId},
         include : {
+          categories : true,
+          subCategories : true,
           user : {
             select : {
                profilePhoto : true
@@ -350,4 +360,108 @@ async therapistBillingDashboard(therapistId: string) {
     throw error;
   }
 },
+ async updateTherapistProfile (therapistId : string , data : TherapistProfileUpdatDTO){
+  try{
+      const profile = await prisma.therapistProfile.findUnique({
+      where: { id: therapistId },
+      select: { status: true }
+    });
+
+    if (!profile) {
+      throw new ApiError(404, "Therapist profile not found");
+    }
+
+    if (profile.status === "PENDING") {
+      throw new ApiError(
+        403,
+        "Profile is under review and cannot be edited"
+      );
+    }
+
+    return await prisma.$transaction(async (tx  : Prisma.TransactionClient) => {
+      // Validate categories
+      if (data.categories?.length) {
+        const count = await tx.category.count({
+          where: { id: { in: data.categories } }
+        });
+        if (count !== data.categories.length) {
+          throw new ApiError(400, "Invalid categories provided");
+        }
+      }
+
+      // Validate subcategories
+      if (data.subCategories?.length) {
+        const count = await tx.subCategory.count({
+          where: { id: { in: data.subCategories } }
+        });
+        if (count !== data.subCategories.length) {
+          throw new ApiError(400, "Invalid subcategories provided");
+        }
+      }
+
+      const updatedProfile = await tx.therapistProfile.update({
+        where: { id: therapistId },
+        data: {
+          professionalTitle: data.professionalTitle,
+          highestQualification: data.highestQualification,
+          graduationYear: data.graduationYear,
+          licenseNumber: data.licenseNumber,
+          licensingAuthority: data.licensingAuthority,
+          yearOfExperience: data.yearOfExperience,
+          languageSpoken: data.languageSpoken,
+          currentWorkspace: data.currentWorkspace,
+          practiceType: data.practiceType,
+          sessionFee: data.sessionFee,
+          currency: data.currency,
+          about: data.about,
+          successStories: data.successStories,
+          registrationCert: data.registrationCert,
+          degreeCert: data.degreeCert,
+          governmentId: data.governmentId,
+          addressProof: data.addressProof,
+
+          categories: data.categories
+            ? { set: data.categories.map((id) => ({ id })) }
+            : undefined,
+
+          subCategories: data.subCategories
+            ? { set: data.subCategories.map((id) => ({ id })) }
+            : undefined,
+
+          // 🔁 Important rule
+          status:
+            profile.status === "REJECTED"
+              ? "PENDING"
+              : profile.status,
+
+          rejectionReason:
+            profile.status === "REJECTED" ? null : undefined,
+        },
+        include: {
+          categories: true,
+          subCategories: true,
+          user : true
+        }
+      });
+
+       await emailQueue.add('therapistProfileResubmission',{
+          to : updatedProfile.user.email,
+          subject : emailSubjects().therapistProfileSubmissionAcknowledgement,
+          html : therapistResubmissionTemplate(`${updatedProfile.user.firstName} ${updatedProfile.user.lastName}`),
+          sender : emailFromAddress().onboarding
+        });
+
+        await emailQueue.add('therapistProfileResubmissionAdmin',{
+          to : 'admin@catalystcare.in',
+          subject : emailSubjects().therapistProfileResubmissionAdmin,
+          html : adminTherapistResubmissionTemplate(`${updatedProfile.user.firstName} ${updatedProfile.user.lastName}`, updatedProfile.user.email),
+          sender : emailFromAddress().onboarding
+        });
+
+      return updatedProfile;
+    });
+  }catch(error){
+    
+  }
+ }
 };

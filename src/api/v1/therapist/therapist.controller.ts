@@ -120,6 +120,25 @@ try{
             )
         }
 }
-}
-}
-
+},
+async updateTherapistProfile (req : Request , res : Response){{
+    try{
+        const {therapistProfileId} = req.user;
+        const updatedProfile = await therapistService.updateTherapistProfile(therapistProfileId, req.body);
+        res.status(200).json(
+            new ApiResponse(true,200,"Therapist Profile Updated Successfully",updatedProfile)
+        )
+    }catch(error){
+        console.log("Error updating therapist profile",error);
+        if(error instanceof ApiError){
+            res.status(error.statusCode).json( 
+                new ApiResponse(false,error.statusCode,error.message)
+            )
+            }else{
+                res.status(400).json(
+                    new ApiResponse(false,400,"Internal Server Error")
+                )
+            }
+        }
+    }
+}}

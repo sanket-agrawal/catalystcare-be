@@ -3,6 +3,7 @@ import { clientController } from "./client.controller";
 import {authenticate} from '../../../shared/middlewares/authenticatation'
 import { createAssessmentSchema } from "./client.dto";
 import { validateRequest } from "../../../shared/middlewares/validate";
+import testimonalRoutes from "./testimonial/testimonail.routes";
 
 const router = express.Router()
 
@@ -13,6 +14,7 @@ router.get('/fetch-assessment-based-therapist/:assessmentId',authenticate,client
 router.get('/bookings',authenticate,clientController.fetchBookings);
 router.post('/reschedule-therapy-session',authenticate,clientController.rescheduleTherapySession);
 router.post('/cancel-therapy-session',authenticate,clientController.cancelTherapySession);
+router.use('/testimonials',testimonalRoutes);
 
 export default router;
 

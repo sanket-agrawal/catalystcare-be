@@ -351,7 +351,7 @@ model Booking {
   createdAt         DateTime              @default(now()) @map("created_at")
   updatedAt         DateTime              @updatedAt @map("updated_at")
 
-  testimonial       Testimonial?          @relation()
+  testimonial       Testimonial?          
 
   payment           Payment?              
   paymentStatus     PaymentStatus?        @map("payment_status")
@@ -443,16 +443,28 @@ model Testimonial {
   client         User             @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   bookingId      String           @unique @map("booking_id")
-  booking        Booking?         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking        Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
-  rating         Int              @default(5)
+  rating         Int              @default(0)
   text           String?
+
+  status         TestimonialStatus        @default(PENDING)
+  isVisible      Boolean           @default(true)
+
 
   createdAt      DateTime         @default(now()) @map("created_at")
 
-  @@unique([therapistId, clientId]) 
+  @@index([therapistId, status])
+  @@index([clientId])
   @@map("testimonials")
 }
+
+enum TestimonialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 
 
 model Payment {

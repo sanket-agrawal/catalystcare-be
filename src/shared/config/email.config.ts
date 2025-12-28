@@ -22,7 +22,10 @@ export const emailSubjects = (therapistName? : string, clientName? : string, ass
     contactFormSubmissionAdminCopy : "New Contact Form Submission - CatalystCare",
     rescheduleSessionConfirmationClient : `Your Therapy Session with ${therapistName} Has Been Rescheduled - CatalystCare ✔`,
     rescheduleSessionConfirmationTherapist : `Schedule Update : Therapy Session with ${clientName} Rescheduled - CatalystCare 🗓`,
-    assessmentResults : `Your ${assessmentName} Results Are Here - CatalystCare ✔`
+    assessmentResults : `Your ${assessmentName} Results Are Here - CatalystCare ✔`,
+    therapistProfileResubmissionAdmin : "Therapist Profile Resubmission Received - CatalystCare",
+    therapistProfileSubmissionAcknowledgement : "Therapist Profile Resubmission Received - CatalystCare",
+    therapistProfileSubmissionAdmin : "New Therapist Profile Submission - CatalystCare"
 });
 
 export const emailFromAddress = () => ({

@@ -6,7 +6,7 @@ import { emailFromAddress } from "../../shared/config/email.config";
 
 interface BlastData {
   reason : string;
-  adminId? : string;
+  adminId : string;
   target: string;
   subject: string;
   content: string;
@@ -80,9 +80,7 @@ export const emailBlastWorker = new Worker(
     content,
     initiatedAt: new Date(),
     singleEmail: singleEmail ?? null,
-    admin: {
-      connect: { id: adminId }   // THIS IS REQUIRED
-    }
+    adminId : adminId
   },
 });
 

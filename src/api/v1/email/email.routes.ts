@@ -6,6 +6,6 @@ import multer from "multer";
 
 const router = express.Router();
 
-router.post('/email-blast',authenticate,authorizeRoles('ADMIN'),multer().single("file"),emailController.emailBlast)
+router.post('/email-blast',authenticate,authorizeRoles('ADMIN'),multer({ storage: multer.memoryStorage() }).single("file"),emailController.emailBlast)
 
 export default router;

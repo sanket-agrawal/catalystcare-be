@@ -1,4 +1,4 @@
-import { parseCSV } from "../../../shared/utils/parseCSV";
+import { parseCSV, parseCSVBuffer } from "../../../shared/utils/parseCSV";
 import ApiError from "../../../shared/utils/ApiError";
 
 interface EmailBlastPayload {
@@ -22,18 +22,24 @@ export const emailService = {
   adminId
 }: EmailBlastPayload) => {
   try {
-    // if (!target || !subject || !content || !reason) {
-    //   throw new ApiError(400, "Target, subject & content, reason are required");
-    // }
+    if (!target || !subject || !content || !reason) {
+      throw new ApiError(400, "Target, subject & content, reason are required");
+    }
+
+    if(target === "SINGLE_EMAIL" && !singleEmail){
+      throw new ApiError(400, "Single email is required for SINGLE_EMAIL target");
+    }
+
+    if(target === "CUSTOM_CSV" && !csvFile){
+      throw new ApiError(400, "CSV file is required for CUSTOM_CSV target");
+    }
 
     let csvEmails: string[] = [];
 
     if (target === "CUSTOM_CSV") {
       if (!csvFile) throw new ApiError(400, "CSV file is required");
 
-      console.log(csvFile.path)
-
-      csvEmails = await parseCSV(csvFile.path);
+      csvEmails = await parseCSVBuffer(csvFile.buffer);
 
       console.log(csvEmails)
 

@@ -20,14 +20,6 @@ createBullBoard({
 
   ],
   serverAdapter,
-  options : {
-    uiConfig : {
-      boardTitle : "Catalyst Care",
-      dateFormats : {
-        "common" : "DD-MM-YYYY HH:mm:ss"
-      }
-    }
-  }
 });
 
 const router = express.Router();

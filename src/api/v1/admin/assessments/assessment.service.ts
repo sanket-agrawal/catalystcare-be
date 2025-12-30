@@ -240,5 +240,19 @@ export const assessmentService = {
       html : assessmentResultTemplate(name, assessment.title, finalResult),
       sender : emailFromAddress().infoEmail
     });
+  },
+
+  async fetchSubmissionsById(assessmentId : string){
+    try{
+         const submissions = await prisma.assessmentSubmission.findMany({
+          where : {assessmentId}
+         });
+
+         console.log(submissions);
+
+         return submissions;
+    } catch (error) {
+      throw new ApiError(500, "Failed to fetch submissions");
+    }
   }
 };

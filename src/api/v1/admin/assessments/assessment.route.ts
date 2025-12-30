@@ -10,8 +10,9 @@ router.use('/options',optionRoutes);
 router.get('/fetch-all',assessmentController.getAllAssessments);
 router.post('/create',assessmentController.createAssessment);
 router.put('/update/:id',assessmentController.updateAssessment);
-router.put('/publish/:id',assessmentController.publishAssessment)
+router.put('/publish/:id',assessmentController.publishAssessment);
 router.put('/unpublish/:id',assessmentController.unPublishAssessment);
+router.get('/submissions/:assessmentId',assessmentController.fetchSubmissionsById);
 
 
 export default router;

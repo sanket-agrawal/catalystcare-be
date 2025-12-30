@@ -357,7 +357,8 @@ export const adminService = {
                             }
                         }
 
-                    }
+                    },
+                    orderBy : { createdAt : "desc"}
                 })
                 
               ])

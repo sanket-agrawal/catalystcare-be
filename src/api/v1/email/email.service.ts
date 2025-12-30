@@ -41,8 +41,6 @@ export const emailService = {
 
       csvEmails = await parseCSVBuffer(csvFile.buffer);
 
-      console.log(csvEmails)
-
       if (csvEmails.length === 0) {
         throw new ApiError(400, "No valid emails found in CSV");
       }

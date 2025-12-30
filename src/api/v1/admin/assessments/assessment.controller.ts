@@ -2,6 +2,8 @@ import ApiError from "../../../../shared/utils/ApiError";
 import ApiResponse from "../../../../shared/utils/ApiResponse";
 import { Request, Response } from "express";
 import { assessmentService } from "./assessment.service";
+import { Parser } from "json2csv";
+import { formatToIST } from "../../../../shared/lib/date";
 
 
 export const assessmentController = {
@@ -168,4 +170,52 @@ export const assessmentController = {
             }
         }
     },
+    fetchSubmissionsById: async (req: Request, res: Response) => {
+  try {
+    const { assessmentId } = req.params;
+    const submissions = await assessmentService.fetchSubmissionsById(assessmentId);
+
+    if (!submissions.length) {
+      return res.status(404).json(
+        new ApiResponse(false, 404, "No submissions found")
+      );
+    }
+
+    type SubmissionRow = (typeof submissions)[number];
+
+    const fields = [
+      { label: "email", value: "email" },
+      { label: "score", value: "assessmentIndex" },
+      {label : "dominant area", value : "dominantArea"},
+      {
+        label: "Submitted At (IST)",
+        value: (row: SubmissionRow) => formatToIST(row.createdAt),
+      },
+    ];
+
+    const parser = new Parser({ fields });
+    const csv = parser.parse(submissions);
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="assessment-submissions.csv"`
+    );
+
+    return res.status(200).send(csv);
+  } catch (error) {
+    console.error("Error Fetching Submissions:", error);
+
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json(
+        new ApiResponse(false, error.statusCode, error.message)
+      );
+    }
+
+    return res.status(500).json(
+      new ApiResponse(false, 500, "Internal Server Error")
+    );
+  }
+}
+
 }

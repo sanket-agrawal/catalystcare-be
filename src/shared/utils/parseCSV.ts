@@ -31,7 +31,7 @@ export const parseCSVBuffer = async (buffer: Buffer): Promise<string[]> =>
         if (row.email && validateEmail(row.email)) {
           emails.push(row.email.trim().toLowerCase());
         }
-
+       
         if (!Object.keys(row).includes("email")) {
           throw new Error("CSV must contain 'email' column");
         }

@@ -20,8 +20,8 @@ export async function registerRepeatableJobs() {
         pattern: "0 0 * * *",
         tz: "Asia/Kolkata"
     },
-      removeOnComplete: true,
-      removeOnFail: true,
+      removeOnComplete: false,
+      removeOnFail: false,
     }
   );
 

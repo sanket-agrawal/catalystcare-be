@@ -165,6 +165,33 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
             status: true
           },
           orderBy: { startDateTime: "asc" }
+        },
+
+        programs : {
+          where : { isActive : true},
+          orderBy : {updatedAt : "desc"},
+          select : {
+            title : true,
+            description : true,
+            outcome : true,
+
+            plans : {
+              orderBy : {updatedAt : "desc"},
+              where : {
+                isActive : true
+              },
+              select : {
+                name : true,
+                sessionsCount : true,
+                sessionDuration : true,
+                price : true,
+                currency : true,
+                cadence : true,
+                recommendedGapDays : true
+              }
+            }
+
+          }
         }
       }
     });
@@ -220,7 +247,8 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
       slots: grouped, // grouped IST slots
       averageRating,
       totalReviews: ratings.length,
-      shareUrl: `${frontendConfig.therapistProfilePage}/${therapist.slug}`
+      shareUrl: `${frontendConfig.therapistProfilePage}/${therapist.slug}`,
+      programs : therapist.programs
     };
   } catch (error) {
     if (error instanceof ApiError) throw error;

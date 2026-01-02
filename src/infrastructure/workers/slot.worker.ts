@@ -28,11 +28,13 @@ if (job.name === "regenerate_future_slots") {
   end.setDate(now.getDate() + 30);
 
   for (const t of therapists) {
-    await slotService.generateSlots({
+    const createdSlots = await slotService.generateSlots({
       therapistId: t.id,
       dateFrom: now.toISOString(),
       dateTo: end.toISOString(),
     });
+
+    console.log("Total Created Slots",createdSlots.created)
   }
 
   console.log("🧠 Daily slot regeneration complete.");

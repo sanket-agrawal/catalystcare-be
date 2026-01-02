@@ -213,6 +213,8 @@ model TherapistProfile {
 
   slots                                AvailabilitySlot[]
 
+  programs                            Program[]
+
   @@map("therapist_profiles")
 }
 
@@ -674,4 +676,53 @@ model AssessmentSubmission {
 }
 
 
+model Program {
+  id               String   @id @default(uuid())
+  therapistId      String   @map("therapist_id")
+  therapist        TherapistProfile @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 
+  title            String
+  description      String?
+  outcome          String?          // what user will achieve
+  isActive         Boolean  @default(false)
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  plans            ProgramPlan[]
+
+  @@index([therapistId, isActive])
+  @@map("programs")
+}
+
+model ProgramPlan {
+  id                  String   @id @default(uuid())
+  programId           String   @map("program_id")
+  program             Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  name                String           // e.g. "10 Sessions"
+  sessionsCount       Int              // 1, 5, 10, etc
+  sessionDuration     Int              @map("session_duration") // minutes
+  price          Int              @map("price")
+  pricePaise          Int              @map("price_paise")
+  currency            String           @default("INR")
+
+  cadence             ProgramCadence   // WEEKLY, FLEXIBLE, BIWEEKLY
+  recommendedGapDays  Int?             @map("recommended_gap_days")
+
+  isActive            Boolean           @default(false)
+
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([programId, isActive])
+  @@map("program_plans")
+}
+
+enum ProgramCadence {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  FLEXIBLE
+}

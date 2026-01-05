@@ -7,29 +7,13 @@ import { getClientBookingPermissions } from "./client.helper"
 import { meetingQueue } from "../../../infrastructure/queues"
 import { canRateSession } from "../../../shared/lib/ratings"
 
-type ClientBookingDTO = {
+type BookingForClientList = {
   id: string;
-  startDateTime: Date;
   endDateTime: Date;
-  status: string;
-  paymentStatus: string | null;
-
-  therapist: {
-    id: string;
-    user: {
-      firstName: string;
-      lastName: string;
-      profilePhoto: string | null;
-    };
-  };
-
   testimonial: {
     rating: number;
     status: string;
   } | null;
-
-  hasRated: boolean;
-  canRate: boolean;
 };
 
                                  
@@ -243,7 +227,7 @@ export const clientService = {
             throw error;
         }
     },
-    async fetchBookings(clientId : string): Promise<ClientBookingDTO[]>{
+    async fetchBookings(clientId : string){
      try{
         const bookings = await prisma.booking.findMany({
           where : {
@@ -277,7 +261,7 @@ export const clientService = {
         });
 
         // return bookings;
-        return bookings.map((booking) => ({
+        return bookings.map((booking : BookingForClientList) => ({
         ...booking,
         hasRated: !!booking.testimonial,
       canRate:

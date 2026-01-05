@@ -7,6 +7,29 @@ import { getClientBookingPermissions } from "./client.helper"
 import { meetingQueue } from "../../../infrastructure/queues"
 import { canRateSession } from "../../../shared/lib/ratings"
 
+type BookingWithTestimonial = Prisma.BookingGetPayload<{
+  include: {
+    therapist: {
+      select: {
+        id: true;
+        user: {
+          select: {
+            firstName: true;
+            lastName: true;
+            profilePhoto: true;
+          };
+        };
+      };
+    };
+    testimonial: {
+      select: {
+        rating: true;
+        status: true;
+      };
+    };
+  };
+}>;
+
                                  
 export const clientService = {
 

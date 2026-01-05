@@ -275,7 +275,7 @@ export const clientService = {
         });
 
         // return bookings;
-        return bookings.map((booking) => ({
+        return bookings.map((booking : BookingWithTestimonial) => ({
         ...booking,
         hasRated: !!booking.testimonial,
       canRate:

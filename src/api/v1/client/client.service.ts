@@ -7,31 +7,31 @@ import { getClientBookingPermissions } from "./client.helper"
 import { meetingQueue } from "../../../infrastructure/queues"
 import { canRateSession } from "../../../shared/lib/ratings"
 
-const bookingWithRelations = Prisma.validator<Prisma.BookingDefaultArgs>()({
-  include: {
-    therapist: {
-      select: {
-        id: true,
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            profilePhoto: true,
-          },
-        },
-      },
-    },
-    testimonial: {
-      select: {
-        rating: true,
-        status: true,
-      },
-    },
-  },
-});
+type ClientBookingDTO = {
+  id: string;
+  startDateTime: Date;
+  endDateTime: Date;
+  status: string;
+  paymentStatus: string | null;
 
-type BookingWithRelations =
-  Prisma.BookingGetPayload<typeof bookingWithRelations>;
+  therapist: {
+    id: string;
+    user: {
+      firstName: string;
+      lastName: string;
+      profilePhoto: string | null;
+    };
+  };
+
+  testimonial: {
+    rating: number;
+    status: string;
+  } | null;
+
+  hasRated: boolean;
+  canRate: boolean;
+};
+
                                  
 export const clientService = {
 
@@ -243,7 +243,7 @@ export const clientService = {
             throw error;
         }
     },
-    async fetchBookings(clientId : string){
+    async fetchBookings(clientId : string): Promise<ClientBookingDTO[]>{
      try{
         const bookings = await prisma.booking.findMany({
           where : {
@@ -277,7 +277,7 @@ export const clientService = {
         });
 
         // return bookings;
-        return bookings.map((booking : BookingWithTestimonial) => ({
+        return bookings.map((booking) => ({
         ...booking,
         hasRated: !!booking.testimonial,
       canRate:

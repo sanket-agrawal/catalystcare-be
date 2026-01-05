@@ -146,8 +146,10 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
         subCategories: { select: { slug: true, name: true } },
         user: { select: { firstName: true, lastName: true, profilePhoto: true } },
         testimonials: {
+          where : {
+            status : "APPROVED"
+          },
           select: {
-            client: { select: { firstName: true, lastName: true } },
             text: true,
             rating: true
           }

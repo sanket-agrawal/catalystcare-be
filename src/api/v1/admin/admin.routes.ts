@@ -6,6 +6,7 @@ import { validateRequest } from '../../../shared/middlewares/validate';
 import { createCommissionRateSchema } from './admin.dto';
 import { fetchAllContactFormSubmissions } from '../../../infrastructure/mongodb/controllers/contact.controller';
 import assessmentRoutes from "./assessments/assessment.route"
+import testimonialRoutes from "./testimonial/testimonail.routes";
 
 const router = express.Router();
 
@@ -24,5 +25,6 @@ router.post('/put-on-hold-therapist',authenticate, authorizeRoles("ADMIN"),admin
 router.post('/remove-hold-therapist',authenticate, authorizeRoles("ADMIN"),adminController.removeTherapistProfileHold);
 router.get('/contact-form-submissions',authenticate,authorizeRoles('ADMIN'),fetchAllContactFormSubmissions);
 router.use('/assessments',authenticate,authorizeRoles('ADMIN'),assessmentRoutes);
+router.use('/testimonials',authenticate,authorizeRoles('ADMIN'),testimonialRoutes)
 
 export default router;

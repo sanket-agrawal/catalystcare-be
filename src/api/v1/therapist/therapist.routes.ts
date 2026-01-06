@@ -5,7 +5,8 @@ import availabilityRoutes from './availability/availability.routes';
 import { authorizeRoles } from '../../../shared/middlewares/rbac';
 import { validateRequest } from '../../../shared/middlewares/validate';
 import { upiVpaSchema } from './therapist.dto';
-import programRoutes from './programs/programs.routes'
+import programRoutes from './programs/programs.routes';
+import testimonialRoutes from './testimonial/testimonail.routes';
 
 const router = express.Router();
 
@@ -17,5 +18,6 @@ router.post('/set-vpa',authenticate,authorizeRoles('THERAPIST'),validateRequest(
 router.get('/fetch-masked-vpa',authenticate,authorizeRoles('THERAPIST'),therapistController.fetchMaskedVPA);
 router.get('/billing-dashboard',authenticate,authorizeRoles('THERAPIST'),therapistController.therapistBillingDashboard);
 router.put('/profile-update',authenticate,authorizeRoles('THERAPIST'),therapistController.updateTherapistProfile)
-router.use('/programs',authenticate,authorizeRoles('THERAPIST'),programRoutes)
+router.use('/programs',authenticate,authorizeRoles('THERAPIST'),programRoutes);
+router.use('/testimonials',authenticate,authorizeRoles('THERAPIST'),testimonialRoutes)
 export default router;

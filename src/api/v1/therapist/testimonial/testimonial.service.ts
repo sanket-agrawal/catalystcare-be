@@ -1,7 +1,7 @@
 // therapistTestimonial.service.ts
 import {prisma} from "../../../../infrastructure/prisma/client";
 
-const therapistTestimonialService = {
+const TherapistTestimonialService = {
   fetchMyTestimonials: async (therapistId: string) => {
     return prisma.testimonial.findMany({
       where: {
@@ -21,4 +21,4 @@ const therapistTestimonialService = {
   }
 };
 
-export default therapistTestimonialService;
+export default TherapistTestimonialService;

@@ -476,6 +476,15 @@ export const adminService = {
                                 id : true,
                                 name : true
                             }
+                        },
+                        testimonials : {
+                            select : {
+                                id : true,
+                                rating : true,
+                                status : true,
+                                text : true,
+                                createdAt : true
+                            }
                         }
                     },
                     orderBy : { updatedAt : "desc" }

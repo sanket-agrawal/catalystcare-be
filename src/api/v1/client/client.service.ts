@@ -5,8 +5,18 @@ import { ClientProfileUpdateData, CreateAssessmentInput } from "./client.dto"
 import { Prisma } from "@prisma/client"
 import { getClientBookingPermissions } from "./client.helper"
 import { meetingQueue } from "../../../infrastructure/queues"
+import { canRateSession } from "../../../shared/lib/ratings"
 
+type BookingForClientList = {
+  id: string;
+  endDateTime: Date;
+  testimonial: {
+    rating: number;
+    status: string;
+  } | null;
+};
 
+                                 
 export const clientService = {
 
     async profileUpdate(user : authenticatedUser, data : ClientProfileUpdateData){
@@ -237,18 +247,28 @@ export const clientService = {
                   }
                 }
                }
-             } 
+             },
+             testimonial : {
+              select: {
+            rating: true,
+            status: true
+          }
+             }
           },
           orderBy : {
             updatedAt : 'desc'
           }
         });
 
-        return bookings;
-      //   return bookings.map((booking) => ({
-      //   ...booking,
-      //   permissions: getClientBookingPermissions(booking.startDateTime),
-      // }));
+        // return bookings;
+        return bookings.map((booking : BookingForClientList) => ({
+        ...booking,
+        hasRated: !!booking.testimonial,
+      canRate:
+        !booking.testimonial &&
+        new Date() > booking.endDateTime
+        // permissions: getClientBookingPermissions(booking.startDateTime),
+      }));
      }catch(error){
        if(error instanceof ApiError){
                 throw new ApiError(error.statusCode,error.message)

@@ -4,6 +4,7 @@ import {authenticate} from '../../../shared/middlewares/authenticatation'
 import { createAssessmentSchema } from "./client.dto";
 import { validateRequest } from "../../../shared/middlewares/validate";
 import testimonalRoutes from "./testimonial/testimonail.routes";
+import { authorizeRoles } from "../../../shared/middlewares/rbac";
 
 const router = express.Router()
 
@@ -14,7 +15,7 @@ router.get('/fetch-assessment-based-therapist/:assessmentId',authenticate,client
 router.get('/bookings',authenticate,clientController.fetchBookings);
 router.post('/reschedule-therapy-session',authenticate,clientController.rescheduleTherapySession);
 router.post('/cancel-therapy-session',authenticate,clientController.cancelTherapySession);
-router.use('/testimonials',testimonalRoutes);
+router.use('/testimonials',authenticate,authorizeRoles('CLIENT'),testimonalRoutes);
 
 export default router;
 

@@ -38,14 +38,11 @@ export const assessmentResultTemplate = (
               box-shadow:0 8px 24px rgba(0,0,0,0.06);">
 
 <!-- HEADER -->
-<tr>
-<td align="center" style="padding:24px 20px;border-bottom:1px solid #e5e7eb;">
-  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" width="56" alt="Catalyst Care" />
-  <p style="margin:12px 0 0;font-size:14px;color:#6b7280;">
-    Assessment Results
-  </p>
-</td>
-</tr>
+ <tr style="text-align:center;">
+                    <td style="padding:14px 0 20px;font-size:28px;font-weight:600;">
+                        <span style="color:#123B66;">Catalyst</span><span style="color:#16B7C2;">Care</span>
+                    </td>
+                </tr>
 
 <!-- CONTENT -->
 <tr>

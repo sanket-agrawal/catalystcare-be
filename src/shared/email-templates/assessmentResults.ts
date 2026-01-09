@@ -39,7 +39,7 @@ export const assessmentResultTemplate = (
 
 <!-- HEADER -->
  <tr style="text-align:center;">
-                    <td style="padding:14px 0 20px;font-size:30px;font-weight:600;">
+                    <td style="padding:14px 0 20px;font-size:28px;font-weight:600;">
                         <span style="color:#123B66;">Catalyst</span><span style="color:#16B7C2;">Care</span>
                     </td>
                 </tr>

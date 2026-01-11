@@ -1,12 +1,14 @@
 import express from "express"
 import { paymentController } from "./payments.controller";
 import { authenticate } from "../../../shared/middlewares/authenticatation";
+import programPaymentRoutes from "./programs/programPayment.routes";
 
 const router = express.Router();
 
 router.post('/create-order', authenticate,paymentController.createOrder);
-router.post('/verify',authenticate,paymentController.verifyPayment)
-router.post('/webhook',authenticate,paymentController.handleWebhook)
+router.post('/verify',authenticate,paymentController.verifyPayment);
+router.post('/webhook',authenticate,paymentController.handleWebhook);
+router.use('/programs',authenticate,programPaymentRoutes)
 
 
 export default router;

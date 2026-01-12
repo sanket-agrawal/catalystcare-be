@@ -66,7 +66,7 @@ const ProgramPaymentService = {
       throw new ApiError(400, "Invalid payment signature");
     }
 
-    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const response =  prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const payment = await tx.payment.update({
         where: { id: paymentId },
         data: {
@@ -110,9 +110,9 @@ const ProgramPaymentService = {
         data: { programPurchaseId: purchase.id },
       });
 
-         await emailQueue.add("programBookingConfirmationClient", {
+        await emailQueue.add("programBookingConfirmationClient", {
           to: purchase.client.user.email,
-          subject: emailSubjects(undefined,undefined,plan.program.title,plan.name).clientProgramBookingConfirmation,
+          subject: emailSubjects(undefined,undefined,undefined ,plan.program.title,plan.name).clientProgramBookingConfirmation,
           html: clientProgramBookingConfirmationTemplate(
             purchase.client.user.firstName,
             purchase.therapist.user.firstName+" "+purchase.therapist.user.lastName,
@@ -123,10 +123,10 @@ const ProgramPaymentService = {
         });
 
         await emailQueue.add("programBookingConfirmationTherapist", {
-          to: purchase.client.user.email,
-          subject: emailSubjects(undefined,undefined,plan.program.title,plan.name).therapistProgramBookingConfirmaton,
+          to: purchase.therapist.user.email,
+          subject: emailSubjects(undefined,undefined,undefined,plan.program.title,plan.name).therapistProgramBookingConfirmaton,
           html: therapistProgramBookingConfirmationTemplate(
-            purchase.client.therapist.firstName,
+            purchase.therapist.user.firstName,
             purchase.client.user.firstName+" "+purchase.client.user.lastName,
             plan.name,
             plan.program.title,
@@ -136,6 +136,8 @@ const ProgramPaymentService = {
 
       return purchase;
     });
+
+    return response;
   },
 };
 

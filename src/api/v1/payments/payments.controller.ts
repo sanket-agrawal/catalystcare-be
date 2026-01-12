@@ -72,5 +72,5 @@ export const paymentController = {
       console.error("Webhook Error:", error);
       res.status(400).json(new ApiResponse(false, 400, "Webhook verification failed"));
     }
-  },
+  }
 }

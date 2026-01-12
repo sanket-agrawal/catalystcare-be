@@ -173,6 +173,7 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
           where : { isActive : true},
           orderBy : {updatedAt : "desc"},
           select : {
+            id : true,
             title : true,
             description : true,
             outcome : true,
@@ -183,6 +184,7 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
                 isActive : true
               },
               select : {
+                id : true,
                 name : true,
                 sessionsCount : true,
                 sessionDuration : true,

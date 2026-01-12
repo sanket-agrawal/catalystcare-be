@@ -521,6 +521,7 @@ model Payment {
   commissionRate      CommissionRate? @relation("CommissionRateToPayment", fields: [commissionRateId], references: [id])
   platformPercent     Decimal?  @map("platform_percent")   // e.g. 15.0
   gatewayPercent      Decimal?  @map("gateway_percent")    // e.g. 2.2
+  purchaseType        PurchaseType   @default(SINGLE)@map("purchase_type")
   
   platformFeePaise    Int?      @map("platform_fee_paise") // platform fee
   gatewayFeePaise     Int?      @map("gateway_fee_paise")  // razorpay fee
@@ -531,6 +532,11 @@ model Payment {
   programPurchase     ProgramPurchase?  @relation(fields: [programPurchaseId], references: [id])
 
   @@map("payments")
+}
+
+enum PurchaseType{
+  SINGLE
+  PROGRAM
 }
 
 enum PaymentStatus {

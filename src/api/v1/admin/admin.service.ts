@@ -156,7 +156,7 @@ export const adminService = {
     addCommissionRate : async (data: CreateCommissionRateInput,adminId: string) => {
         try{
               await prisma.commissionRate.updateMany({
-                where: { effectiveTo: null },
+                where: { effectiveTo: null , purchaseType: data.purchaseType},
                 data: { effectiveTo: new Date() },
             });
 
@@ -170,6 +170,7 @@ export const adminService = {
                     : new Date(),
                 effectiveTo: data.effectiveTo ? new Date(data.effectiveTo) : null,
                 adminId,
+                purchaseType : data.purchaseType
                 },
             });
             return commissionRate;
@@ -189,6 +190,7 @@ export const adminService = {
                     gatewayPercent : true,
                     effectiveFrom : true,
                     effectiveTo : true,
+                    purchaseType : true,
                     admin : {
                         select : {
                             firstName : true,

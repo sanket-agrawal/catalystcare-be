@@ -213,7 +213,7 @@ fetchProgramBookings: async (
   });
 
   return bookings.map(
-    (purchase): ProgramPurchaseWithRelations => {
+    (purchase)  => {
       const remainingSessions =
         purchase.totalSessions - purchase.usedSessions;
 

@@ -1,14 +1,14 @@
 import ApiError from "../../../../shared/utils/ApiError";
 import { prisma } from "../../../../infrastructure/prisma/client";
 import { Prisma } from "@prisma/client";
-import { ProgramPurchaseMapped } from "./programBooking.dto";
+import { ProgramPurchaseDb, ProgramPurchaseMapped } from "./programBooking.dto";
 
 
 export const programBookingService = {
   fetchProgramPurchases: async (userId: string) => {
   const now = new Date();
 
-  const purchases = (await prisma.programPurchase.findMany({
+  const purchases= await prisma.programPurchase.findMany({
     where: { clientId: userId },
     include: {
       program: {
@@ -32,7 +32,7 @@ export const programBookingService = {
       },
     },
     orderBy: { createdAt: "desc" },
-  })) as unknown as ProgramPurchaseMapped[];
+  })
 
    return purchases.map((purchase) => {
     const remainingSessions =

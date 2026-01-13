@@ -37,41 +37,79 @@ export type FetchProgramPurchasesResponse = {
   createdAt: Date;
 };
 
-export type ClientProgramPurchaseResponse = {
+export type ProgramPurchaseMapped = {
   id: string;
+
+  totalSessions: number;
+  usedSessions: number;
+
+  status: "ACTIVE" | "INACTIVE" | "EXPIRED";
+  validFrom: Date | null;
+  validTill: Date | null;
+  createdAt: Date;
 
   program: {
     id: string;
     title: string;
   };
 
-  plan: {
+  programPlan: {
     id: string;
     name: string;
-    totalSessions: number;
+    sessionsCount: number;
   };
 
   therapist: {
     id: string;
-    name: string;
+    user: {
+      firstName: string;
+      lastName: string;
+    };
   };
 
   client: {
     id: string;
-    name: string;
+    user: {
+      firstName: string;
+      lastName: string;
+    };
   };
-
-  usage: {
-    totalSessions: number;
-    usedSessions: number;
-    remainingSessions: number;
-  };
-
-  status: string;
-  validFrom: Date;
-  validTill: Date | null;
-
-  canBookSlot: boolean;
-  createdAt: Date;
 };
 
+
+export type ProgramPurchaseDb = {
+  id: string;
+  totalSessions: number;
+  usedSessions: number;
+  status: "ACTIVE" | "EXHAUSTED" | "EXPIRED" | "CANCELLED" ;
+  validFrom: Date | null;
+  validTill: Date | null;
+  createdAt: Date;
+
+  program: {
+    id: string;
+    title: string;
+  };
+
+  programPlan: {
+    id: string;
+    name: string;
+    sessionsCount: number;
+  };
+
+  therapist: {
+    id: string;
+    user: {
+      firstName: string;
+      lastName: string;
+    };
+  };
+
+  client: {
+    id: string;
+    user: {
+      firstName: string;
+      lastName: string;
+    };
+  };
+};

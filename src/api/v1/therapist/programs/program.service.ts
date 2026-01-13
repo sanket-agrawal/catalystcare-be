@@ -1,5 +1,5 @@
 import ApiError from "../../../../shared/utils/ApiError";
-import {CreateProgramInput, ProgramCadence} from "./program.dto";
+import {CreateProgramInput, ProgramCadence, ProgramPurchaseWithRelations} from "./program.dto";
 import {prisma} from "../../../../infrastructure/prisma/client";
 import { Prisma } from "@prisma/client";
 import { rupeesToPaise } from "../../../../shared/lib/money";
@@ -185,7 +185,7 @@ unPublishPlan : async (planId: string, therapistId: string) => {
 },
 fetchProgramBookings: async (
   therapistId: string
-): Promise<FetchProgramPurchasesResponse[]> => {
+) => {
   const bookings = await prisma.programPurchase.findMany({
     where: { therapistId },
     include: {
@@ -212,8 +212,8 @@ fetchProgramBookings: async (
     orderBy: { createdAt: "desc" },
   });
 
-  const response: FetchProgramPurchasesResponse[] = bookings.map(
-    (purchase): FetchProgramPurchasesResponse => {
+  return bookings.map(
+    (purchase): ProgramPurchaseWithRelations => {
       const remainingSessions =
         purchase.totalSessions - purchase.usedSessions;
 
@@ -256,13 +256,12 @@ fetchProgramBookings: async (
         status: purchase.status,
         validFrom: purchase.validFrom,
         validTill: purchase.validTill,
-
+        canBookSlot : false,
         createdAt: purchase.createdAt,
       };
     }
   );
 
-  return response;
 },
 
 }

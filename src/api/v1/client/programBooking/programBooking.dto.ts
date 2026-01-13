@@ -36,3 +36,42 @@ export type FetchProgramPurchasesResponse = {
   canBookSlot: boolean;
   createdAt: Date;
 };
+
+export type ClientProgramPurchaseResponse = {
+  id: string;
+
+  program: {
+    id: string;
+    title: string;
+  };
+
+  plan: {
+    id: string;
+    name: string;
+    totalSessions: number;
+  };
+
+  therapist: {
+    id: string;
+    name: string;
+  };
+
+  client: {
+    id: string;
+    name: string;
+  };
+
+  usage: {
+    totalSessions: number;
+    usedSessions: number;
+    remainingSessions: number;
+  };
+
+  status: string;
+  validFrom: Date;
+  validTill: Date | null;
+
+  canBookSlot: boolean;
+  createdAt: Date;
+};
+

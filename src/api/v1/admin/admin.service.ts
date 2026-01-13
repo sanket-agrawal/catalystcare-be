@@ -190,6 +190,7 @@ export const adminService = {
                     gatewayPercent : true,
                     effectiveFrom : true,
                     effectiveTo : true,
+                    purchaseType : true,
                     admin : {
                         select : {
                             firstName : true,

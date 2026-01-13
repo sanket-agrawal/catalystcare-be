@@ -1,8 +1,96 @@
 import ApiError from "../../../../shared/utils/ApiError";
 import { prisma } from "../../../../infrastructure/prisma/client";
 import { Prisma } from "@prisma/client";
+import { FetchProgramPurchasesResponse } from "./programBooking.dto";
 
-export const bookingService = {
+export const programBookingService = {
+  fetchProgramPurchases: async (userId: string) => {
+  const now = new Date();
+
+  const purchases = await prisma.programPurchase.findMany({
+    where: { clientId: userId },
+    include: {
+      program: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+      programPlan: {
+        select: {
+          id: true,
+          name: true,
+          sessionsCount: true,
+        },
+      },
+      client: {
+        include: { user: true },
+      },
+      therapist: {
+        include: { user: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+   const response: FetchProgramPurchasesResponse[]=  purchases.map((purchase) => {
+    const remainingSessions =
+      purchase.totalSessions - purchase.usedSessions;
+
+    const canBookSlot =
+      purchase.status === "ACTIVE" &&
+      remainingSessions > 0 &&
+      (!purchase.validTill || purchase.validTill >= now);
+
+    return {
+      id: purchase.id,
+
+      program: {
+        id: purchase.program.id,
+        title: purchase.program.title,
+      },
+
+      plan: {
+        id: purchase.programPlan.id,
+        name: purchase.programPlan.name,
+        totalSessions: purchase.totalSessions,
+      },
+
+      therapist: {
+        id: purchase.therapist.id,
+        name:
+          purchase.therapist.user.firstName +
+          " " +
+          purchase.therapist.user.lastName,
+      },
+
+      client: {
+        id: purchase.client.id,
+        name:
+          purchase.client.user.firstName +
+          " " +
+          purchase.client.user.lastName,
+      },
+
+      usage: {
+        totalSessions: purchase.totalSessions,
+        usedSessions: purchase.usedSessions,
+        remainingSessions,
+      },
+
+      status: purchase.status,
+      validFrom: purchase.validFrom,
+      validTill: purchase.validTill,
+
+      canBookSlot,
+
+      createdAt: purchase.createdAt,
+    };
+  });
+
+  return response;
+},
+
   bookSlot: async (
     clientId: string,
     programPurchaseId: string,

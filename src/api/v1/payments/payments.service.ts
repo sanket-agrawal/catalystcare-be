@@ -45,6 +45,7 @@ export const paymentService = {
      const now = new Date();
     const commissionRate = await prisma.commissionRate.findFirst({
       where: {
+        purchaseType : "SINGLE",
         effectiveFrom: { lte: now },
         OR: [
           { effectiveTo: null },

@@ -6,6 +6,7 @@ import crypto from "crypto";
 import { emailQueue } from "../../../../infrastructure/queues";
 import { emailFromAddress, emailSubjects } from "../../../../shared/config/email.config";
 import { clientProgramBookingConfirmationTemplate, therapistProgramBookingConfirmationTemplate } from "../../../../shared/email-templates/programBooking";
+import { calculateCommission } from "../../../../shared/lib/money";
 
 type verifyPaymentType = {
    razorpay_order_id : string,
@@ -24,6 +25,31 @@ const ProgramPaymentService = {
 
     if (!plan) throw new ApiError(404, "Program plan not found");
 
+    const now = new Date();
+
+    const commissionRate = await prisma.commissionRate.findFirst({
+          where: {
+            purchaseType : "PROGRAM",
+            effectiveFrom: { lte: now },
+            OR: [
+              { effectiveTo: null },
+              { effectiveTo: { gt: now } }
+            ]
+          },
+          orderBy: { effectiveFrom: 'desc' },
+        });
+
+        const commission = calculateCommission({
+    amountPaise: plan.pricePaise,
+    commissionRate: commissionRate
+      ? {
+          id: commissionRate.id,
+          platformPercent: Number(commissionRate.platformPercent),
+          gatewayPercent: Number(commissionRate.gatewayPercent),
+        }
+      : null,
+  });
+
 
       const shortReceipt = `program_${planId.substring(0, 8)}_${Date.now()}`;
 
@@ -40,6 +66,7 @@ const ProgramPaymentService = {
         amount: plan.price,
         currency: plan.currency,
         status: "PENDING",
+        ...commission
       },
     });
 

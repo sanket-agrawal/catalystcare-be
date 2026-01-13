@@ -3,6 +3,7 @@ import {CreateProgramInput, ProgramCadence} from "./program.dto";
 import {prisma} from "../../../../infrastructure/prisma/client";
 import { Prisma } from "@prisma/client";
 import { rupeesToPaise } from "../../../../shared/lib/money";
+import { FetchProgramPurchasesResponse } from "../../client/programBooking/programBooking.dto";
 
 const  ProgramService = {
 createProgram : async (therapistId : string,input: CreateProgramInput) => {
@@ -181,7 +182,89 @@ unPublishPlan : async (planId: string, therapistId: string) => {
     where: { id: planId },
     data: { isActive: false }
   });
-}
+},
+fetchProgramBookings: async (
+  therapistId: string
+): Promise<FetchProgramPurchasesResponse[]> => {
+  const bookings = await prisma.programPurchase.findMany({
+    where: { therapistId },
+    include: {
+      program: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+      programPlan: {
+        select: {
+          id: true,
+          name: true,
+          sessionsCount: true,
+        },
+      },
+      client: {
+        include: { user: true },
+      },
+      therapist: {
+        include: { user: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const response: FetchProgramPurchasesResponse[] = bookings.map(
+    (purchase): FetchProgramPurchasesResponse => {
+      const remainingSessions =
+        purchase.totalSessions - purchase.usedSessions;
+
+      return {
+        id: purchase.id,
+
+        program: {
+          id: purchase.program.id,
+          title: purchase.program.title,
+        },
+
+        plan: {
+          id: purchase.programPlan.id,
+          name: purchase.programPlan.name,
+          totalSessions: purchase.totalSessions,
+        },
+
+        therapist: {
+          id: purchase.therapist.id,
+          name:
+            purchase.therapist.user.firstName +
+            " " +
+            purchase.therapist.user.lastName,
+        },
+
+        client: {
+          id: purchase.client.id,
+          name:
+            purchase.client.user.firstName +
+            " " +
+            purchase.client.user.lastName,
+        },
+
+        usage: {
+          totalSessions: purchase.totalSessions,
+          usedSessions: purchase.usedSessions,
+          remainingSessions,
+        },
+
+        status: purchase.status,
+        validFrom: purchase.validFrom,
+        validTill: purchase.validTill,
+
+        createdAt: purchase.createdAt,
+      };
+    }
+  );
+
+  return response;
+},
+
 }
 
 export default ProgramService;

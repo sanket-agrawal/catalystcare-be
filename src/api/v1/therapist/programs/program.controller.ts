@@ -142,7 +142,23 @@ const ProgramController = {
                     }else{
                         res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
                     }
-        }}
+        }},
+    fetchProgramBookings :async (req : Request, res : Response) => {
+        try{
+            const plan = await ProgramService.fetchProgramBookings(req.user.therapistProfileId);
+            res.status(200).json(
+                new ApiResponse(true,200,"Program Bookings fetched Successfully",plan)
+            )
+        }catch(error){
+            console.log("Error in Fetching therapist program bookings",error);
+                    if(error instanceof ApiError){
+                        res.status(error.statusCode).json(
+                        new ApiResponse(false,error.statusCode,error.message)
+                        )
+                    }else{
+                        res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+                    }
+        }},
 };
 
 export default ProgramController;

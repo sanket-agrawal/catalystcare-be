@@ -521,7 +521,6 @@ model Payment {
   commissionRate      CommissionRate? @relation("CommissionRateToPayment", fields: [commissionRateId], references: [id])
   platformPercent     Decimal?  @map("platform_percent")   // e.g. 15.0
   gatewayPercent      Decimal?  @map("gateway_percent")    // e.g. 2.2
-  purchaseType        PurchaseType   @default(SINGLE)@map("purchase_type")
   
   platformFeePaise    Int?      @map("platform_fee_paise") // platform fee
   gatewayFeePaise     Int?      @map("gateway_fee_paise")  // razorpay fee
@@ -560,6 +559,8 @@ model CommissionRate {
   admin              User       @relation("UserToCommissionRates", fields: [adminId], references: [id], onDelete: Cascade)
 
   payments           Payment[]  @relation("CommissionRateToPayment")
+
+  purchaseType      PurchaseType @default(SINGLE)@map("purchase_type")
 
   
 
@@ -726,6 +727,8 @@ model Program {
 
   plans            ProgramPlan[]
 
+  purchases        ProgramPurchase[]
+
   @@index([therapistId, isActive])
   @@map("programs")
 }
@@ -749,6 +752,8 @@ model ProgramPlan {
 
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
+
+  purchases           ProgramPurchase[]
 
   @@index([programId, isActive])
   @@map("program_plans")
@@ -783,6 +788,9 @@ model ProgramPurchase {
   therapist         TherapistProfile      @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   programId       String   @map("program_id")
   programPlanId   String   @map("program_plan_id")
+
+  program           Program         @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programPlan       ProgramPlan      @relation(fields: [programPlanId], references: [id], onDelete: Cascade)
 
   totalSessions   Int
   usedSessions    Int      @default(0)

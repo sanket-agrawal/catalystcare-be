@@ -11,5 +11,6 @@ router.post('/un-publish/:programId',ProgramController.unPublishProgram)
 router.post('/add-plan/:programId',ProgramController.addPlanToProgram);
 router.post('/publish-plan/:planId',ProgramController.publishPlan);
 router.post('/un-publish-plan/:planId',ProgramController.unPublishPlan);
+router.get('/bookings',ProgramController.fetchProgramBookings)
 
 export default router;

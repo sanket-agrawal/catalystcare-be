@@ -527,6 +527,9 @@ model Payment {
   payoutAmountPaise   Int?      @map("payout_amount_paise")// amount to therapist
   feeBreakdown        Json?     @map("fee_breakdown")      // JSON for extra details
 
+  programPlanId    String?   @map("program_plan_id")
+  programPlan      ProgramPlan? @relation(fields: [programPlanId], references: [id])
+
   programPurchaseId   String?   @unique @map("program_purchase_id")
   programPurchase     ProgramPurchase?  @relation(fields: [programPurchaseId], references: [id])
 
@@ -754,6 +757,8 @@ model ProgramPlan {
   updatedAt           DateTime @updatedAt @map("updated_at")
 
   purchases           ProgramPurchase[]
+
+  payments            Payment[]
 
   @@index([programId, isActive])
   @@map("program_plans")

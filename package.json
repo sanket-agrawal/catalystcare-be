@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "prisma migrate dev && ts-node-dev --respawn --transpile-only src/server.ts",
+    "gcp": "prisma migrate deploy && ts-node-dev --respawn --transpile-only src/server.ts",
     "start": "node dist/server.js",
     "start:workers": "ts-node src/infrastructure/workers/index.ts",
     "build": "tsc",

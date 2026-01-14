@@ -65,6 +65,7 @@ const ProgramPaymentService = {
         amountPaise: plan.pricePaise,
         amount: plan.price,
         currency: plan.currency,
+        programPlanId: plan.id,
         status: "PENDING",
         ...commission
       },
@@ -104,9 +105,10 @@ const ProgramPaymentService = {
       });
 
       const plan = await tx.programPlan.findFirst({
-        where: { id: payment.programPurchaseId ?? undefined },
+        where: { id: payment.programPlanId!},
         include: { program: true },
       });
+
 
       if (!plan) throw new ApiError(500, "Program plan missing");
 

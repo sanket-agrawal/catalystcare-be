@@ -2,13 +2,21 @@ import { google } from "googleapis";
 import {prisma} from "../prisma/client";
 import { oauth2Client } from "./index";
 import { v4 as uuid } from "uuid";
-import { emailFromAddress, emailSubjects } from "../../shared/config/email.config";
+import { emailFromAddress, emailSubjects, programSlotBookingSubjects } from "../../shared/config/email.config";
 import { clientBookingConfirmationTemplate, therapistBookingConfirmationTemplate } from "../../shared/email-templates/booking";
 import { emailQueue } from "../queues/index";
 import { clientBookingRescheduledTemplate, therapistBookingRescheduledTemplate } from "../../shared/email-templates/reschedule-booking";
+import { clientProgramSessionSlotBookedTemplate, therapistProgramSessionSlotBookedTemplate } from "../../shared/email-templates/programBooking";
 
 interface CreateMeetPayload {
   bookingId: string;
+}
+
+interface CreateProgramSlotMeetPayload {
+  bookingId: string;
+  programTitle? : string;
+  planName? : string;
+  sessionNumber? : number;
 }
 
 export async function createGoogleMeetForBooking(
@@ -326,3 +334,165 @@ export async function deleteGoogleCalendarEvent(
   }
 }
 
+export async function createProgramSlotGoogleMeet(
+  payload: CreateProgramSlotMeetPayload
+): Promise<void> {
+  const booking = await prisma.booking.findUnique({
+    where: { id: payload.bookingId },
+    include: {
+      therapist: {
+        include: { user: true },
+      },
+      client: {
+        include: { user: true },
+      },
+    },
+  });
+
+  if (!booking) {
+    console.warn(
+      `[createGoogleMeetForBooking] Booking not found: ${payload.bookingId}`
+    );
+    return;
+  }
+
+  if (booking.meetingLink) {
+    // already created
+    return;
+  }
+
+  const therapistIntegration =
+    await prisma.therapistProfile.findUnique({
+      where: { id: booking.therapistId },
+    });
+
+  if (!therapistIntegration) {
+    console.warn(
+      `[createGoogleMeetForBooking] No Google Calendar integration for therapist ${booking.therapistId}`
+    );
+    return;
+  }
+
+  oauth2Client.setCredentials({
+    access_token: therapistIntegration.accessToken,
+    refresh_token: therapistIntegration.refreshToken,
+  });
+
+  // googleapis will auto-refresh using refresh_token if needed
+  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+    const startDateTime = booking.startDateTime;
+  const endDateTime = booking.endDateTime;
+
+  const startIso = startDateTime.toISOString();
+  const endIso = endDateTime.toISOString();
+
+  const summary = `Catalystcare ${payload.programTitle} session number ${payload.sessionNumber} with ${booking.client.user.firstName} ${booking.client.user.lastName}`;
+  const description = `Therapy session with ${booking.client.user.firstName} ${booking.client.user.lastName}`;
+
+  const calendarId = therapistIntegration.calendarId ?? "primary";
+
+  const event = await calendar.events.insert({
+    calendarId,
+    sendUpdates: "none",
+    conferenceDataVersion: 1,
+    requestBody: {
+      summary,
+      description,
+      start: {
+        dateTime: startIso,
+      },
+      end: {
+        dateTime: endIso,
+      },
+      attendees: [
+        {
+          email: booking.client.user.email,
+        },
+      ],
+      conferenceData: {
+        createRequest: {
+          requestId: uuid(),
+          conferenceSolutionKey: {
+            type: "hangoutsMeet",
+          },
+        },
+      },
+    },
+  });
+
+  const conferenceData = event.data.conferenceData;
+  const entryPoints = conferenceData?.entryPoints ?? [];
+  const videoEntry = entryPoints.find(
+    (e) => e.entryPointType === "video"
+  );
+
+  const meetLink = videoEntry?.uri ?? null;
+  const calendarEventId = event.data.id ?? null;
+
+  if (!meetLink || !calendarEventId) {
+    console.error(
+      "[createGoogleMeetForBooking] Failed to get meet link or eventId"
+    );
+    return;
+  }
+
+  await prisma.booking.update({
+    where: { id: booking.id },
+    data: {
+      meetingLink: meetLink,
+      calendarEventId,
+      meetingProvider: "GOOGLE_MEET",
+    },
+  });
+
+    const sessionDate = startDateTime.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
+  const sessionTime = startDateTime.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+   const therapistFullName = `${booking.therapist.user.firstName} ${booking.therapist.user.lastName}`;
+  const clientFullName = `${booking.client.user.firstName} ${booking.client.user.lastName}`;
+
+   await emailQueue.add("programSlotBookingConfirmationClient", {
+    to: booking.client.user.email,
+    subject: programSlotBookingSubjects(payload.planName,payload.sessionNumber,payload.programTitle,clientFullName,therapistFullName).clientSlotBookingConfirmation,
+    html: clientProgramSessionSlotBookedTemplate(
+      booking.client.user.firstName,
+      therapistFullName,
+      payload.programTitle,
+      payload.sessionNumber,
+      sessionDate,
+      sessionTime,
+      meetLink
+    ),
+    sender: emailFromAddress().infoEmail,
+  });
+
+  // Enqueue email to therapist
+  await emailQueue.add("programSlotBookingConfirmationTherapist", {
+    to: booking.therapist.user.email ?? therapistIntegration.googleEmail ?? "",
+    subject: programSlotBookingSubjects(payload.planName,payload.sessionNumber,payload.programTitle,clientFullName,therapistFullName).therapistSlotBookingConfirmation,
+    html: therapistProgramSessionSlotBookedTemplate(
+      booking.therapist.user.firstName,
+      booking.client.user.firstName,
+      payload.programTitle,
+      payload.sessionNumber,
+      sessionDate,
+      sessionTime,
+      meetLink
+    ),
+    sender: emailFromAddress().infoEmail,
+  });
+
+  // Optionally enqueue email/SMS notification via your existing Bull queues
+}

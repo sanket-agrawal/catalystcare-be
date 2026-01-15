@@ -14,6 +14,9 @@ export const slotQueue = new Queue("slot-queue", { connection : redisConnection 
 
 export interface CreateMeetingJobData {
   bookingId: string;
+  programTitle? : string;
+  planName? : string;
+  sessionNumber? : number;
 }
 
 
@@ -29,4 +32,9 @@ export const meetingQueue = new Queue<CreateMeetingJobData>(
 
 export const emailBlastQueue = new Queue("email-blast-queue", {
   connection: redisConnection,
+});
+
+
+export const programSlotBookingMeetingQueue = new Queue("program-slot-google-meeting-queue", {
+  connection : redisConnection
 });

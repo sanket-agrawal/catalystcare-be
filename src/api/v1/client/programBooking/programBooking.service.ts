@@ -2,6 +2,7 @@ import ApiError from "../../../../shared/utils/ApiError";
 import { prisma } from "../../../../infrastructure/prisma/client";
 import { Prisma } from "@prisma/client";
 import { ProgramPurchaseDb, ProgramPurchaseMapped } from "./programBooking.dto";
+import { meetingQueue } from "../../../../infrastructure/queues";
 
 
 export const programBookingService = {
@@ -63,6 +64,7 @@ export const programBookingService = {
           purchase.therapist.user.firstName +
           " " +
           purchase.therapist.user.lastName,
+        slug : purchase.therapist.slug
       },
 
       client: {
@@ -142,6 +144,7 @@ export const programBookingService = {
       const updated = await tx.programPurchase.update({
         where: { id: programPurchaseId },
         data: { usedSessions: { increment: 1 } },
+        include : {program : true, programPlan : true}
       });
 
       if (updated.usedSessions + 1 >= updated.totalSessions) {
@@ -150,6 +153,23 @@ export const programBookingService = {
           data: { status: "EXHAUSTED" },
         });
       }
+
+      meetingQueue.add('program-slot-google-meeting-queue',
+        { bookingId : booking.id,
+          programTitle : updated.program.title,
+          planName : updated.programPlan.name,
+          sessionNumber : updated.usedSessions
+         },
+    {
+      attempts: 5,
+      backoff: {
+        type: "exponential",
+        delay: 10_000,
+      },
+      removeOnComplete: false,
+      removeOnFail: false,
+    }
+      )
 
       return booking;
     });

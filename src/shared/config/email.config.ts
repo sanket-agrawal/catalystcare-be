@@ -30,6 +30,12 @@ export const emailSubjects = (therapistName? : string, clientName? : string, ass
     therapistProgramBookingConfirmaton : `New Client Enrolled in Your ${programName} - ${programTitle}`
 });
 
+
+export const programSlotBookingSubjects =  (planName? : string, sessionNumber? : number,programTitle? : string, clientName? : string, therapistName? : string) => ({
+    clientSlotBookingConfirmation : `Session ${sessionNumber} Confirmed for ${programTitle} - ${planName}`,
+    therapistSlotBookingConfirmation : `Session ${sessionNumber} Booked by ${clientName} ${programTitle} - ${planName}`,
+})
+
 export const emailFromAddress = () => ({
     onboarding : {name : "CatalystCare Onboarding" , email : "onboarding@catalystcare.in"},
     otpSending : {name : "CatalystCare", email : "noreply@catalystcare.in"},

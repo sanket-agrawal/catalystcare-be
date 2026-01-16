@@ -147,7 +147,7 @@ export const programBookingService = {
         include : {program : true, programPlan : true}
       });
 
-      if (updated.usedSessions + 1 >= updated.totalSessions) {
+      if (updated.usedSessions >= updated.totalSessions) {
         await tx.programPurchase.update({
           where: { id: programPurchaseId },
           data: { status: "EXHAUSTED" },

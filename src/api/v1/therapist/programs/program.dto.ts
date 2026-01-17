@@ -19,3 +19,41 @@ export interface CreateProgramInput {
     recommendedGapDays?: number;
   }[];
 }
+
+
+export type ProgramPurchaseWithRelations = {
+  id: string;
+  totalSessions: number;
+  usedSessions: number;
+  status: string;
+  validFrom: Date;
+  validTill: Date | null;
+  createdAt: Date;
+
+  program: {
+    id: string;
+    title: string;
+  };
+
+  programPlan: {
+    id: string;
+    name: string;
+    sessionsCount: number;
+  };
+
+  therapist: {
+    id: string;
+    user: {
+      firstName: string;
+      lastName: string;
+    };
+  };
+
+  client: {
+    id: string;
+    user: {
+      firstName: string;
+      lastName: string;
+    };
+  };
+};

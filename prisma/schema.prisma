@@ -70,6 +70,8 @@ model ClientProfile {
 
   testimonials           Testimonial[]
 
+  programPurchase        ProgramPurchase[]
+
   
   createdAt              DateTime             @default(now()) @map("created_at")
   updatedAt              DateTime             @updatedAt @map("updated_at")
@@ -218,6 +220,8 @@ model TherapistProfile {
   programs                            Program[]
 
   ratingSummary                       TherapistRating?    
+
+  programPurchase                     ProgramPurchase[]
 
 
   @@map("therapist_profiles")
@@ -374,6 +378,10 @@ model Booking {
   rescheduledFromId String?               @map("rescheduled_from_id")
   rescheduledAt     DateTime?             @map("rescheduled_at")
 
+  bookingType        BookingType          @default(SINGLE)@map("booking_type")
+  programPurchaseId  String?              @map("program_purchase_id")
+  programPurchase    ProgramPurchase?     @relation(fields: [programPurchaseId], references: [id])
+
   @@unique([slotId, isActive], name: "unique_active_slot_booking")
   @@index([clientId, status])
   @@index([therapistId, status])
@@ -519,7 +527,18 @@ model Payment {
   payoutAmountPaise   Int?      @map("payout_amount_paise")// amount to therapist
   feeBreakdown        Json?     @map("fee_breakdown")      // JSON for extra details
 
+  programPlanId    String?   @map("program_plan_id")
+  programPlan      ProgramPlan? @relation(fields: [programPlanId], references: [id])
+
+  programPurchaseId   String?   @unique @map("program_purchase_id")
+  programPurchase     ProgramPurchase?  @relation(fields: [programPurchaseId], references: [id])
+
   @@map("payments")
+}
+
+enum PurchaseType{
+  SINGLE
+  PROGRAM
 }
 
 enum PaymentStatus {
@@ -543,6 +562,8 @@ model CommissionRate {
   admin              User       @relation("UserToCommissionRates", fields: [adminId], references: [id], onDelete: Cascade)
 
   payments           Payment[]  @relation("CommissionRateToPayment")
+
+  purchaseType      PurchaseType @default(SINGLE)@map("purchase_type")
 
   
 
@@ -709,6 +730,8 @@ model Program {
 
   plans            ProgramPlan[]
 
+  purchases        ProgramPurchase[]
+
   @@index([therapistId, isActive])
   @@map("programs")
 }
@@ -733,6 +756,10 @@ model ProgramPlan {
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
+  purchases           ProgramPurchase[]
+
+  payments            Payment[]
+
   @@index([programId, isActive])
   @@map("program_plans")
 }
@@ -743,4 +770,49 @@ enum ProgramCadence {
   BIWEEKLY
   MONTHLY
   FLEXIBLE
+}
+
+enum BookingType {
+  SINGLE
+  PROGRAM
+}
+
+enum ProgramPurchaseStatus {
+  ACTIVE
+  EXHAUSTED
+  EXPIRED
+  CANCELLED
+}
+
+model ProgramPurchase {
+  id              String   @id @default(uuid())
+  clientId          String                @map("client_id")
+  therapistId       String                @map("therapist_id")
+
+  client            ClientProfile         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  therapist         TherapistProfile      @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  programId       String   @map("program_id")
+  programPlanId   String   @map("program_plan_id")
+
+  program           Program         @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programPlan       ProgramPlan      @relation(fields: [programPlanId], references: [id], onDelete: Cascade)
+
+  totalSessions   Int
+  usedSessions    Int      @default(0)
+
+  status          ProgramPurchaseStatus @default(ACTIVE)
+
+  
+  payment         Payment? 
+
+  validFrom       DateTime @default(now())
+  validTill       DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  bookings        Booking[]
+
+  @@index([clientId, status])
+  @@map("program_purchases")
 }

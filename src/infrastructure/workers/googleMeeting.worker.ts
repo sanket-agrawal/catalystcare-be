@@ -1,5 +1,5 @@
 import { Worker } from "bullmq";
-import { createGoogleMeetForBooking, deleteGoogleCalendarEvent, updateGoogleCalendarEvent } from "../google/meetingGeneration.service";
+import { createGoogleMeetForBooking, createProgramSlotGoogleMeet, deleteGoogleCalendarEvent, updateGoogleCalendarEvent } from "../google/meetingGeneration.service";
 import { CreateMeetingJobData } from "../queues/index";
 import { redisConnection } from "../redis/index";
 const queueName = "google-meeting-queue";
@@ -18,6 +18,10 @@ export const meetingWorker = new Worker<CreateMeetingJobData>(
 
       if(job.name === "delete-google-calendar-event"){
         await deleteGoogleCalendarEvent(job.data)
+      }
+
+      if(job.name === "program-slot-google-meeting-queue"){
+        await createProgramSlotGoogleMeet(job.data)
       }
     } catch (error) {
       console.error(

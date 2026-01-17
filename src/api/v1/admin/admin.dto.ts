@@ -7,6 +7,11 @@ export enum TherapistProfileStatus {
   ON_HOLD = "ON_HOLD"
 }
 
+export enum PurchaseType {
+  SINGLE = "SINGLE",
+  PROGRAM = "PROGRAM",
+}
+
 export const createCommissionRateSchema = z.object({
   name: z
     .string()
@@ -32,6 +37,11 @@ export const createCommissionRateSchema = z.object({
     .datetime({ message: "Invalid effectiveTo datetime format" })
     .nullable()
     .optional(),
+  
+  purchaseType: z.nativeEnum(PurchaseType),
 });
+
+
+
 
 export type CreateCommissionRateInput = z.infer<typeof createCommissionRateSchema>;

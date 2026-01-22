@@ -53,6 +53,8 @@ export const clientBookingConfirmationTemplate = (
                   </p>
 
                   <a href="${serverConfig.baseFrontendUrl}/dashboard"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style="display:inline-block; margin-top:20px; padding:10px 20px; 
                     background-color:#007bff; color:#fff; border-radius:6px; 
                     text-decoration:none; font-size:14px;">

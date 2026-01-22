@@ -479,7 +479,7 @@ async pendingList(clientId: string) {
     });
 
     if (singleBooking) {
-      const permission = therapistBookingPermission(
+      const permission = clientBookingPermission(
         singleBooking.startDateTime,
         singleBooking.endDateTime
       );

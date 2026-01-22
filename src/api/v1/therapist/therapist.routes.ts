@@ -20,4 +20,6 @@ router.get('/billing-dashboard',authenticate,authorizeRoles('THERAPIST'),therapi
 router.put('/profile-update',authenticate,authorizeRoles('THERAPIST'),therapistController.updateTherapistProfile)
 router.use('/programs',authenticate,authorizeRoles('THERAPIST'),programRoutes);
 router.use('/testimonials',authenticate,authorizeRoles('THERAPIST'),testimonialRoutes)
+
+router.get('/dashboard/pending-list',authenticate,authorizeRoles('THERAPIST'),therapistController.pendingList);
 export default router;

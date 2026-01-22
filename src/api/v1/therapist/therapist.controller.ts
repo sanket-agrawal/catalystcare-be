@@ -141,4 +141,23 @@ async updateTherapistProfile (req : Request , res : Response){{
             }
         }
     }
-}}
+},
+async pendingList (req : Request, res : Response){
+    try{
+          const {therapistProfileId} = req.user;
+       const bookings = await therapistService.pendingList(therapistProfileId);
+       res.status(200).json(new ApiResponse(true,200,"Therapist Pending Lists Fetched Successfully",bookings))
+    }catch(error){
+        console.log("Error fetching therapist pending lists",error);
+        if(error instanceof ApiError){
+            res.status(error.statusCode).json( 
+                new ApiResponse(false,error.statusCode,error.message)
+            )
+        }else{
+            res.status(400).json(
+                new ApiResponse(false,400,"Internal Server Error")
+            )
+        }
+    }
+},
+}

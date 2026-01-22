@@ -12,6 +12,21 @@ createProgram : async (therapistId : string,input: CreateProgramInput) => {
   }
 
   return prisma.$transaction(async (tx : Prisma.TransactionClient) => {
+
+    const therapistProfile = await tx.therapistProfile.findFirst({
+      where: {
+        id: therapistId,
+      }
+    });
+
+    if(!therapistProfile){
+      throw new ApiError(404,"Therapist Profile not found");
+    }
+
+    if(therapistProfile.status !== 'APPROVED'){
+      throw new ApiError(404,"Only Approved Therapists can create Programs");
+    }
+
     const program = await tx.program.create({
       data: {
         therapistId: therapistId,

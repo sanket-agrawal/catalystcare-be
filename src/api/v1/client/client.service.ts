@@ -261,14 +261,19 @@ export const clientService = {
         });
 
         // return bookings;
-        return bookings.map((booking : BookingForClientList) => ({
-        ...booking,
+        return bookings.map(booking => {
+       const permission =  clientBookingPermission(booking.startDateTime, booking.endDateTime);
+        return  {
+          ...booking,
         hasRated: !!booking.testimonial,
       canRate:
         !booking.testimonial &&
-        new Date() > booking.endDateTime
+        new Date() > booking.endDateTime,
         // permissions: getClientBookingPermissions(booking.startDateTime),
-      }));
+        canJoinSession : permission.canJoinSession,
+        canReschedule : permission.canReschedule
+      };
+      });
      }catch(error){
        if(error instanceof ApiError){
                 throw new ApiError(error.statusCode,error.message)
@@ -435,5 +440,184 @@ export const clientService = {
             throw error;
           }
       }
-    } 
+    } ,
+async pendingList(clientId: string) {
+  try {
+    const now = new Date();
+    const next15Min = new Date(now.getTime() + 15 * 60 * 1000);
+
+    const pendingItems: any[] = [];
+
+    /* ----------------------------------
+       1. SINGLE SESSION (slot-based)
+    ----------------------------------- */
+    const singleBooking = await prisma.booking.findFirst({
+      where: {
+        clientId,
+        paymentStatus: "CAPTURED",
+        status: "CONFIRMED",
+        AND: [
+          { startDateTime: { lte: next15Min } },
+          { endDateTime: { gt: now } },
+        ],
+      },
+      include: {
+        therapist: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                profilePhoto: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { startDateTime: "asc" },
+    });
+
+    if (singleBooking) {
+      const permission = therapistBookingPermission(
+        singleBooking.startDateTime,
+        singleBooking.endDateTime
+      );
+
+      pendingItems.push({
+        type: "SESSION",
+        bookingType: "SINGLE",
+        data: {
+          bookingId: singleBooking.id,
+
+          therapist: singleBooking.therapist,
+
+          startDateTime: singleBooking.startDateTime,
+          endDateTime: singleBooking.endDateTime,
+
+          canJoinSession: permission.canJoinSession,
+          canReschedule: permission.canReschedule,
+
+          meetingLink: permission.canJoinSession
+            ? singleBooking.meetingLink
+            : null,
+
+          isUpcoming: now < singleBooking.startDateTime,
+        },
+      });
+    }
+
+    /* ----------------------------------
+       2. PROGRAM PURCHASES (slot pending)
+    ----------------------------------- */
+    const programPurchases = await prisma.programPurchase.findMany({
+      where: {
+        clientId,
+        status: "ACTIVE",
+        validTill: { gt: now },
+      },
+      include: {
+        program: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        programPlan: {
+          select: {
+            id: true,
+            name: true,
+            sessionsCount: true,
+          },
+        },
+        therapist: {
+          include: { user: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    for (const purchase of programPurchases) {
+      const remainingSessions =
+        purchase.totalSessions - purchase.usedSessions;
+
+      if (remainingSessions <= 0) continue;
+
+      pendingItems.push({
+        type: "SESSION",
+        bookingType: "PROGRAM",
+        data: {
+          programPurchaseId: purchase.id,
+
+          program: {
+            id: purchase.program.id,
+            title: purchase.program.title,
+          },
+
+          plan: {
+            id: purchase.programPlan.id,
+            name: purchase.programPlan.name,
+            totalSessions: purchase.totalSessions,
+          },
+
+          therapist: {
+            id: purchase.therapist.id,
+            name:
+              purchase.therapist.user.firstName +
+              " " +
+              purchase.therapist.user.lastName,
+          },
+
+          usage: {
+            totalSessions: purchase.totalSessions,
+            usedSessions: purchase.usedSessions,
+            remainingSessions,
+          },
+
+          validFrom: purchase.validFrom,
+          validTill: purchase.validTill,
+
+          canBookSlot: true,
+          createdAt: purchase.createdAt,
+        },
+      });
+    }
+
+    return pendingItems;
+  } catch (error) {
+    if (error instanceof ApiError)
+      throw new ApiError(error.statusCode, error.message);
+    throw error;
+  }
 }
+
+}
+
+
+
+const clientBookingPermission = (startDateTime : Date, endDateTime : Date) => {
+  const now = new Date();
+
+  const start = new Date(startDateTime);
+  const end = new Date(endDateTime);
+
+  // 15 minutes before start
+  const joinWindowStart = new Date(start.getTime() - 15 * 60 * 1000);
+
+  const response = {
+    canJoinSession: false,
+    canReschedule: false,
+  };
+
+  // Can join only between (start - 15 mins) and end time
+  if (now >= joinWindowStart && now <= end) {
+    response.canJoinSession = true;
+  }
+
+  // Optional: reschedule allowed only BEFORE join window starts
+  // if (now < joinWindowStart) {
+  //   response.canReschedule = true;
+  // }
+
+  return response;
+};

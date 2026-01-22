@@ -121,5 +121,21 @@ export const clientController = {
                 res.status(400).json(new ApiResponse(false,400,"Something went wrong"))
             }
       }
-    }
+    },
+  async pendingList (req : Request , res : Response){
+      try{
+          const clientId = req.user.clientProfileId;
+          const therapists = await clientService.pendingList(clientId);
+          res.status(200).json(
+            new ApiResponse(true,200,"Client Pending List Fetched Successfully",therapists)
+          )
+      }catch(error){
+        console.log("Error in Fetching Client Pending List",error)
+            if(error instanceof ApiError){
+                res.status(error.statusCode).json(new ApiResponse(false,error.statusCode,error.message))
+            }else{
+                res.status(400).json(new ApiResponse(false,400,"Something went wrong"))
+            }
+      }
+    },
 };

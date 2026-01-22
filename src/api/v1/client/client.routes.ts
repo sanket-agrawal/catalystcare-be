@@ -17,7 +17,9 @@ router.get('/bookings',authenticate,clientController.fetchBookings);
 router.post('/reschedule-therapy-session',authenticate,clientController.rescheduleTherapySession);
 router.post('/cancel-therapy-session',authenticate,clientController.cancelTherapySession);
 router.use('/testimonials',authenticate,authorizeRoles('CLIENT'),testimonalRoutes);
-router.use('/programs',authenticate,authorizeRoles('CLIENT'),programRoutes)
+router.use('/programs',authenticate,authorizeRoles('CLIENT'),programRoutes);
+
+router.get("/dashboard/pending-list",authenticate,authorizeRoles('CLIENT'),clientController.pendingList);
 
 export default router;
 

@@ -287,6 +287,7 @@ async therapistBillingDashboard(therapistId: string) {
         },
         where: {
           status: "CAPTURED",
+          bookingType : "SINGLE",
           booking: {
             therapistId,
             status: "CONFIRMED",
@@ -298,6 +299,7 @@ async therapistBillingDashboard(therapistId: string) {
       prisma.payment.count({
         where: {
           status: "CAPTURED",
+          bookingType : "SINGLE",
           booking: {
             therapistId,
             status: "CONFIRMED",
@@ -310,7 +312,8 @@ async therapistBillingDashboard(therapistId: string) {
         where: {
           therapistId,
           status: "CONFIRMED",
-          payment: { status: "CAPTURED" }
+          bookingType : "SINGLE",
+          payment: { status: "CAPTURED", bookingType : "SINGLE", }
         },
         select: {
           client: {
@@ -628,7 +631,117 @@ async pendingList(therapistId: string) {
       throw new ApiError(error.statusCode, error.message);
     throw error;
   }
-}
+},
+async therapistProgramBillingDashboard(therapistId: string) {
+  try {
+        // const { filterType, page = 1, limit = 10 } = params;
+
+    // const dateRange = getDateRange(filterType);
+
+    //  const dateFilter = dateRange
+    //   ? { gte: dateRange.start, lte: dateRange.end }
+    //   : undefined;
+
+    const [aggregates, totalClients, patientWise] = await Promise.all([
+      // Combined aggregate query (2 queries → 1 query)
+      prisma.payment.aggregate({
+        _sum: {
+          payoutAmountPaise: true,
+          amountPaise: true,
+        },
+        where: {
+          status: "CAPTURED",
+          bookingType : "PROGRAM",
+          booking: {
+            therapistId,
+            status: "CONFIRMED",
+          },
+        },
+      }),
+
+      // Count clients
+      prisma.payment.count({
+        where: {
+          status: "CAPTURED",
+          bookingType : "PROGRAM",
+          booking: {
+            therapistId,
+            status: "CONFIRMED",
+          },
+        }
+      }),
+
+      // Patient wise list
+      prisma.programPurchase.findMany({
+        where: {
+          therapistId,
+          payment: { status: "CAPTURED", bookingType : "PROGRAM" }
+        },
+        select: {
+          totalSessions : true,
+          validFrom : true,
+          usedSessions : true,
+          createdAt : true,
+          client: {
+            select: {
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  profilePhoto: true
+                }
+              }
+            }
+          },
+          payment: {
+            select: {
+              amountPaise: true,
+              payoutAmountPaise: true,
+              gatewayFeePaise: true,
+              platformFeePaise: true,
+              gatewayPercent: true,
+              platformPercent: true,
+              updatedAt: true
+            }
+          },
+        },
+        orderBy: {
+          payment: { updatedAt: "desc" }
+        }
+      })
+    ]);
+
+    // Convert paise → rupees
+    const format = (p: number | null | undefined) => (p ?? 0) / 100;
+
+    const formattedPatientWise = patientWise.map((p : typeof patientWise[number]) => ({
+      ...p,
+      payment: {
+        gatewayPercent : p.payment?.gatewayPercent,
+        platformPercent : p.payment?.platformPercent,
+        paymentDate : p.payment?.updatedAt,
+        amount: format(p.payment?.amountPaise),
+        payoutAmount: format(p.payment?.payoutAmountPaise),
+        gatewayFee: format(p.payment?.gatewayFeePaise),
+        platformFee: format(p.payment?.platformFeePaise),
+      }
+    }));
+
+    return {
+      netEarnings: format(aggregates._sum.payoutAmountPaise),
+      totalRevenue: format(aggregates._sum.amountPaise),
+      totalClients,
+      totalSessionCompleted: 0, // you can compute later if needed
+      patientWise: formattedPatientWise
+    };
+
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw new ApiError(error.statusCode, error.message);
+    }
+    throw error;
+  }
+},
 };
 
 

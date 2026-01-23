@@ -533,6 +533,8 @@ model Payment {
   programPurchaseId   String?   @unique @map("program_purchase_id")
   programPurchase     ProgramPurchase?  @relation(fields: [programPurchaseId], references: [id])
 
+  bookingType        BookingType   @default(SINGLE)@map("booking_type")
+
   @@map("payments")
 }
 

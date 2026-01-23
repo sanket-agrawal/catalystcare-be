@@ -25,6 +25,9 @@ router.post('/put-on-hold-therapist',authenticate, authorizeRoles("ADMIN"),admin
 router.post('/remove-hold-therapist',authenticate, authorizeRoles("ADMIN"),adminController.removeTherapistProfileHold);
 router.get('/contact-form-submissions',authenticate,authorizeRoles('ADMIN'),fetchAllContactFormSubmissions);
 router.use('/assessments',authenticate,authorizeRoles('ADMIN'),assessmentRoutes);
-router.use('/testimonials',authenticate,authorizeRoles('ADMIN'),testimonialRoutes)
+router.use('/testimonials',authenticate,authorizeRoles('ADMIN'),testimonialRoutes);
+
+
+router.get('/program-billings-dashboard',authenticate,authorizeRoles('ADMIN'),adminController.programBillingDashboard);
 
 export default router;

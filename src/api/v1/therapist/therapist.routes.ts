@@ -22,4 +22,5 @@ router.use('/programs',authenticate,authorizeRoles('THERAPIST'),programRoutes);
 router.use('/testimonials',authenticate,authorizeRoles('THERAPIST'),testimonialRoutes)
 
 router.get('/dashboard/pending-list',authenticate,authorizeRoles('THERAPIST'),therapistController.pendingList);
+router.get('/program-billings-dashboard',authenticate,authorizeRoles('THERAPIST'),therapistController.therapistProgramBillingDashboard);
 export default router;

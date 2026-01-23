@@ -46,3 +46,57 @@ export function calculateCommission({
     },
   };
 }
+
+
+export function calculateProgramComissions({
+  amountPaise,
+  commissionRate,
+}: {
+  amountPaise: number;
+  commissionRate: {
+    id: string;
+    platformPercent: number;
+    gatewayPercent: number;
+  } | null;
+}){
+  let platformPercent = 0;
+  if(amountPaise <= 100000){
+    //less than 1000 rupees
+    platformPercent = 15;
+  }else if(amountPaise > 100000 && amountPaise <= 500000){
+    // between 1000 to 5000 rupees
+    platformPercent = 10;
+  }else if(amountPaise > 500000 && amountPaise <= 1000000){
+    // between 5000 to 10000 rupees
+    platformPercent = 7.5;
+  }else if(amountPaise > 1000000){
+    // greater than 10000 rupees 
+    platformPercent = 5;
+  }
+  const gatewayPercent = Number(commissionRate?.gatewayPercent || 0);
+
+  const platformFeePaise = Math.round(
+    (amountPaise * platformPercent) / 100
+  );
+
+  const gatewayFeePaise = Math.round(
+    (amountPaise * gatewayPercent) / 100
+  );
+
+  const payoutAmountPaise =
+    amountPaise - platformFeePaise - gatewayFeePaise;
+
+  return {
+    commissionRateId: commissionRate?.id ?? null,
+    platformPercent,
+    gatewayPercent,
+    platformFeePaise,
+    gatewayFeePaise,
+    payoutAmountPaise,
+    feeBreakdown: {
+      platformFeePaise,
+      gatewayFeePaise,
+      payoutAmountPaise,
+    },
+  };
+}

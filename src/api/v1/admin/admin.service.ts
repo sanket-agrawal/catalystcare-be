@@ -279,6 +279,7 @@ export const adminService = {
                             amountPaise: true,
                             },
                             where: {
+                            bookingType : "SINGLE",
                             status: "CAPTURED",
                         },
                 }),
@@ -287,6 +288,7 @@ export const adminService = {
                             platformFeePaise: true,
                             },
                             where: {
+                            bookingType : "SINGLE",
                             status: "CAPTURED",
                         },
                 }),
@@ -295,11 +297,13 @@ export const adminService = {
                         gatewayFeePaise: true,
                             },
                             where: {
+                            bookingType : "SINGLE",
                             status: "CAPTURED",
                     }
                 }),
                 prisma.payment.count({
                     where : {
+                        bookingType : "SINGLE",
                         status : "CAPTURED"
                     }
                 }),
@@ -308,6 +312,7 @@ export const adminService = {
                         payoutAmountPaise: true,
                             },
                             where: {
+                            bookingType : "SINGLE",
                             status: "CAPTURED",
                     }
                 }),
@@ -359,6 +364,9 @@ export const adminService = {
                             }
                         }
 
+                    },
+                    where : {
+                        bookingType : "SINGLE",
                     },
                     orderBy : { createdAt : "desc"}
                 })
@@ -576,6 +584,130 @@ export const adminService = {
             return updatedProfile;
         } catch (error) {
             if (error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
+            throw error;
+        }
+    },
+    programBillingsDashboard : async () => {
+        try{
+              const [
+                totalRevenuePaise,
+                platformRevenuePaise,
+                gatewayRevenuePaise,
+                totalClients,
+                therapistRevenuePaise,
+                transactions
+              ] = await Promise.all([
+                prisma.payment.aggregate({
+                    _sum: {
+                            amountPaise: true,
+                            },
+                            where: {
+                            bookingType : "PROGRAM",
+                            status: "CAPTURED",
+                        },
+                }),
+                prisma.payment.aggregate({
+                    _sum: {
+                            platformFeePaise: true,
+                            },
+                            where: {
+                            bookingType : "PROGRAM",
+                            status: "CAPTURED",
+                        },
+                }),
+                prisma.payment.aggregate({
+                    _sum : {
+                        gatewayFeePaise: true,
+                            },
+                            where: {
+                            bookingType : "PROGRAM",
+                            status: "CAPTURED",
+                    }
+                }),
+                prisma.payment.count({
+                    where : {
+                        bookingType : "PROGRAM",
+                        status : "CAPTURED"
+                    }
+                }),
+                prisma.payment.aggregate({
+                     _sum : {
+                        payoutAmountPaise: true,
+                            },
+                            where: {
+                            bookingType : "PROGRAM",
+                            status: "CAPTURED",
+                    }
+                }),
+                prisma.payment.findMany({
+                    select : {
+                        status : true,
+                        amount : true,
+                        createdAt : true,
+                        commissionRate : {
+                            select : {
+                                gatewayPercent : true,
+                                platformPercent : true,
+                            }
+                        },
+                        payoutAmountPaise : true,
+                        gatewayFeePaise :true,
+                        platformFeePaise : true,
+                        programPurchase : {
+                            select : {
+                                client : {
+                                   select : {
+                                    user : {
+                                        select : {
+                                            firstName : true,
+                                            lastName : true,
+                                            email : true,
+                                            mobileNumber : true,
+                                            clientProfile : {
+                                                select : {
+                                                    genderIdentity : true
+                                                }
+                                            }
+                                        }
+                                    }
+                                   }
+                                },
+                                therapist : {
+                                   select : {
+                                    user : {
+                                        select : {
+                                            firstName : true,
+                                            lastName : true,
+                                            email : true,
+                                            mobileNumber : true,
+                                        }
+                                    }
+                                   }
+                                }
+                            }
+                        }
+
+                    },
+                    where : {
+                        bookingType : "PROGRAM",
+                    },
+                    orderBy : { createdAt : "desc"}
+                })
+                
+              ])
+              return {
+                totalRevenue : (totalRevenuePaise._sum.amountPaise || 0 )  /  100,
+                platformRevenue : (platformRevenuePaise._sum.platformFeePaise || 0 )  /  100,
+                gatewayFeeRevenue : (gatewayRevenuePaise._sum.gatewayFeePaise || 0 )  /  100,
+                totalClients,
+                therapistRevenue : (therapistRevenuePaise._sum.payoutAmountPaise || 0 )  /  100,
+                completeTherapistPayout : 0,
+                pendingTherapistPayout : 0,
+                transactions
+              };
+        }catch(error){
+            if (error instanceof ApiError)
+            throw new ApiError(error.statusCode, error.message);
             throw error;
         }
     }

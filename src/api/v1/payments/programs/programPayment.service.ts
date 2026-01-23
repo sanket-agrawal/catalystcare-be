@@ -66,6 +66,7 @@ const ProgramPaymentService = {
         amount: plan.price,
         currency: plan.currency,
         programPlanId: plan.id,
+        bookingType : "PROGRAM",
         status: "PENDING",
         ...commission
       },

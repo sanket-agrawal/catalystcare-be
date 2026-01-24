@@ -382,6 +382,9 @@ model Booking {
   programPurchaseId  String?              @map("program_purchase_id")
   programPurchase    ProgramPurchase?     @relation(fields: [programPurchaseId], references: [id])
 
+  hasClientRescheduledEarlier Boolean       @default(false) @map("has_client_rescheduled_earlier")
+  hasTherapistRescheduledEarlier Boolean       @default(false) @map("has_therapist_rescheduled_earlier")
+
   @@unique([slotId, isActive], name: "unique_active_slot_booking")
   @@index([clientId, status])
   @@index([therapistId, status])

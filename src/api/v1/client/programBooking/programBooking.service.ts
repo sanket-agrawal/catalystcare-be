@@ -220,6 +220,7 @@ export const programBookingService = {
       startDateTime: true,
       endDateTime: true,
       meetingLink: true,
+      hasClientRescheduledEarlier : true,
       programPurchase: {
         select: {
           program: {
@@ -255,7 +256,7 @@ firstName : true,
   });
 
   return bookings.map(booking => {
-    const permissions  = clientBookingPermission(booking.startDateTime,booking.endDateTime)
+    const permissions  = clientBookingPermission(booking.startDateTime,booking.endDateTime,booking.hasClientRescheduledEarlier)
     return {
       ...booking,
       meetingLink : permissions.canJoinSession ? booking.meetingLink : null,

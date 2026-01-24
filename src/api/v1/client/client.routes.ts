@@ -5,7 +5,8 @@ import { createAssessmentSchema } from "./client.dto";
 import { validateRequest } from "../../../shared/middlewares/validate";
 import testimonalRoutes from "./testimonial/testimonail.routes";
 import { authorizeRoles } from "../../../shared/middlewares/rbac";
-import programRoutes from "./programBooking/programBooking.routes"
+import programRoutes from "./programBooking/programBooking.routes";
+import sessionRoutes from "./sessions/session.routes"
 
 const router = express.Router()
 
@@ -14,10 +15,9 @@ router.post('/assessment-submit',authenticate,validateRequest(createAssessmentSc
 router.get('/get-assessments',authenticate,clientController.getAssessments);
 router.get('/fetch-assessment-based-therapist/:assessmentId',authenticate,clientController.getTherapistsByUserNeeds);
 router.get('/bookings',authenticate,clientController.fetchBookings);
-router.post('/reschedule-therapy-session',authenticate,clientController.rescheduleTherapySession);
-router.post('/cancel-therapy-session',authenticate,clientController.cancelTherapySession);
 router.use('/testimonials',authenticate,authorizeRoles('CLIENT'),testimonalRoutes);
 router.use('/programs',authenticate,authorizeRoles('CLIENT'),programRoutes);
+router.use('/sessions',authenticate,authorizeRoles('CLIENT'),sessionRoutes)
 
 router.get("/dashboard/pending-list",authenticate,authorizeRoles('CLIENT'),clientController.pendingList);
 

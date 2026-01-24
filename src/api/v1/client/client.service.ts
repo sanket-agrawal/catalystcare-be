@@ -262,7 +262,7 @@ export const clientService = {
 
         // return bookings;
         return bookings.map(booking => {
-       const permission =  clientBookingPermission(booking.startDateTime, booking.endDateTime);
+       const permission =  clientBookingPermission(booking.startDateTime, booking.endDateTime, booking.hasClientRescheduledEarlier);
         return  {
           ...booking,
         hasRated: !!booking.testimonial,
@@ -280,155 +280,6 @@ export const clientService = {
             }
             throw error;
      }
-    },
-    async rescheduleTherapySession (bookingId : string, newSlotId : string,clientId : String, reason? : string){
-      try{
-          return prisma.$transaction(async (tx : Prisma.TransactionClient) => {
-              const booking = await tx.booking.findUnique({
-                where: { id: bookingId },
-                include: { slot: true },
-              });
-
-              if (!booking || !booking.isActive) {
-                throw new ApiError(404, "Booking not found");
-              }
-
-              if (booking.clientId !== clientId) {
-                throw new ApiError(403, "Unauthorized");
-              }
-
-              if (booking.status !== "CONFIRMED") {
-                throw new ApiError(400, "Only confirmed bookings can be rescheduled");
-              }
-
-              const permissions = getClientBookingPermissions(booking.startDateTime);
-              if (!permissions.canReschedule) {
-                throw new ApiError(400, "Rescheduling not allowed within 12 hours");
-              }
-
-              const newSlot = await tx.availabilitySlot.findUnique({
-              where: { id: newSlotId },
-                });
-
-                if (!newSlot || newSlot.status !== "AVAILABLE") {
-                  throw new ApiError(400, "Selected slot is not available");
-                }
-
-                // 1️⃣ Free old slot
-                await tx.availabilitySlot.update({
-                  where: { id: booking.slotId },
-                  data: {
-                    status: "AVAILABLE",
-                    clientId: null,
-                  },
-                });
-
-                    // 2️⃣ Book new slot
-              await tx.availabilitySlot.update({
-                where: { id: newSlotId },
-                data: {
-                  status: "BOOKED",
-                  clientId: booking.clientId,
-                },
-              });
-
-                  const updatedBooking = await tx.booking.update({
-                  where: { id: bookingId },
-                  data: {
-                    slotId: newSlotId,
-                    startDateTime: newSlot.startDateTime,
-                    endDateTime: newSlot.endDateTime,
-                    rescheduledFromId: booking.slotId,
-                    rescheduledAt: new Date(),
-                    meetingLink: null,
-                    calendarEventId: null,
-                  },
-                });
-
-                      await meetingQueue.add(
-                    "update-google-meet",
-                    { bookingId },
-                    {
-                      attempts: 5,
-                      backoff: {
-                        type: "exponential",
-                        delay: 10_000,
-                      },
-                      removeOnComplete: false,
-                      removeOnFail: false,
-                    }
-                  ); 
-
-                return updatedBooking;
-
-
-          })
-      }catch(error){
-         if(error instanceof ApiError){
-                throw new ApiError(error.statusCode,error.message)
-            }
-            throw error;
-      }
-    }, 
-    async cancelTherapySession (clientId : string, bookingId : string, reason? : string){
-      try{
-        return prisma.$transaction(async (tx : Prisma.TransactionClient) => {
-          const booking = await tx.booking.findUnique({
-            where: { id: bookingId },
-          });
-
-          if (!booking || !booking.isActive) {
-            throw new ApiError(404, "Booking not found");
-          }
-
-          if (booking.clientId !== clientId) {
-            throw new ApiError(403, "Unauthorized");
-          }
-
-          const permissions = getClientBookingPermissions(booking.startDateTime);
-          if (!permissions.canCancel) {
-            throw new ApiError(400, "Cancellation not allowed within 24 hours");
-          }
-
-          await tx.booking.update({
-            where: { id: bookingId },
-            data: {
-              status: "CANCELLED",
-              cancelledBy: "CLIENT",
-              cancelledAt: new Date(),
-              cancellationReason: reason,
-              isActive: false,
-            },
-          });
-
-          await tx.availabilitySlot.update({
-            where: { id: booking.slotId },
-            data: {
-              status: "AVAILABLE",
-              clientId: null,
-            },
-          });
-
-          await meetingQueue.add(
-            "delete-google-calendar-event",
-            { bookingId },
-            {
-              attempts: 5,
-              backoff: {
-                type: "exponential",
-                delay: 10_000,
-              },
-              removeOnComplete: false,
-              removeOnFail: false,
-            }
-          );
-        });
-      }catch(error){
-               if(error instanceof ApiError){
-                throw new ApiError(error.statusCode,error.message)
-            }
-            throw error;
-      }
     },
     async clientPendingActionList (clientId : string){
       try{
@@ -481,7 +332,8 @@ async pendingList(clientId: string) {
     if (singleBooking) {
       const permission = clientBookingPermission(
         singleBooking.startDateTime,
-        singleBooking.endDateTime
+        singleBooking.endDateTime,
+        singleBooking.hasClientRescheduledEarlier
       );
 
       pendingItems.push({
@@ -595,7 +447,7 @@ async pendingList(clientId: string) {
 
 
 
-export const clientBookingPermission = (startDateTime : Date, endDateTime : Date) => {
+export const clientBookingPermission = (startDateTime : Date, endDateTime : Date, hasClientRescheduledEarlier : boolean) => {
   const now = new Date();
 
   const start = new Date(startDateTime);
@@ -615,9 +467,33 @@ export const clientBookingPermission = (startDateTime : Date, endDateTime : Date
   }
 
   // Optional: reschedule allowed only BEFORE join window starts
-  // if (now < joinWindowStart) {
-  //   response.canReschedule = true;
-  // }
+  if (clientReschedulePermission(startDateTime,hasClientRescheduledEarlier)) {
+    response.canReschedule = true;
+  }
 
   return response;
+};
+
+
+export const clientReschedulePermission = (
+  startDateTime: Date,
+  hasClientRescheduledEarlier: boolean
+): boolean => {
+  // Rule: only one reschedule allowed
+  if (hasClientRescheduledEarlier) {
+    return false;
+  }
+
+  const now = new Date();
+
+  const diffInMs = startDateTime.getTime() - now.getTime();
+  const diffInHours = diffInMs / (1000 * 60 * 60);
+
+  // Rule: less than 12 hours → no reschedule
+  if (diffInHours < 12) {
+    return false;
+  }
+
+  // 12+ hours remaining → reschedule allowed
+  return true;
 };

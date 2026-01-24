@@ -3,6 +3,7 @@ import { prisma } from "../../../../infrastructure/prisma/client";
 import { Prisma } from "@prisma/client";
 import { ProgramPurchaseDb, ProgramPurchaseMapped } from "./programBooking.dto";
 import { meetingQueue } from "../../../../infrastructure/queues";
+import { clientBookingPermission } from "../client.service";
 
 
 export const programBookingService = {
@@ -209,4 +210,59 @@ export const programBookingService = {
       return true;
     });
   },
+  fetchProgramPurchaseById: async (purchaseId: string) => {
+  const bookings = await prisma.booking.findMany({
+    where: {
+      programPurchaseId: purchaseId,
+    },
+    select: {
+      id: true,
+      startDateTime: true,
+      endDateTime: true,
+      meetingLink: true,
+      programPurchase: {
+        select: {
+          program: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+            },
+          },
+          programPlan : {
+            select : {
+              name : true
+            }
+          },
+          therapist : {
+            select : {
+              user : {
+                select : {
+firstName : true,
+                lastName : true
+                }
+                
+              }
+            }
+          },
+          totalSessions : true,
+          usedSessions : true,
+          createdAt : true
+        },
+      },
+    },
+    orderBy : { createdAt : 'desc'}
+  });
+
+  return bookings.map(booking => {
+    const permissions  = clientBookingPermission(booking.startDateTime,booking.endDateTime)
+    return {
+      ...booking,
+      meetingLink : permissions.canJoinSession ? booking.meetingLink : null,
+      canJoinSession : permissions.canJoinSession,
+      canReschedule : permissions.canReschedule
+    }
+  });
+}
+
 };

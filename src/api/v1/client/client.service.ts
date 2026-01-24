@@ -595,7 +595,7 @@ async pendingList(clientId: string) {
 
 
 
-const clientBookingPermission = (startDateTime : Date, endDateTime : Date) => {
+export const clientBookingPermission = (startDateTime : Date, endDateTime : Date) => {
   const now = new Date();
 
   const start = new Date(startDateTime);

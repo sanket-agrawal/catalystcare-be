@@ -159,6 +159,22 @@ const ProgramController = {
                         res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
                     }
         }},
+        fetchPurchaseById : async (req : Request, res : Response) => {
+        try{
+            const plan = await ProgramService.fetchProgramPurchaseById(req.params.purchaseId);
+            res.status(200).json(
+                new ApiResponse(true,200,"Purchase Bookings fetched Successfully",plan)
+            )
+        }catch(error){
+            console.log("Error in Fetching therapist purchase by ID bookings",error);
+                    if(error instanceof ApiError){
+                        res.status(error.statusCode).json(
+                        new ApiResponse(false,error.statusCode,error.message)
+                        )
+                    }else{
+                        res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+                    }
+        }},
 };
 
 export default ProgramController;

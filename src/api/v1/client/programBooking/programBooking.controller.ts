@@ -42,7 +42,27 @@ const ProgramBookingController = {
                 )
             } 
         }
-    }
+    },
+    fetchPurchaseById :  async (req : Request, res : Response) => {
+        try{
+            const {purchaseId } = req.params;
+            const bookings = await programBookingService.fetchProgramPurchaseById(purchaseId);
+            res.status(200).json(
+                new ApiResponse(true,200,"Purchase Details Fetched Successfully",bookings)
+            )
+        }catch(error){
+            console.log("error in fetching purchase details ",error);
+            if(error instanceof ApiError){
+                res.status(error.statusCode).json(
+                    new ApiResponse(false,error.statusCode,error.message)
+                )
+            }else{
+                res.status(400).json(
+                    new ApiResponse(false,400,"Something Went Wrong")
+                )
+            } 
+        }
+    },
 
 }
 

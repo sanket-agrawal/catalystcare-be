@@ -4,6 +4,7 @@ import {prisma} from "../../../../infrastructure/prisma/client";
 import { Prisma } from "@prisma/client";
 import { rupeesToPaise } from "../../../../shared/lib/money";
 import { FetchProgramPurchasesResponse } from "../../client/programBooking/programBooking.dto";
+import { therapistBookingPermission } from "../therapist.service";
 
 const  ProgramService = {
 createProgram : async (therapistId : string,input: CreateProgramInput) => {
@@ -278,6 +279,60 @@ fetchProgramBookings: async (
   );
 
 },
+  fetchProgramPurchaseById: async (purchaseId: string) => {
+  const bookings = await prisma.booking.findMany({
+    where: {
+      programPurchaseId: purchaseId,
+    },
+    select: {
+      id: true,
+      startDateTime: true,
+      endDateTime: true,
+      meetingLink: true,
+      programPurchase: {
+        select: {
+          program: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+            },
+          },
+          programPlan : {
+            select : {
+              name : true
+            }
+          },
+          client : {
+            select : {
+              user : {
+                select : {
+firstName : true,
+                lastName : true
+                }
+                
+              }
+            }
+          },
+          totalSessions : true,
+          usedSessions : true,
+          createdAt : true
+        },
+      },
+    },
+    orderBy : { createdAt : 'desc'}
+  });
+
+  return bookings.map(booking => {
+    const permissions  = therapistBookingPermission(booking.startDateTime,booking.endDateTime)
+    return {
+      ...booking,
+      meetingLink : permissions.canJoinSession ? booking.meetingLink : null,
+      canJoinSession : permissions.canJoinSession,
+      canReschedule : permissions.canReschedule
+    }
+  });
+}
 
 }
 

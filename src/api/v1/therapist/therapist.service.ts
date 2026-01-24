@@ -745,7 +745,7 @@ async therapistProgramBillingDashboard(therapistId: string) {
 };
 
 
-const therapistBookingPermission = (startDateTime : Date, endDateTime : Date) => {
+export const therapistBookingPermission = (startDateTime : Date, endDateTime : Date) => {
   const now = new Date();
 
   const start = new Date(startDateTime);

@@ -26,7 +26,11 @@ const ClientSessionService = {
                   if (booking.status !== "CONFIRMED") {
                     throw new ApiError(400, "Only confirmed bookings can be rescheduled");
                   }
-    
+
+                  if(booking.hasClientRescheduledEarlier){
+                    throw new ApiError(400, "Rescheduling once is allowed only");
+                  }
+
                   const permissions = clientReschedulePermission(booking.startDateTime,booking.hasClientRescheduledEarlier);
                   
                   if(!permissions){
@@ -67,8 +71,8 @@ const ClientSessionService = {
                         endDateTime: newSlot.endDateTime,
                         rescheduledFromId: booking.slotId,
                         rescheduledAt: new Date(),
-                        meetingLink: null,
-                        calendarEventId: null,
+                        hasClientRescheduledEarlier : true
+
                       },
                     });
     

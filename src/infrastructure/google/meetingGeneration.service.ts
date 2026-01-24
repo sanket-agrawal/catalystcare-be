@@ -191,11 +191,11 @@ export async function updateGoogleCalendarEvent(payload: CreateMeetPayload) {
     throw new Error("Booking not found");
   }
 
-  if (!booking.calendarEventId) {
-  // fallback → create event
-  await createGoogleMeetForBooking({ bookingId: payload.bookingId });
-  return;
-}
+//   if (!booking.calendarEventId) {
+//   // fallback → create event
+//   await createGoogleMeetForBooking({ bookingId: payload.bookingId });
+//   return;
+// }
 
   const therapistIntegration = await prisma.therapistProfile.findUnique({
     where: { id: booking.therapistId },

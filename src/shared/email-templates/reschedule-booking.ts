@@ -54,11 +54,12 @@ export const clientBookingRescheduledTemplate = (
                     You can join the session using the same secure meeting link below.
                   </p>
 
-                  <a href="${meetLink}"
+                  <a href="${serverConfig.baseFrontendUrl}/dashboard"
+                    target="_blank" rel="noopener noreferrer"
                     style="display:inline-block; margin-top:20px; padding:10px 20px; 
                     background-color:#007bff; color:#fff; border-radius:6px; 
                     text-decoration:none; font-size:14px;">
-                    Join Google Meet
+                    View Dashboard
                   </a>
 
                   <p style="font-size:13px; color:#777; margin-top:15px;">
@@ -143,11 +144,12 @@ export const therapistBookingRescheduledTemplate = (
                     Please use the same meeting link below to join the session.
                   </p>
 
-                  <a href="${meetLink}"
+                  <a href="${serverConfig.baseFrontendUrl}/therapist-dashboard"
+                    target="_blank" rel="noopener noreferrer"
                     style="display:inline-block; margin-top:20px; padding:10px 20px; 
                     background-color:#28a745; color:#fff; border-radius:6px; 
                     text-decoration:none; font-size:14px;">
-                    Join Google Meet
+                    View Dashboard
                   </a>
 
                   <p style="font-size:13px; color:#777; margin-top:15px;">

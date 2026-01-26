@@ -199,12 +199,14 @@ export const therapistService = {
       );
           return {
             id : booking.id,
+            status : booking.status,
           client : booking.client,
           startDateTime : booking.startDateTime,
           endDateTime : booking.endDateTime,
           meetingLink : permission.canJoinSession ? booking.meetingLink : null,
            canJoinSession : permission.canJoinSession,
-           canReschedule : permission.canReschedule
+           canReschedule : permission.canReschedule,
+           rescheduleStatus : booking.rescheduleStatus
           };
         })
     }catch(error){

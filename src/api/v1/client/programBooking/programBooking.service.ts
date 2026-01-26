@@ -237,6 +237,7 @@ export const programBookingService = {
           },
           therapist : {
             select : {
+              slug : true,
               user : {
                 select : {
 firstName : true,

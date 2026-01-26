@@ -6,18 +6,31 @@ import { calculateBurnoutScore, mapBurnoutResult } from "../../../../shared/lib/
 import { emailFromAddress, emailSubjects } from "../../../../shared/config/email.config";
 import { assessmentResultTemplate } from "../../../../shared/email-templates/assessmentResults";
 
+interface AssessmentGuidelines {
+  does: string[];
+  doesNot: string[];
+}
+
 interface CreateAssessmentInput {
   title: string;
   description?: string;
   icon?: string;
   poster?: string;
+  verifiedBy? : string;
+  targetAudience? : string;
+  guidelines? : AssessmentGuidelines
 }
+
+
 
 interface UpdateAssessmentInput {
   title?: string;
   description?: string;
   icon?: string;
   poster?: string;
+    verifiedBy? : string;
+  targetAudience? : string;
+  guidelines? : AssessmentGuidelines
 }
 
 export interface AssessmentAnswerPayload {
@@ -50,6 +63,9 @@ export const assessmentService = {
         description: data.description,
         icon: data.icon,
         poster: data.poster,
+        verifiedBy : data.verifiedBy,
+        targetAudience : data.targetAudience,
+        guidelines : data.guidelines,
         slug,
         isActive: false, // created as DRAFT
       },

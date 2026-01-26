@@ -95,6 +95,10 @@ export async function createGoogleMeetForBooking(
           email: booking.client.user.email,
         },
       ],
+  guestsCanModify: false,
+  guestsCanInviteOthers: false,
+  guestsCanSeeOtherGuests: false,
+
       conferenceData: {
         createRequest: {
           requestId: uuid(),
@@ -410,6 +414,9 @@ export async function createProgramSlotGoogleMeet(
           email: booking.client.user.email,
         },
       ],
+        guestsCanModify: false,
+  guestsCanInviteOthers: false,
+  guestsCanSeeOtherGuests: false,
       conferenceData: {
         createRequest: {
           requestId: uuid(),

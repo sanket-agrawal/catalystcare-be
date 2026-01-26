@@ -60,11 +60,11 @@ export function calculateProgramComissions({
   } | null;
 }){
   let platformPercent = 0;
-  if(amountPaise <= 100000){
-    //less than 1000 rupees
+  if(amountPaise <= 200000){
+    //less than 2000 rupees
     platformPercent = 15;
-  }else if(amountPaise > 100000 && amountPaise <= 500000){
-    // between 1000 to 5000 rupees
+  }else if(amountPaise > 200000 && amountPaise <= 500000){
+    // between 2000 to 5000 rupees
     platformPercent = 10;
   }else if(amountPaise > 500000 && amountPaise <= 1000000){
     // between 5000 to 10000 rupees

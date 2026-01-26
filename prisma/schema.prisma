@@ -685,8 +685,11 @@ model Assessment {
   submissions AssessmentSubmission[]
 
   verifiedBy  String?      @map("verified_by")
-  targetAudience String?   @map("target_audience")
+  targetAudience Json?   @map("target_audience")
   guidelines      Json?    @map("guidelines")
+  minTime       Int?       @map("min_time")
+  maxTime       Int?       @map("max_time")
+  numberOfStatements  Int? @map("number_of_statements")
 
 
 

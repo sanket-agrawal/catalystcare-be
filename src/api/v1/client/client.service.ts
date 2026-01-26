@@ -239,6 +239,7 @@ export const clientService = {
             therapist: {
                select : {
                 id : true,
+                slug : true,
                 user : {
                   select : {
                     firstName : true,

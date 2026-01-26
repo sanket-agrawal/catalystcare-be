@@ -17,8 +17,11 @@ interface CreateAssessmentInput {
   icon?: string;
   poster?: string;
   verifiedBy? : string;
-  targetAudience? : string;
-  guidelines? : AssessmentGuidelines
+  targetAudience? : string[];
+  guidelines? : AssessmentGuidelines,
+  minTime? : number,
+  maxTime? : number,
+  numberOfStatements? : number
 }
 
 
@@ -29,8 +32,11 @@ interface UpdateAssessmentInput {
   icon?: string;
   poster?: string;
     verifiedBy? : string;
-  targetAudience? : string;
-  guidelines? : AssessmentGuidelines
+  targetAudience? : string[];
+  guidelines? : AssessmentGuidelines,
+  minTime? : number,
+  maxTime? : number,
+  numberOfStatements? : number
 }
 
 export interface AssessmentAnswerPayload {
@@ -66,6 +72,9 @@ export const assessmentService = {
         verifiedBy : data.verifiedBy,
         targetAudience : data.targetAudience,
         guidelines : data.guidelines,
+          minTime : data.minTime,
+          maxTime : data.maxTime,
+          numberOfStatements : data.numberOfStatements,
         slug,
         isActive: false, // created as DRAFT
       },

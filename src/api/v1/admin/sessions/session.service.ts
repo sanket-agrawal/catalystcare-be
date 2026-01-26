@@ -8,8 +8,16 @@ return prisma.booking.findMany({
     include : {
         therapist : {
             select : {
-                rescheduleReason : true,
-                rescheduleStatus : true,
+                user : {
+                    select : {
+                        firstName : true,
+                        lastName : true
+                    }
+                }
+            }
+        },
+         client : {
+            select : {
                 user : {
                     select : {
                         firstName : true,

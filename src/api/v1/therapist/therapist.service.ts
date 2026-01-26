@@ -194,7 +194,8 @@ export const therapistService = {
         return bookings.map(booking => {
           const permission = therapistBookingPermission(
         booking.startDateTime,
-        booking.endDateTime
+        booking.endDateTime,
+        booking.hasTherapistRescheduledEarlier,
       );
           return {
             id : booking.id,
@@ -531,7 +532,8 @@ async pendingList(therapistId: string) {
     if (singleBooking) {
       const permission = therapistBookingPermission(
         singleBooking.startDateTime,
-        singleBooking.endDateTime
+        singleBooking.endDateTime,
+        singleBooking.hasTherapistRescheduledEarlier
       );
 
       pendingItems.push({
@@ -745,7 +747,7 @@ async therapistProgramBillingDashboard(therapistId: string) {
 };
 
 
-export const therapistBookingPermission = (startDateTime : Date, endDateTime : Date) => {
+export const therapistBookingPermission = (startDateTime : Date, endDateTime : Date, hasTherapistRescheduledEarlier: boolean) => {
   const now = new Date();
 
   const start = new Date(startDateTime);
@@ -764,10 +766,31 @@ export const therapistBookingPermission = (startDateTime : Date, endDateTime : D
     response.canJoinSession = true;
   }
 
+  response.canReschedule = therapistReschedulePermission(startDateTime, hasTherapistRescheduledEarlier)
+
   // Optional: reschedule allowed only BEFORE join window starts
   // if (now < joinWindowStart) {
   //   response.canReschedule = true;
   // }
 
   return response;
+};
+
+
+export const therapistReschedulePermission = (
+  startDateTime: Date,
+  hasTherapistRescheduledEarlier: boolean
+): boolean => {
+  // Rule 1: only one reschedule allowed
+  if (hasTherapistRescheduledEarlier) {
+    return false;
+  }
+
+  const now = new Date();
+  const diffInMs = startDateTime.getTime() - now.getTime();
+
+  // Rule 2: must be more than 1 hour before session start
+  const ONE_HOUR_IN_MS = 60 * 60 * 1000;
+
+  return diffInMs > ONE_HOUR_IN_MS;
 };

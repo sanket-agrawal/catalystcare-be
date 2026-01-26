@@ -385,6 +385,12 @@ model Booking {
   hasClientRescheduledEarlier Boolean       @default(false) @map("has_client_rescheduled_earlier")
   hasTherapistRescheduledEarlier Boolean       @default(false) @map("has_therapist_rescheduled_earlier")
 
+  rescheduleReason   String?                @map("reschedule_reason")
+  rescheduleStatus   RescheduleStatus?      @map("reschedule_status")
+
+  rescheduleReviewedBy String?              @map("reschedule_reviewed_by")
+  rescheduleReviewedAt DateTime?            @map("reschedule_reviewed_at")
+
   @@unique([slotId, isActive], name: "unique_active_slot_booking")
   @@index([clientId, status])
   @@index([therapistId, status])
@@ -417,6 +423,12 @@ enum BookingStatus {
   CANCELLED
   NO_SHOW
   PENDING_PAYMENT
+}
+
+enum RescheduleStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
 }
 
 model ClientAssesment {
@@ -671,6 +683,12 @@ model Assessment {
   updatedAt   DateTime     @updatedAt @map("updated_at")
   questions   AssessmentQuestion[]
   submissions AssessmentSubmission[]
+
+  verifiedBy  String?      @map("verified_by")
+  targetAudience String?   @map("target_audience")
+  guidelines      Json?    @map("guidelines")
+
+
 
   @@index([slug,isActive])
   @@map("assessments")

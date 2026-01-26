@@ -289,6 +289,7 @@ fetchProgramBookings: async (
       startDateTime: true,
       endDateTime: true,
       meetingLink: true,
+      hasTherapistRescheduledEarlier : true,
       programPurchase: {
         select: {
           program: {
@@ -324,7 +325,7 @@ firstName : true,
   });
 
   return bookings.map(booking => {
-    const permissions  = therapistBookingPermission(booking.startDateTime,booking.endDateTime)
+    const permissions  = therapistBookingPermission(booking.startDateTime,booking.endDateTime,booking.hasTherapistRescheduledEarlier)
     return {
       ...booking,
       meetingLink : permissions.canJoinSession ? booking.meetingLink : null,

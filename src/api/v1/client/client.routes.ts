@@ -14,7 +14,7 @@ router.post('/profile-update',authenticate,clientController.profileUpdate);
 router.post('/assessment-submit',authenticate,validateRequest(createAssessmentSchema),clientController.assessmentSubmit);
 router.get('/get-assessments',authenticate,clientController.getAssessments);
 router.get('/fetch-assessment-based-therapist/:assessmentId',authenticate,clientController.getTherapistsByUserNeeds);
-router.get('/bookings',authenticate,clientController.fetchBookings);
+router.get('/bookings',authenticate,authorizeRoles('CLIENT'),clientController.fetchBookings);
 router.use('/testimonials',authenticate,authorizeRoles('CLIENT'),testimonalRoutes);
 router.use('/programs',authenticate,authorizeRoles('CLIENT'),programRoutes);
 router.use('/sessions',authenticate,authorizeRoles('CLIENT'),sessionRoutes)

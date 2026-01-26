@@ -6,9 +6,9 @@ import TherapistSessionService from "./session.service";
 const TherapistSessionController = {
     rescheduleSession : async (req : Request , res : Response) => {
        try{
-            const {bookingId } = req.body;
+            const {bookingId,reason } = req.body;
             const therapistId = req.user.therapistProfileId;
-            const rescheduledSession = await TherapistSessionService.rescheduleSession(bookingId,therapistId);
+            const rescheduledSession = await TherapistSessionService.rescheduleSession(bookingId,therapistId,reason);
             return res.status(200).json(
                 new ApiResponse(true,200,"Session Rescheduling Request successfully",rescheduledSession)
             )

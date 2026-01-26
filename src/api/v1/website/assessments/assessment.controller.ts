@@ -18,6 +18,8 @@ export const AssessmentController = {
                     icon : true,
                     poster : true,
                     verifiedBy : true,
+                    targetAudience : true,
+                    guidelines : true,
                     questions : {
                         orderBy : {
                             order : 'asc'

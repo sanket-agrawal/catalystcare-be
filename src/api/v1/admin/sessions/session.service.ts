@@ -19,6 +19,7 @@ return prisma.booking.findMany({
     include : {
         therapist : {
             select : {
+              slug : true,
                 user : {
                     select : {
                         firstName : true,

@@ -3,6 +3,6 @@ import ClientSessionController from "./session.controller";
 
 const router = express.Router();
 
-router.post('/reschedule',ClientSessionController.rescheduleSession)
+router.post('/reschedule',ClientSessionController.rescheduleSession);
 
 export default router;

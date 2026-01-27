@@ -263,7 +263,7 @@ export const clientService = {
 
         // return bookings;
         return bookings.map(booking => {
-       const permission =  clientBookingPermission(booking.startDateTime, booking.endDateTime, booking.hasClientRescheduledEarlier);
+       const permission =  clientBookingPermission(booking.startDateTime, booking.endDateTime, booking.hasClientRescheduledEarlier,booking.rescheduleStatus);
         return  {
           ...booking,
         hasRated: !!booking.testimonial,
@@ -272,7 +272,8 @@ export const clientService = {
         new Date() > booking.endDateTime,
         // permissions: getClientBookingPermissions(booking.startDateTime),
         canJoinSession : permission.canJoinSession,
-        canReschedule : permission.canReschedule
+        canReschedule : permission.canReschedule,
+        rescheduleStatus : permission.rescheduleStatus
       };
       });
      }catch(error){
@@ -334,7 +335,8 @@ async pendingList(clientId: string) {
       const permission = clientBookingPermission(
         singleBooking.startDateTime,
         singleBooking.endDateTime,
-        singleBooking.hasClientRescheduledEarlier
+        singleBooking.hasClientRescheduledEarlier,
+        singleBooking.rescheduleStatus
       );
 
       pendingItems.push({
@@ -448,7 +450,7 @@ async pendingList(clientId: string) {
 
 
 
-export const clientBookingPermission = (startDateTime : Date, endDateTime : Date, hasClientRescheduledEarlier : boolean) => {
+export const clientBookingPermission = (startDateTime : Date, endDateTime : Date, hasClientRescheduledEarlier : boolean, rescheduleStatus : string) => {
   const now = new Date();
 
   const start = new Date(startDateTime);
@@ -460,10 +462,11 @@ export const clientBookingPermission = (startDateTime : Date, endDateTime : Date
   const response = {
     canJoinSession: false,
     canReschedule: false,
+    rescheduleStatus : bookingRescheduleStatus(rescheduleStatus)
   };
 
   // Can join only between (start - 15 mins) and end time
-  if (now >= joinWindowStart && now <= end) {
+  if (now >= joinWindowStart && now <= end && rescheduleStatus ! == 'REQUESTED') {
     response.canJoinSession = true;
   }
 
@@ -498,3 +501,11 @@ export const clientReschedulePermission = (
   // 12+ hours remaining → reschedule allowed
   return true;
 };
+
+
+export const bookingRescheduleStatus = (rescheduleStatus : string) => {
+ return {
+  status : rescheduleStatus,
+  message : rescheduleStatus === 'REQUESTED' ? 'Reschedule request is pending approval' : rescheduleStatus === 'APPROVED' ? 'Reschedule request has been approved by Admin' : rescheduleStatus === 'REJECTED' ? 'Reschedule request has been rejected by Admin' : ''
+ }
+}

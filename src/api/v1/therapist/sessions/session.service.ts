@@ -50,7 +50,7 @@ const TherapistSessionService = {
     throw new ApiError(400,"Therapist has already rescheduled");
   }
 
-  if(!therapistReschedulePermission(booking.startDateTime,booking.hasTherapistRescheduledEarlier)){
+  if(!therapistReschedulePermission(booking.startDateTime,booking.hasTherapistRescheduledEarlier,booking.rescheduleStatus)){
      throw new ApiError(400,"Cannot reschedule within last one hour of session time");
   }
 

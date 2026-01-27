@@ -196,6 +196,7 @@ export const therapistService = {
         booking.startDateTime,
         booking.endDateTime,
         booking.hasTherapistRescheduledEarlier,
+        booking.rescheduleStatus
       );
           return {
             id : booking.id,
@@ -206,7 +207,7 @@ export const therapistService = {
           meetingLink : permission.canJoinSession ? booking.meetingLink : null,
            canJoinSession : permission.canJoinSession,
            canReschedule : permission.canReschedule,
-           rescheduleStatus : booking.rescheduleStatus
+           rescheduleStatus : permission.rescheduleStatus
           };
         })
     }catch(error){
@@ -535,7 +536,8 @@ async pendingList(therapistId: string) {
       const permission = therapistBookingPermission(
         singleBooking.startDateTime,
         singleBooking.endDateTime,
-        singleBooking.hasTherapistRescheduledEarlier
+        singleBooking.hasTherapistRescheduledEarlier,
+        singleBooking.rescheduleStatus
       );
 
       pendingItems.push({
@@ -749,7 +751,7 @@ async therapistProgramBillingDashboard(therapistId: string) {
 };
 
 
-export const therapistBookingPermission = (startDateTime : Date, endDateTime : Date, hasTherapistRescheduledEarlier: boolean) => {
+export const therapistBookingPermission = (startDateTime : Date, endDateTime : Date, hasTherapistRescheduledEarlier: boolean, rescheduleStatus : string) => {
   const now = new Date();
 
   const start = new Date(startDateTime);
@@ -761,14 +763,15 @@ export const therapistBookingPermission = (startDateTime : Date, endDateTime : D
   const response = {
     canJoinSession: false,
     canReschedule: false,
+    rescheduleStatus : bookingRescheduleStatus(rescheduleStatus)
   };
 
   // Can join only between (start - 15 mins) and end time
-  if (now >= joinWindowStart && now <= end) {
+  if (now >= joinWindowStart && now <= end && rescheduleStatus !== 'REQUESTED') {
     response.canJoinSession = true;
   }
 
-  response.canReschedule = therapistReschedulePermission(startDateTime, hasTherapistRescheduledEarlier)
+  response.canReschedule = therapistReschedulePermission(startDateTime, hasTherapistRescheduledEarlier, rescheduleStatus)
 
   // Optional: reschedule allowed only BEFORE join window starts
   // if (now < joinWindowStart) {
@@ -781,7 +784,8 @@ export const therapistBookingPermission = (startDateTime : Date, endDateTime : D
 
 export const therapistReschedulePermission = (
   startDateTime: Date,
-  hasTherapistRescheduledEarlier: boolean
+  hasTherapistRescheduledEarlier: boolean,
+  rescheduleStatus : string
 ): boolean => {
   // Rule 1: only one reschedule allowed
   if (hasTherapistRescheduledEarlier) {
@@ -794,5 +798,13 @@ export const therapistReschedulePermission = (
   // Rule 2: must be more than 1 hour before session start
   const ONE_HOUR_IN_MS = 60 * 60 * 1000;
 
-  return diffInMs > ONE_HOUR_IN_MS;
+  return diffInMs > ONE_HOUR_IN_MS && rescheduleStatus !== 'REQUESTED';
 };
+
+
+export const bookingRescheduleStatus = (rescheduleStatus : string) => {
+ return {
+  status : rescheduleStatus,
+  message : rescheduleStatus === 'REQUESTED' ? 'Reschedule request is pending approval' : rescheduleStatus === 'APPROVED' ? 'Reschedule request has been approved by Admin' : rescheduleStatus === 'REJECTED' ? 'Reschedule request has been rejected by Admin' : ''
+ }
+}

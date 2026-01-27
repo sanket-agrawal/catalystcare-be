@@ -179,3 +179,114 @@ export const therapistBookingRescheduledTemplate = (
   </html>
   `;
 };
+
+export const therapistRescheduleRequestRejectedTemplate = (
+  therapistName: string,
+  clientName: string,
+  sessionDate: string,
+  sessionTime: string
+) => {
+  return `
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reschedule Request Rejected</title>
+  </head>
+  <body style="font-family: Roboto, Arial, sans-serif; background-color:#f9f9f9; margin:0; padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="padding:30px 0;">
+      <tr>
+        <td align="center">
+
+          <table width="500" cellpadding="0" cellspacing="0" border="0"
+            style="background-color:#ffffff; border-radius:10px; overflow:hidden;
+            box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+
+            <!-- Header -->
+            <tr>
+              <td align="center" style="padding:20px;">
+                <img
+                  src="${serverConfig.baseFrontendUrl}/assets/favicon.ico"
+                  alt="Catalyst Care"
+                  width="120"
+                  style="display:block;"
+                />
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding:25px; text-align:center;">
+                <h2 style="color:#333; margin-bottom:8px;">
+                  Hi ${therapistName},
+                </h2>
+
+                <h3 style="color:#f44336; margin:10px 0 15px;">
+                  Reschedule Request Rejected
+                </h3>
+
+                <p style="color:#555; font-size:15px; line-height:1.6; margin:0;">
+                  Your request to reschedule the session with
+                  <strong>${clientName}</strong> has been reviewed and rejected by the admin.
+                </p>
+
+                <p style="color:#555; font-size:15px; margin-top:12px;">
+                  The session will proceed at the originally scheduled date and time.
+                </p>
+
+                <table align="center" style="margin-top:15px; font-size:15px; color:#555;">
+                  <tr>
+                    <td><strong>Date:</strong></td>
+                    <td>&nbsp;${sessionDate}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Time:</strong></td>
+                    <td>&nbsp;${sessionTime}</td>
+                  </tr>
+                </table>
+
+                <p style="margin-top:15px; color:#555; font-size:15px;">
+                  Please ensure you are available and attend the session as scheduled.
+                </p>
+
+                <a
+                  href="${serverConfig.baseFrontendUrl}/dashboard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style="display:inline-block; margin-top:20px; padding:10px 20px;
+                  color:#007bff; text-decoration:none; border:1px solid #007bff;
+                  border-radius:6px; font-size:14px; cursor:pointer;"
+                >
+                  Go to Dashboard
+                </a>
+
+                <p style="font-size:13px; color:#777; margin-top:15px;">
+                  The join button will be enabled 15 minutes before the session start time.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td align="center" style="background-color:#f3f4f6; padding:12px;
+                font-size:13px; color:#555;">
+                © Catalyst Care |
+                <a
+                  href="${serverConfig.baseFrontendUrl}"
+                  style="color:#007bff; text-decoration:none;"
+                >
+                  ${serverConfig.baseFrontendUrl}
+                </a>
+              </td>
+            </tr>
+
+          </table>
+
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+  `;
+};

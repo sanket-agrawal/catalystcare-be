@@ -27,7 +27,8 @@ export const emailSubjects = (therapistName? : string, clientName? : string, ass
     therapistProfileSubmissionAcknowledgement : "Therapist Profile Resubmission Received - CatalystCare",
     therapistProfileSubmissionAdmin : "New Therapist Profile Submission - CatalystCare",
     clientProgramBookingConfirmation : `Your Enrollment for ${programName} - ${programTitle} Is Confirmed | Catalyst Care ✔`,
-    therapistProgramBookingConfirmaton : `New Client Enrolled in Your ${programName} - ${programTitle}`
+    therapistProgramBookingConfirmaton : `New Client Enrolled in Your ${programName} - ${programTitle}`,
+    rescheduleSessionRejectionClient : "Reschedule Request Rejected – Session Remains Scheduled - CatalystCare"
 });
 
 

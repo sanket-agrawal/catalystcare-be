@@ -47,7 +47,8 @@ interface UpdateAssessmentInput {
 
 export interface AssessmentAnswerPayload {
   questionId: string;
-  optionId: string;
+  optionId?: string;
+  optionWeight?: number;
 }
 
 export interface SubmitAssessmentPayload {
@@ -214,6 +215,7 @@ export const assessmentService = {
     const assessment = await prisma.assessment.findFirst({
       where: { slug, isActive: true },
       include: {
+        zones: true,
         questions: {
           where: { isActive: true },
           include: { zone : true, options: true }
@@ -225,28 +227,57 @@ export const assessmentService = {
       throw new ApiError(404, "Assessment not found");
     }
 
-    // 1️⃣ Normalise answers: map optionId → optionWeight using DB weights
+    // Guard against misconfigured assessments (zone required for scoring)
+    const questionsMissingZone = assessment.questions.filter((q) => !q.zone || !(q as any).zone?.key);
+    if (questionsMissingZone.length > 0) {
+      throw new ApiError(
+        500,
+        `Assessment misconfigured: ${questionsMissingZone.length} active question(s) missing zone`
+      );
+    }
+
+    // 1️⃣ Normalise answers:
+    // - preferred: questionId + optionWeight (validated against allowed weights for that question)
+    // - legacy: questionId + optionId (mapped to weight from DB)
     const normalisedAnswers: AnswerPayload[] = answers
-      .map(answer => {
-        const question = assessment.questions.find(q => q.id === answer.questionId);
+      .map((answer) => {
+        const question = assessment.questions.find((q) => q.id === answer.questionId);
         if (!question || !question.options || question.options.length === 0) {
           return null;
         }
 
-        const option = question.options.find((o: any) => o.id === answer.optionId);
-        if (!option) {
+        // Legacy shape: optionId -> DB weight
+        if (answer.optionId) {
+          const option = question.options.find((o: any) => o.id === answer.optionId);
+          if (!option) return null;
+          return { questionId: answer.questionId, optionWeight: Number(option.weight) || 0 } as AnswerPayload;
+        }
+
+        // New shape: optionWeight -> validate against allowed weights
+        const w = Number(answer.optionWeight);
+        if (!Number.isFinite(w)) return null;
+
+        const allowedWeights = new Set(
+          question.options.map((o: any) => Number(o.weight) || 0)
+        );
+        if (!allowedWeights.has(w)) {
           return null;
         }
 
-        return {
-          questionId: answer.questionId,
-          optionWeight: Number(option.weight) || 0
-        } as AnswerPayload;
+        return { questionId: answer.questionId, optionWeight: w } as AnswerPayload;
       })
       .filter((a): a is AnswerPayload => a !== null);
 
     if (!normalisedAnswers.length) {
       throw new ApiError(400, "No valid answers provided for scoring");
+    }
+
+    // Require full completion (production-grade: don't score partial submissions silently)
+    if (normalisedAnswers.length !== assessment.questions.length) {
+      throw new ApiError(
+        400,
+        `Incomplete answers: expected ${assessment.questions.length}, got ${normalisedAnswers.length}`
+      );
     }
 
     // 2️⃣ Calculate scores with validated weights
@@ -272,8 +303,8 @@ export const assessmentService = {
     });
 
     // 4️⃣ Build zone metadata for email
-    const zoneMeta = assessment.questions.reduce((acc, q) => {
-      acc[q.zone.key] = { name: q.zone.title };
+    const zoneMeta = (assessment.zones ?? []).reduce((acc, z) => {
+      acc[z.key] = { name: z.title };
       return acc;
     }, {} as Record<string, { name: string }>);
 

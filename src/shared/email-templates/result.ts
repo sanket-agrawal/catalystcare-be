@@ -231,14 +231,14 @@ export const generateResultsEmailHTML = (data: ResultsEmailData): string => {
             <table width="100%">
               <tr>
                 <td align="center" style="padding:8px;">
-                  <a href="https://catalystcare.in/book-session"
+                  <a href="${serverConfig.baseFrontendUrl}"
                     style="display:inline-block;padding:12px 22px;border:1px solid #0c3e6f;
                     color:#0c3e6f;text-decoration:none;border-radius:8px;font-weight:600;">
                     Talk to an expert
                   </a>
                 </td>
                 <td align="center" style="padding:8px;">
-                  <a href="https://catalystcare.in/guided-support"
+                  <a href="${serverConfig.baseFrontendUrl}"
                     style="display:inline-block;padding:12px 22px;background:#0c3e6f;
                     color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">
                     Guided support

@@ -692,9 +692,28 @@ model Assessment {
   numberOfStatements  Int? @map("number_of_statements")
 
 
+  zones        AssessmentZone[]
+
+
 
   @@index([slug,isActive])
   @@map("assessments")
+}
+
+model AssessmentZone {
+  id             String   @id @default(uuid())
+  assessmentId   String   @map("assessment_id")
+  key            String   // e.g. ENERGY, FEAR, ROLE_OVERLOAD
+  title          String   // user-facing
+  description    String?
+  maxRawScore    Int      @map("max_raw_score")
+  order          Int
+
+  assessment     Assessment @relation(fields: [assessmentId], references: [id])
+  questions      AssessmentQuestion[]
+
+  @@index([assessmentId, order])
+  @@map("assessment_zones")
 }
 
 model AssessmentQuestion {
@@ -705,8 +724,12 @@ model AssessmentQuestion {
   category      String? 
   isActive      Boolean @default(true)@map("is_active")
 
+  zoneId        String?   @map("zone_id")
+  isReverse     Boolean  @default(false)@map("is_reverse")
+
   assessment    Assessment @relation(fields: [assessmentId], references: [id])
   options       AssessmentOption[]
+  zone          AssessmentZone? @relation(fields: [zoneId], references: [id])
 
   @@index([isActive,order,text])
   @@map("assessment_questions")
@@ -733,6 +756,9 @@ model AssessmentSubmission {
   assessmentIndex  Int?     @map("assessment_index")
   dominantArea  String?  @map("dominant_area")
   createdAt     DateTime @default(now())@map("created_at")
+
+  scores          Json?    
+  primaryZone     String?  @map("primary_zone")
 
   assessment    Assessment @relation(fields: [assessmentId], references: [id])
 

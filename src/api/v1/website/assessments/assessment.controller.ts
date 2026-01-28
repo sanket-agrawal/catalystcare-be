@@ -20,6 +20,9 @@ export const AssessmentController = {
                     verifiedBy : true,
                     targetAudience : true,
                     guidelines : true,
+                    maxTime : true,
+                    minTime : true,
+                    numberOfStatements : true
                     questions : {
                         orderBy : {
                             order : 'asc'

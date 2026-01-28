@@ -22,7 +22,7 @@ export const AssessmentController = {
                     guidelines : true,
                     maxTime : true,
                     minTime : true,
-                    numberOfStatements : true
+                    numberOfStatements : true,
                     questions : {
                         orderBy : {
                             order : 'asc'

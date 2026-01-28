@@ -1,80 +1,87 @@
-// export const STUCK_PATTERN_CONFIG = {
-//   scale: {
-//     0: { max: 29, label: "Not a significant blocker" },
-//     1: { max: 49, label: "Mild friction" },
-//     2: { max: 69, label: "Active blocker" },
-//     3: { max: 100, label: "Strong blocker" }
-//   },
-//   zones: {
-//     fear: {
-//       label: "Fear",
-//       questions: [1, 2, 3, 4, 5],
-//       reverse: []
-//     },
-//     overload: {
-//       label: "Overload",
-//       questions: [6, 7, 8, 9, 10],
-//       reverse: []
-//     },
-//     energy: {
-//       label: "Energy",
-//       questions: [11, 12, 13, 14, 15],
-//       reverse: []
-//     },
-//     attention: {
-//       label: "Attention",
-//       questions: [16, 17, 18, 19, 20],
-//       reverse: []
-//     },
-//     calibration: {
-//       label: "Calibration",
-//       questions: [21, 22],
-//       reverse: [21, 22]
-//     }
-//   }
-// };
+export type AnswerPayload = {
+  questionId: string
+  optionWeight: number
+}
 
-// type ZoneResult = {
-//   score: number;
-//   label: string;
-// };
+type ZoneScore = {
+  raw: number
+  scaled: number
+}
 
-// type answers = {
-//   questionId: number;
-//   value: number; // 0–4
-// }[];
-
-// const answerMap = Object.fromEntries(
-//   answers.map(a => [a.questionId, a.value])
-// );
+export type AssessmentResult = {
+  zones: Record<string, ZoneScore>
+  primaryZone: string
+}
 
 
-// export function calculateZones(
-//   config: any,
-//   answerMap: Record<number, number>
-// ) {
-//   const results: Record<string, ZoneResult> = {};
+export const calculateAssessmentScore = (
+  questions: any[],
+  answers: AnswerPayload[]
+): AssessmentResult => {
 
-//   for (const [zoneKey, zone] of Object.entries(config.zones)) {
-//     let total = 0;
+  const zoneAccumulator: Record<string, number> = {};
+  const zoneMaxRaw: Record<string, number> = {};
 
-//     for (const qId of zone.questions) {
-//       const raw = answerMap[qId] ?? 0;
-//       const value = zone.reverse?.includes(qId)
-//         ? reverseScore(raw)
-//         : raw;
+  /* ---------- 1️⃣ Pre-compute max raw per zone (SAFE) ---------- */
 
-//       total += value;
-//     }
+  for (const q of questions) {
+    if (!q.options || q.options.length === 0) {
+      continue; // 🚨 critical safety
+    }
 
-//     const max = zone.questions.length * 4;
-//     const score = Math.round((total / max) * 100);
+    const maxOptionWeight = Math.max(
+      ...q.options.map((o: any) => Number(o.weight) || 0)
+    );
 
-//     results[zoneKey] = {
-//       score,
-//       label: zone.label
-//     };
-//   }
+    zoneMaxRaw[q.zone.key] =
+      (zoneMaxRaw[q.zone.key] ?? 0) + maxOptionWeight;
+  }
 
-//   return results;
-// }
+  /* ---------- 2️⃣ Accumulate answers ---------- */
+
+  for (const answer of answers) {
+    const q = questions.find(q => q.id === answer.questionId);
+    if (!q || !q.options || q.options.length === 0) continue;
+
+    const maxWeight = Math.max(
+      ...q.options.map((o: any) => Number(o.weight) || 0)
+    );
+
+    const weight = q.isReverse
+      ? maxWeight - answer.optionWeight
+      : answer.optionWeight;
+
+    zoneAccumulator[q.zone.key] =
+      (zoneAccumulator[q.zone.key] ?? 0) + weight;
+  }
+
+  /* ---------- 3️⃣ Scale ---------- */
+
+  const zones: Record<string, ZoneScore> = {};
+
+  for (const zoneKey of Object.keys(zoneMaxRaw)) {
+    const raw = zoneAccumulator[zoneKey] ?? 0;
+    const maxRaw = zoneMaxRaw[zoneKey];
+
+    const scaled =
+      maxRaw > 0 ? Math.round((raw / maxRaw) * 100) : 0;
+
+    zones[zoneKey] = { raw, scaled };
+  }
+
+  /* ---------- 4️⃣ Primary zone ---------- */
+
+  const primaryZone =
+    Object.entries(zones)
+      .sort((a, b) => b[1].scaled - a[1].scaled)[0]?.[0] ?? "";
+
+  return { zones, primaryZone };
+};
+
+
+export const interpretScale = (score: number) => {
+  if (score <= 29) return "Not a significant concern"
+  if (score <= 49) return "Mild strain"
+  if (score <= 69) return "Active strain"
+  return "Strong strain"
+}

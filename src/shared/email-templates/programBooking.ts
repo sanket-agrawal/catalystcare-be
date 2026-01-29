@@ -250,7 +250,7 @@ export const clientProgramSessionSlotBookedTemplate = (
   <tr>
     <td align="center"
         style="border: 1px solid #007bff; border-radius: 6px;">
-      <a href="${meetingLink}"
+      <a href="${serverConfig.baseFrontendUrl}/dashboard"
          target="_blank"
          style="
            display: inline-block;
@@ -261,7 +261,7 @@ export const clientProgramSessionSlotBookedTemplate = (
            font-weight: 500;
            cursor: pointer;
          ">
-        Join Google Meet
+        Join Session
       </a>
     </td>
   </tr>
@@ -370,7 +370,7 @@ export const therapistProgramSessionSlotBookedTemplate = (
   <tr>
     <td align="center"
         style="border: 1px solid #28a745; border-radius: 6px;">
-      <a href="${meetingLink}"
+      <a href="${serverConfig.baseFrontendUrl}/therapist-dashboard"
          target="_blank"
          style="
            display: inline-block;
@@ -381,7 +381,7 @@ export const therapistProgramSessionSlotBookedTemplate = (
            font-weight: 500;
            cursor: pointer;
          ">
-        Join Google Meet
+        Join Session
       </a>
     </td>
   </tr>

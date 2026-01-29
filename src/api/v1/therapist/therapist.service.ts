@@ -8,6 +8,7 @@ import { emailFromAddress, emailSubjects } from "../../../shared/config/email.co
 import { emailQueue } from "../../../infrastructure/queues";
 import { decryptStringGCM, encryptStringGCM, normalizeVpa, sha256Hex } from "../../../shared/lib/crypto";
 import { adminTherapistProfileSubmissionTemplate, adminTherapistResubmissionTemplate } from "../../../shared/email-templates/admin";
+import { canRateSession } from "@shared/lib/ratings";
 
 export const therapistService = {
   async register(userId: string, data: TherapistRegisterDTO, userEmail : string, userName : string, lastName : string) {
@@ -162,7 +163,7 @@ export const therapistService = {
   },
   async fetchBookings(therapistId : string){
     try{
-        return await prisma.booking.findMany({
+        const bookings =  await prisma.booking.findMany({
           where : {
             therapistId : therapistId,
              paymentStatus: "CAPTURED",
@@ -187,6 +188,28 @@ export const therapistService = {
             updatedAt : 'desc'
           }
         });
+
+
+
+        return bookings.map(booking => {
+          const permission = therapistBookingPermission(
+        booking.startDateTime,
+        booking.endDateTime,
+        booking.hasTherapistRescheduledEarlier,
+        booking.rescheduleStatus
+      );
+          return {
+            id : booking.id,
+            status : booking.status,
+          client : booking.client,
+          startDateTime : booking.startDateTime,
+          endDateTime : booking.endDateTime,
+          meetingLink : permission.canJoinSession ? booking.meetingLink : null,
+           canJoinSession : permission.canJoinSession,
+           canReschedule : permission.canReschedule,
+           rescheduleStatus : permission.rescheduleStatus
+          };
+        })
     }catch(error){
        if(error instanceof ApiError) throw new ApiError(error.statusCode,error.message);
       throw error;
@@ -268,6 +291,7 @@ async therapistBillingDashboard(therapistId: string) {
         },
         where: {
           status: "CAPTURED",
+          bookingType : "SINGLE",
           booking: {
             therapistId,
             status: "CONFIRMED",
@@ -279,6 +303,7 @@ async therapistBillingDashboard(therapistId: string) {
       prisma.payment.count({
         where: {
           status: "CAPTURED",
+          bookingType : "SINGLE",
           booking: {
             therapistId,
             status: "CONFIRMED",
@@ -291,7 +316,8 @@ async therapistBillingDashboard(therapistId: string) {
         where: {
           therapistId,
           status: "CONFIRMED",
-          payment: { status: "CAPTURED" }
+          bookingType : "SINGLE",
+          payment: { status: "CAPTURED", bookingType : "SINGLE", }
         },
         select: {
           client: {
@@ -468,5 +494,317 @@ async therapistBillingDashboard(therapistId: string) {
   }catch(error){
     
   }
- }
+ },
+async pendingList(therapistId: string) {
+  try {
+    const now = new Date();
+    const next15Min = new Date(now.getTime() + 15 * 60 * 1000);
+
+    const pendingItems: any[] = [];
+
+    /* ----------------------------------
+       1. SINGLE SESSION (slot-based)
+    ----------------------------------- */
+    const singleBooking = await prisma.booking.findFirst({
+      where: {
+        therapistId,
+        paymentStatus: "CAPTURED",
+        status: "CONFIRMED",
+        AND: [
+          { startDateTime: { lte: next15Min } },
+          { endDateTime: { gt: now } },
+        ],
+      },
+      include: {
+        client: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                profilePhoto: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { startDateTime: "asc" },
+    });
+
+    if (singleBooking) {
+      const permission = therapistBookingPermission(
+        singleBooking.startDateTime,
+        singleBooking.endDateTime,
+        singleBooking.hasTherapistRescheduledEarlier,
+        singleBooking.rescheduleStatus
+      );
+
+      pendingItems.push({
+        type: "SESSION",
+        bookingType: "SINGLE",
+        data: {
+          bookingId: singleBooking.id,
+          client: singleBooking.client,
+          startDateTime: singleBooking.startDateTime,
+          endDateTime: singleBooking.endDateTime,
+          canJoinSession: permission.canJoinSession,
+          canReschedule: permission.canReschedule,
+          meetingLink: permission.canJoinSession
+            ? singleBooking.meetingLink
+            : null,
+          isUpcoming: now < singleBooking.startDateTime,
+        },
+      });
+    }
+
+    /* ----------------------------------
+       2. PROGRAM BOOKINGS (slot pending)
+    ----------------------------------- */
+    const programPurchases = await prisma.programPurchase.findMany({
+      where: {
+        therapistId,
+        status: "ACTIVE",
+        validTill: { gt: now },
+      },
+      include: {
+        program: {
+          select: { id: true, title: true },
+        },
+        programPlan: {
+          select: {
+            id: true,
+            name: true,
+            sessionsCount: true,
+          },
+        },
+        client: {
+          include: { user: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    for (const purchase of programPurchases) {
+      const remainingSessions =
+        purchase.totalSessions - purchase.usedSessions;
+
+      if (remainingSessions <= 0) continue;
+
+      pendingItems.push({
+        type: "SESSION",
+        bookingType: "PROGRAM",
+        data: {
+          programPurchaseId: purchase.id,
+
+          program: {
+            id: purchase.program.id,
+            title: purchase.program.title,
+          },
+
+          plan: {
+            id: purchase.programPlan.id,
+            name: purchase.programPlan.name,
+            totalSessions: purchase.totalSessions,
+          },
+
+          client: {
+            id: purchase.client.id,
+            name:
+              purchase.client.user.firstName +
+              " " +
+              purchase.client.user.lastName,
+          },
+
+          usage: {
+            totalSessions: purchase.totalSessions,
+            usedSessions: purchase.usedSessions,
+            remainingSessions,
+          },
+
+          validFrom: purchase.validFrom,
+          validTill: purchase.validTill,
+
+          canBookSlot: true,
+          createdAt: purchase.createdAt,
+        },
+      });
+    }
+
+    return pendingItems;
+  } catch (error) {
+    if (error instanceof ApiError)
+      throw new ApiError(error.statusCode, error.message);
+    throw error;
+  }
+},
+async therapistProgramBillingDashboard(therapistId: string) {
+  try {
+        // const { filterType, page = 1, limit = 10 } = params;
+
+    // const dateRange = getDateRange(filterType);
+
+    //  const dateFilter = dateRange
+    //   ? { gte: dateRange.start, lte: dateRange.end }
+    //   : undefined;
+
+    const [aggregates, totalClients, patientWise] = await Promise.all([
+      // Combined aggregate query (2 queries → 1 query)
+      prisma.payment.aggregate({
+        _sum: {
+          payoutAmountPaise: true,
+          amountPaise: true,
+        },
+        where: {
+          status: "CAPTURED",
+          bookingType : "PROGRAM",
+          booking: {
+            therapistId,
+            status: "CONFIRMED",
+          },
+        },
+      }),
+
+      // Count clients
+      prisma.payment.count({
+        where: {
+          status: "CAPTURED",
+          bookingType : "PROGRAM",
+          booking: {
+            therapistId,
+            status: "CONFIRMED",
+          },
+        }
+      }),
+
+      // Patient wise list
+      prisma.programPurchase.findMany({
+        where: {
+          therapistId,
+          payment: { status: "CAPTURED", bookingType : "PROGRAM" }
+        },
+        select: {
+          totalSessions : true,
+          validFrom : true,
+          usedSessions : true,
+          createdAt : true,
+          client: {
+            select: {
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  profilePhoto: true
+                }
+              }
+            }
+          },
+          payment: {
+            select: {
+              amountPaise: true,
+              payoutAmountPaise: true,
+              gatewayFeePaise: true,
+              platformFeePaise: true,
+              gatewayPercent: true,
+              platformPercent: true,
+              updatedAt: true
+            }
+          },
+        },
+        orderBy: {
+          payment: { updatedAt: "desc" }
+        }
+      })
+    ]);
+
+    // Convert paise → rupees
+    const format = (p: number | null | undefined) => (p ?? 0) / 100;
+
+    const formattedPatientWise = patientWise.map((p : typeof patientWise[number]) => ({
+      ...p,
+      payment: {
+        gatewayPercent : p.payment?.gatewayPercent,
+        platformPercent : p.payment?.platformPercent,
+        paymentDate : p.payment?.updatedAt,
+        amount: format(p.payment?.amountPaise),
+        payoutAmount: format(p.payment?.payoutAmountPaise),
+        gatewayFee: format(p.payment?.gatewayFeePaise),
+        platformFee: format(p.payment?.platformFeePaise),
+      }
+    }));
+
+    return {
+      netEarnings: format(aggregates._sum.payoutAmountPaise),
+      totalRevenue: format(aggregates._sum.amountPaise),
+      totalClients,
+      totalSessionCompleted: 0, // you can compute later if needed
+      patientWise: formattedPatientWise
+    };
+
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw new ApiError(error.statusCode, error.message);
+    }
+    throw error;
+  }
+},
 };
+
+
+export const therapistBookingPermission = (startDateTime : Date, endDateTime : Date, hasTherapistRescheduledEarlier: boolean, rescheduleStatus : string) => {
+  const now = new Date();
+
+  const start = new Date(startDateTime);
+  const end = new Date(endDateTime);
+
+  // 15 minutes before start
+  const joinWindowStart = new Date(start.getTime() - 15 * 60 * 1000);
+
+  const response = {
+    canJoinSession: false,
+    canReschedule: false,
+    rescheduleStatus : bookingRescheduleStatus(rescheduleStatus)
+  };
+
+  // Can join only between (start - 15 mins) and end time
+  if (now >= joinWindowStart && now <= end && rescheduleStatus !== 'REQUESTED') {
+    response.canJoinSession = true;
+  }
+
+  response.canReschedule = therapistReschedulePermission(startDateTime, hasTherapistRescheduledEarlier, rescheduleStatus)
+
+  // Optional: reschedule allowed only BEFORE join window starts
+  // if (now < joinWindowStart) {
+  //   response.canReschedule = true;
+  // }
+
+  return response;
+};
+
+
+export const therapistReschedulePermission = (
+  startDateTime: Date,
+  hasTherapistRescheduledEarlier: boolean,
+  rescheduleStatus : string
+): boolean => {
+  // Rule 1: only one reschedule allowed
+  if (hasTherapistRescheduledEarlier) {
+    return false;
+  }
+
+  const now = new Date();
+  const diffInMs = startDateTime.getTime() - now.getTime();
+
+  // Rule 2: must be more than 1 hour before session start
+  const ONE_HOUR_IN_MS = 60 * 60 * 1000;
+
+  return diffInMs > ONE_HOUR_IN_MS && rescheduleStatus !== 'REQUESTED';
+};
+
+
+export const bookingRescheduleStatus = (rescheduleStatus : string) => {
+ return {
+  status : rescheduleStatus,
+  message : rescheduleStatus === 'REQUESTED' ? 'Reschedule request is pending approval' : rescheduleStatus === 'APPROVED' ? 'Reschedule request has been approved by Admin' : rescheduleStatus === 'REJECTED' ? 'Reschedule request has been rejected by Admin' : ''
+ }
+}

@@ -6,7 +6,7 @@ import crypto from "crypto";
 import { emailQueue } from "../../../../infrastructure/queues";
 import { emailFromAddress, emailSubjects } from "../../../../shared/config/email.config";
 import { clientProgramBookingConfirmationTemplate, therapistProgramBookingConfirmationTemplate } from "../../../../shared/email-templates/programBooking";
-import { calculateCommission } from "../../../../shared/lib/money";
+import { calculateProgramComissions } from "../../../../shared/lib/money";
 
 type verifyPaymentType = {
    razorpay_order_id : string,
@@ -39,7 +39,7 @@ const ProgramPaymentService = {
           orderBy: { effectiveFrom: 'desc' },
         });
 
-        const commission = calculateCommission({
+        const commission = calculateProgramComissions({
     amountPaise: plan.pricePaise,
     commissionRate: commissionRate
       ? {
@@ -66,6 +66,7 @@ const ProgramPaymentService = {
         amount: plan.price,
         currency: plan.currency,
         programPlanId: plan.id,
+        bookingType : "PROGRAM",
         status: "PENDING",
         ...commission
       },

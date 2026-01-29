@@ -88,16 +88,15 @@ export const clientController = {
             }
       }
     },
-    async rescheduleTherapySession( req : Request, res : Response){
+  async pendingList (req : Request , res : Response){
       try{
-           const {clientId} = req.user;
-           const { bookingId, newSlotId, reason } = req.body;
-           const updatedBooking = await clientService.rescheduleTherapySession(bookingId,newSlotId, clientId, reason);
-           res.status(200).json(
-            new ApiResponse(true, 200, 'Therapy Session Rescheduled Successfully', updatedBooking)
-           )
+          const clientId = req.user.clientProfileId;
+          const therapists = await clientService.pendingList(clientId);
+          res.status(200).json(
+            new ApiResponse(true,200,"Client Pending List Fetched Successfully",therapists)
+          )
       }catch(error){
-        console.log("Error in Client Session Rescheduling",error)
+        console.log("Error in Fetching Client Pending List",error)
             if(error instanceof ApiError){
                 res.status(error.statusCode).json(new ApiResponse(false,error.statusCode,error.message))
             }else{
@@ -105,21 +104,4 @@ export const clientController = {
             }
       }
     },
-    async cancelTherapySession( req : Request, res : Response){
-      try{
-           const {clientId} = req.user;
-           const { bookingId, reason } = req.body;
-           await clientService.cancelTherapySession(clientId,bookingId,reason);
-           res.status(200).json(
-            new ApiResponse(true, 200, 'Therapy Session Cancelled Successfully')
-           )
-      }catch(error){
-        console.log("Error in Client Session Rescheduling",error)
-            if(error instanceof ApiError){
-                res.status(error.statusCode).json(new ApiResponse(false,error.statusCode,error.message))
-            }else{
-                res.status(400).json(new ApiResponse(false,400,"Something went wrong"))
-            }
-      }
-    }
 };

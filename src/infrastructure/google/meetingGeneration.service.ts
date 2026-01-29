@@ -95,6 +95,10 @@ export async function createGoogleMeetForBooking(
           email: booking.client.user.email,
         },
       ],
+  guestsCanModify: false,
+  guestsCanInviteOthers: false,
+  guestsCanSeeOtherGuests: false,
+
       conferenceData: {
         createRequest: {
           requestId: uuid(),
@@ -191,11 +195,11 @@ export async function updateGoogleCalendarEvent(payload: CreateMeetPayload) {
     throw new Error("Booking not found");
   }
 
-  if (!booking.calendarEventId) {
-  // fallback → create event
-  await createGoogleMeetForBooking({ bookingId: payload.bookingId });
-  return;
-}
+//   if (!booking.calendarEventId) {
+//   // fallback → create event
+//   await createGoogleMeetForBooking({ bookingId: payload.bookingId });
+//   return;
+// }
 
   const therapistIntegration = await prisma.therapistProfile.findUnique({
     where: { id: booking.therapistId },
@@ -410,6 +414,9 @@ export async function createProgramSlotGoogleMeet(
           email: booking.client.user.email,
         },
       ],
+        guestsCanModify: false,
+  guestsCanInviteOthers: false,
+  guestsCanSeeOtherGuests: false,
       conferenceData: {
         createRequest: {
           requestId: uuid(),

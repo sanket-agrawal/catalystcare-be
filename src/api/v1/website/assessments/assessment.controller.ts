@@ -17,6 +17,12 @@ export const AssessmentController = {
                     description : true,
                     icon : true,
                     poster : true,
+                    verifiedBy : true,
+                    targetAudience : true,
+                    guidelines : true,
+                    maxTime : true,
+                    minTime : true,
+                    numberOfStatements : true,
                     questions : {
                         orderBy : {
                             order : 'asc'
@@ -71,6 +77,9 @@ export const AssessmentController = {
                     description : true,
                     icon : true,
                     poster : true,
+                    verifiedBy : true,
+                    targetAudience : true,
+                    guidelines : true,
                     questions : {
                         orderBy : {order : 'asc'},
                         select : {

@@ -27,13 +27,19 @@ export const emailSubjects = (therapistName? : string, clientName? : string, ass
     therapistProfileSubmissionAcknowledgement : "Therapist Profile Resubmission Received - CatalystCare",
     therapistProfileSubmissionAdmin : "New Therapist Profile Submission - CatalystCare",
     clientProgramBookingConfirmation : `Your Enrollment for ${programName} - ${programTitle} Is Confirmed | Catalyst Care ✔`,
-    therapistProgramBookingConfirmaton : `New Client Enrolled in Your ${programName} - ${programTitle}`
+    therapistProgramBookingConfirmaton : `New Client Enrolled in Your ${programName} - ${programTitle}`,
+    rescheduleSessionRejectionClient : "Reschedule Request Rejected – Session Remains Scheduled - CatalystCare"
 });
 
 
 export const programSlotBookingSubjects =  (planName? : string, sessionNumber? : number,programTitle? : string, clientName? : string, therapistName? : string) => ({
     clientSlotBookingConfirmation : `Session ${sessionNumber} Confirmed for ${programTitle} - ${planName}`,
     therapistSlotBookingConfirmation : `Session ${sessionNumber} Booked by ${clientName} ${programTitle} - ${planName}`,
+});
+
+export const therapistSessionSubjects = (therapistName? : string, clientName? : string) => ({
+    adminNotification : "Therapist Reschedule Request – Action Required - CatalystCare",
+    therapistNotification : "Your Reschedule Request Has Been Submitted - CatalystCare"
 })
 
 export const emailFromAddress = () => ({

@@ -242,20 +242,35 @@ export const assessmentService = {
     };
   });
 
-    for (const answer of data.answers) {
-    const question = questionMap.get(answer.questionId);
-    if (!question || !question.zone) continue;
-
-    const zoneKey = question.zone.key;
-
-    let value = answer.optionWeight;
-
-    if (question.isReverse) {
-      value = 4 - value; // GLOBAL STANDARD (0–4)
-    }
-
-    zoneScores[zoneKey] += value;
+for (const answer of data.answers) {
+  const question = questionMap.get(answer.questionId);
+  
+  // Type guard function
+  const hasValidZone = (q: unknown): q is { zone: { key: string }, isReverse?: boolean } => {
+    return (
+      typeof q === 'object' &&
+      q !== null &&
+      'zone' in q &&
+      q.zone !== null &&
+      typeof q.zone === 'object' &&
+      'key' in q.zone
+    );
+  };
+  
+  if (!question || !hasValidZone(question)) {
+    continue;
   }
+
+  const zoneKey = question.zone.key;
+
+  let value = answer.optionWeight;
+
+  if (question.isReverse === true) {
+    value = 4 - value; // GLOBAL STANDARD (0–4)
+  }
+
+  zoneScores[zoneKey] += value;
+}
 
    const finalScores: Record<string, any> = {};
   let primaryZone = "";

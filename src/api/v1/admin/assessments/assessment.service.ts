@@ -11,6 +11,7 @@ import {
   interpretScale
 } from "../../../../shared/lib/scoring";
 import { generateResultsEmailHTML } from "../../../../shared/email-templates/result";
+import { zoneInsights } from "../../../../shared/lib/assessment.scoring";
 
 interface AssessmentGuidelines {
   does: string[];
@@ -24,7 +25,7 @@ interface CreateAssessmentInput {
   poster?: string;
   verifiedBy? : string;
   targetAudience? : string[];
-  guidelines? : AssessmentGuidelines,
+  guidelines : AssessmentGuidelines,
   minTime? : number,
   maxTime? : number,
   numberOfStatements? : number
@@ -54,7 +55,6 @@ export interface AssessmentAnswerPayload {
 export interface SubmitAssessmentPayload {
   slug : string;
   email: string;
-  name?: string;
   answers: AssessmentAnswerPayload[];
 }
 
@@ -206,7 +206,7 @@ export const assessmentService = {
   },
 
   async submitAssessment(data: SubmitAssessmentPayload) {
-    const { email, name, answers, slug } = data;
+    const { email, answers, slug } = data;
 
     if (!email || !answers?.length) {
       throw new ApiError(400, "Email and answers are required");
@@ -218,7 +218,7 @@ export const assessmentService = {
         zones: true,
         questions: {
           where: { isActive: true },
-          include: { zone : true, options: true }
+          include: { zone : true }
         }
       }
     });
@@ -227,120 +227,233 @@ export const assessmentService = {
       throw new ApiError(404, "Assessment not found");
     }
 
-    // Guard against misconfigured assessments (zone required for scoring)
-    const questionsMissingZone = assessment.questions.filter((q) => !q.zone || !(q as any).zone?.key);
-    if (questionsMissingZone.length > 0) {
-      throw new ApiError(
-        500,
-        `Assessment misconfigured: ${questionsMissingZone.length} active question(s) missing zone`
+      const questionMap = new Map(
+        assessment.questions.map(q => [q.id, q])
       );
+
+      const zoneScores: Record<string, number> = {};
+      const zoneMeta: Record<string, { max: number; title: string }> = {};
+
+       assessment.zones.forEach(z => {
+    zoneScores[z.key] = 0;
+    zoneMeta[z.key] = {
+      max: z.maxRawScore,
+      title: z.title
+    };
+  });
+
+    for (const answer of data.answers) {
+    const question = questionMap.get(answer.questionId);
+    if (!question || !question.zone) continue;
+
+    const zoneKey = question.zone.key;
+
+    let value = answer.optionWeight;
+
+    if (question.isReverse) {
+      value = 4 - value; // GLOBAL STANDARD (0–4)
     }
+
+    zoneScores[zoneKey] += value;
+  }
+
+   const finalScores: Record<string, any> = {};
+  let primaryZone = "";
+  let highestScore = -1;
+
+  for (const [zoneKey, rawScore] of Object.entries(zoneScores)) {
+    const max = zoneMeta[zoneKey].max;
+    const scaled = Math.round((rawScore / max) * 100);
+
+    const label =
+      scaled < 30 ? "Not a significant concern" :
+      scaled < 50 ? "Mild strain" :
+      scaled < 70 ? "Active strain" :
+      "Strong strain";
+
+    finalScores[zoneKey] = {
+      rawScore,
+      scaledScore: scaled,
+      label
+    };
+
+    if (scaled > highestScore) {
+      highestScore = scaled;
+      primaryZone = zoneKey;
+    }
+  }
+
+    const submission = await prisma.assessmentSubmission.create({
+    data: {
+      assessmentId: assessment.id,
+      email: data.email,
+      scores: finalScores,
+      primaryZone
+    }
+  });
+
+  // Increment counter
+  await prisma.assessment.update({
+    where: { id: assessment.id },
+    data: { totalTakers: { increment: 1 } }
+  });
+
+  const zonesForEmail = Object.entries(finalScores).map(
+  ([key, value]: any) => ({
+    key,
+    title: zoneMeta[key].title,
+    scaledScore: value.scaledScore,
+    label: value.label
+  })
+);
+
+const primaryZoneData = zonesForEmail.find(
+  z => z.key === primaryZone
+);
+
+if (!primaryZoneData) {
+  throw new ApiError(500, "Primary zone resolution failed");
+}
+
+      await emailQueue.add("send-assessment-result", {
+      to: email,
+      subject: emailSubjects(undefined, undefined, assessment.title).assessmentResults,
+      html: assessmentResultTemplate({
+    assessmentTitle: assessment.title,
+    primaryZone: {
+      key: primaryZoneData.key,
+      title: primaryZoneData.title,
+      scaledScore: primaryZoneData.scaledScore,
+      label: primaryZoneData.label,
+      insight:
+        zoneInsights[primaryZoneData.key] ??
+        "This area is currently asking for the most care and attention."
+    },
+    zones: zonesForEmail
+  }),
+      sender: emailFromAddress().infoEmail
+    });
+
+    return {
+    submissionId: submission.id,
+    primaryZone,
+    scores: finalScores
+  };
+
+
+    // Guard against misconfigured assessments (zone required for scoring)
+    // const questionsMissingZone = assessment.questions.filter((q) => !q.zone || !(q as any).zone?.key);
+    // if (questionsMissingZone.length > 0) {
+    //   throw new ApiError(
+    //     500,
+    //     `Assessment misconfigured: ${questionsMissingZone.length} active question(s) missing zone`
+    //   );
+    // }
 
     // 1️⃣ Normalise answers:
     // - preferred: questionId + optionWeight (validated against allowed weights for that question)
     // - legacy: questionId + optionId (mapped to weight from DB)
-    const normalisedAnswers: AnswerPayload[] = answers
-      .map((answer) => {
-        const question = assessment.questions.find((q) => q.id === answer.questionId);
-        if (!question || !question.options || question.options.length === 0) {
-          return null;
-        }
+    // const normalisedAnswers: AnswerPayload[] = answers
+    //   .map((answer) => {
+    //     const question = assessment.questions.find((q) => q.id === answer.questionId);
+    //     if (!question || !question.options || question.options.length === 0) {
+    //       return null;
+    //     }
 
-        // Legacy shape: optionId -> DB weight
-        if (answer.optionId) {
-          const option = question.options.find((o: any) => o.id === answer.optionId);
-          if (!option) return null;
-          return { questionId: answer.questionId, optionWeight: Number(option.weight) || 0 } as AnswerPayload;
-        }
+    //     // Legacy shape: optionId -> DB weight
+    //     if (answer.optionId) {
+    //       const option = question.options.find((o: any) => o.id === answer.optionId);
+    //       if (!option) return null;
+    //       return { questionId: answer.questionId, optionWeight: Number(option.weight) || 0 } as AnswerPayload;
+    //     }
 
-        // New shape: optionWeight -> validate against allowed weights
-        const w = Number(answer.optionWeight);
-        if (!Number.isFinite(w)) return null;
+    //     // New shape: optionWeight -> validate against allowed weights
+    //     const w = Number(answer.optionWeight);
+    //     if (!Number.isFinite(w)) return null;
 
-        const allowedWeights = new Set(
-          question.options.map((o: any) => Number(o.weight) || 0)
-        );
-        if (!allowedWeights.has(w)) {
-          return null;
-        }
+    //     const allowedWeights = new Set(
+    //       question.options.map((o: any) => Number(o.weight) || 0)
+    //     );
+    //     if (!allowedWeights.has(w)) {
+    //       return null;
+    //     }
 
-        return { questionId: answer.questionId, optionWeight: w } as AnswerPayload;
-      })
-      .filter((a): a is AnswerPayload => a !== null);
+    //     return { questionId: answer.questionId, optionWeight: w } as AnswerPayload;
+    //   })
+    //   .filter((a): a is AnswerPayload => a !== null);
 
-    if (!normalisedAnswers.length) {
-      throw new ApiError(400, "No valid answers provided for scoring");
-    }
+    // if (!normalisedAnswers.length) {
+    //   throw new ApiError(400, "No valid answers provided for scoring");
+    // }
 
-    // Require full completion (production-grade: don't score partial submissions silently)
-    if (normalisedAnswers.length !== assessment.questions.length) {
-      throw new ApiError(
-        400,
-        `Incomplete answers: expected ${assessment.questions.length}, got ${normalisedAnswers.length}`
-      );
-    }
+    // // Require full completion (production-grade: don't score partial submissions silently)
+    // if (normalisedAnswers.length !== assessment.questions.length) {
+    //   throw new ApiError(
+    //     400,
+    //     `Incomplete answers: expected ${assessment.questions.length}, got ${normalisedAnswers.length}`
+    //   );
+    // }
 
     // 2️⃣ Calculate scores with validated weights
-    const scoreResult = calculateAssessmentScore(
-      assessment.questions,
-      normalisedAnswers
-    );
+    // const scoreResult = calculateAssessmentScore(
+    //   assessment.questions,
+    //   normalisedAnswers
+    // );
 
     // 3️⃣ Persist submission
-    await prisma.assessmentSubmission.create({
-      data: {
-        assessmentId: assessment.id,
-        email: data.email,
-        name: data.name,
-        scores: scoreResult.zones,
-        primaryZone: scoreResult.primaryZone
-      }
-    });
+    // await prisma.assessmentSubmission.create({
+    //   data: {
+    //     assessmentId: assessment.id,
+    //     email: data.email,
+    //     scores: scoreResult.zones,
+    //     primaryZone: scoreResult.primaryZone
+    //   }
+    // });
 
-    await prisma.assessment.update({
-      where: { id: assessment.id },
-      data: { totalTakers: { increment: 1 } }
-    });
+    // await prisma.assessment.update({
+    //   where: { id: assessment.id },
+    //   data: { totalTakers: { increment: 1 } }
+    // });
 
     // 4️⃣ Build zone metadata for email
-    const zoneMeta = (assessment.zones ?? []).reduce((acc, z) => {
-      acc[z.key] = { name: z.title };
-      return acc;
-    }, {} as Record<string, { name: string }>);
+    // const zoneMeta = (assessment.zones ?? []).reduce((acc, z) => {
+    //   acc[z.key] = { name: z.title };
+    //   return acc;
+    // }, {} as Record<string, { name: string }>);
 
-    // 5️⃣ Build email data
-    const emailData = buildResultsEmailData(
-      assessment.title,
-      email,
-      scoreResult,
-      zoneMeta
-    );
+    // // 5️⃣ Build email data
+    // const emailData = buildResultsEmailData(
+    //   assessment.title,
+    //   email,
+    //   scoreResult,
+    //   zoneMeta
+    // );
 
     // 6️⃣ Generate HTML
-    const builtHTML = generateResultsEmailHTML({
-      assessmentTitle: emailData.assessmentTitle,
-      results: emailData.zones,
-      highestBlocker: emailData.primaryZone,
-      contextExplanation: emailData.contextExplanation,
-      focusAdvice: emailData.focusAdvice
-    });
+    // const builtHTML = generateResultsEmailHTML({
+    //   assessmentTitle: emailData.assessmentTitle,
+    //   results: emailData.zones,
+    //   highestBlocker: emailData.primaryZone,
+    //   contextExplanation: emailData.contextExplanation,
+    //   focusAdvice: emailData.focusAdvice
+    // });
 
     // 7️⃣ Queue email (async)
-    await emailQueue.add("send-assessment-result", {
-      to: email,
-      subject: emailSubjects(undefined, undefined, assessment.title).assessmentResults,
-      html: builtHTML,
-      sender: emailFromAddress().infoEmail
-    });
+    // await emailQueue.add("send-assessment-result", {
+    //   to: email,
+    //   subject: emailSubjects(undefined, undefined, assessment.title).assessmentResults,
+    //   html: builtHTML,
+    //   sender: emailFromAddress().infoEmail
+    // });
 
     // 8️⃣ Return structured response for API consumer
-    return {
-      title: assessment.title,
-      email,
-      scores: scoreResult.zones,
-      primaryZone: scoreResult.primaryZone,
-      zones: emailData.zones
-    };
+    // return {
+    //   title: assessment.title,
+    //   email,
+    //   scores: scoreResult.zones,
+    //   primaryZone: scoreResult.primaryZone,
+    //   zones: emailData.zones
+    // };
   },
 
   async fetchSubmissionsById(assessmentId : string){

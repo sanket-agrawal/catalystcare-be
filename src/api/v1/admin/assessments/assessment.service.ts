@@ -244,13 +244,17 @@ export const assessmentService = {
 
     for (const answer of data.answers) {
     const question = questionMap.get(answer.questionId);
-    if (!question || !question.zone) continue;
+    if (!question) continue;
 
-    const zoneKey = question.zone.key;
+    if (!question.zone || typeof question.zone !== 'object' || !('key' in question.zone)) {
+      continue;
+    }
+
+    const zoneKey = String(question.zone.key);
 
     let value = answer.optionWeight;
 
-    if (question.isReverse) {
+     if ('isReverse' in question && question.isReverse) {
       value = 4 - value; // GLOBAL STANDARD (0–4)
     }
 

@@ -24,7 +24,7 @@ export const clientService = {
 
             const existingProfile = await prisma.clientProfile.findUnique({
                 where : {
-                    id : user.id
+                    userId : user.id
                 }
             });
 
@@ -53,7 +53,6 @@ export const clientService = {
                     }
                 })
             }
-
 
             return updatedProfile;
 

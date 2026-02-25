@@ -223,6 +223,8 @@ model TherapistProfile {
 
   programPurchase                     ProgramPurchase[]
 
+  webinars                            Webinar[]
+
 
   @@map("therapist_profiles")
 }
@@ -868,3 +870,48 @@ model ProgramPurchase {
   @@index([clientId, status])
   @@map("program_purchases")
 }
+
+model Webinar {
+  id              String   @id @default(uuid())
+  therapistId     String   @map("therapist_id")
+  therapist       TherapistProfile @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String?
+  bannerUrl       String?  @map("banner_url")
+
+  startTime       DateTime @map("start_time")
+  endTime         DateTime @map("end_time")
+
+  timezone        String   @default("Asia/Kolkata")
+
+  capacity        Int?
+  isPaid          Boolean  @default(false)@map("is_paid")
+   price          Int      @map("price")
+  pricePaise      Int      @map("price_paise")
+  currency        String   @default("INR")
+
+  status          WebinarStatus @default(DRAFT)
+
+  meetingLink     String?  @map("meeting_link")
+  meetingProvider String?  @map("meeting_provider") // GOOGLE_MEET / ZOOM
+
+  registrationCount Int    @default(0) @map("registration_count")
+
+  publishedAt     DateTime?  @map("published_at")
+  createdAt       DateTime @default(now())@map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+
+  @@index([therapistId, startTime])
+  @@map("webinars")
+}
+
+enum WebinarStatus {
+  DRAFT
+  PUBLISHED
+  COMPLETED
+  CANCELLED
+}
+
+

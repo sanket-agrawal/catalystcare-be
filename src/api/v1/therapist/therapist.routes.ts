@@ -8,6 +8,7 @@ import { upiVpaSchema } from './therapist.dto';
 import programRoutes from './programs/programs.routes';
 import testimonialRoutes from './testimonial/testimonail.routes';
 import sessionRoutes from './sessions/service.route'
+import webinarRoutes from './webinar/webinar.routes'
 
 const router = express.Router();
 
@@ -25,5 +26,8 @@ router.use('/testimonials',authenticate,authorizeRoles('THERAPIST'),testimonialR
 router.get('/dashboard/pending-list',authenticate,authorizeRoles('THERAPIST'),therapistController.pendingList);
 router.get('/program-billings-dashboard',authenticate,authorizeRoles('THERAPIST'),therapistController.therapistProgramBillingDashboard);
 
-router.use('/sessions',authenticate, authorizeRoles('THERAPIST'),sessionRoutes)
+router.use('/sessions',authenticate, authorizeRoles('THERAPIST'),sessionRoutes);
+
+router.use('/webinars',authenticate,authorizeRoles('THERAPIST'),webinarRoutes);
+
 export default router;

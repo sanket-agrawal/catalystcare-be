@@ -1,7 +1,8 @@
 import express from "express";
-import { fetchAllCategories, fetchCategoryDetailsBySlug, fetchTherapistBySlug, fetchTherapistProfiles, fetchWebinarById } from "./website.controller";
+import { fetchAllCategories, fetchCategoryDetailsBySlug, fetchTherapistBySlug, fetchTherapistProfiles } from "./website.controller";
 import { createContact } from "../../../infrastructure/mongodb/controllers/contact.controller";
 import assessmentRoutes from "./assessments/assessment.routes";
+import webinarRoutes from './webinar/webinar.routes';
 const router = express.Router();
 
 router.get('/categories',fetchAllCategories);
@@ -10,6 +11,6 @@ router.get('/category/:slug',fetchCategoryDetailsBySlug);
 router.get('/therapist/:slug',fetchTherapistBySlug);
 router.post('/contact',createContact);
 router.use('/assessments', assessmentRoutes);
-router.get('/webinars/:id',fetchWebinarById);
+router.get('/webinars',webinarRoutes);
 
 export default router;

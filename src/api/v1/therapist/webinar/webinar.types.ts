@@ -7,10 +7,9 @@ export interface CreateWebinarDTO {
   timezone?: string;
   capacity?: number;
   isPaid?: boolean;
-  price?: number;
+  price: number;
   pricePaise?: number;
   currency?: string;
-  meetingLink?: string;
   meetingProvider?: string;
 }
 

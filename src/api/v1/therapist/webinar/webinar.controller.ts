@@ -14,11 +14,18 @@ const WebinarController = {
       );
 
       res.status(201).json(
-        new ApiResponse(true, 201, "Webinar created", webinar)
+        new ApiResponse(true, 201, "Webinar created Successfully", webinar)
       );
 
     } catch (error) {
-      handleError(error, res);
+       console.log("Error in creating webinar",error);
+                          if(error instanceof ApiError){
+                              res.status(error.statusCode).json(
+                              new ApiResponse(false,error.statusCode,error.message)
+                              )
+                          }else{
+                              res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+                          }
     }
   },
 
@@ -30,7 +37,14 @@ const WebinarController = {
       res.json(new ApiResponse(true, 200, "Webinars fetched", webinars));
 
     } catch (error) {
-      handleError(error, res);
+             console.log("Error in fetching all webinars",error);
+                          if(error instanceof ApiError){
+                              res.status(error.statusCode).json(
+                              new ApiResponse(false,error.statusCode,error.message)
+                              )
+                          }else{
+                              res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+                          }
     }
   },
 
@@ -45,7 +59,14 @@ const WebinarController = {
       res.json(new ApiResponse(true, 200, "Webinar fetched", webinar));
 
     } catch (error) {
-      handleError(error, res);
+             console.log("Error in fetching webinar by ID",error);
+                          if(error instanceof ApiError){
+                              res.status(error.statusCode).json(
+                              new ApiResponse(false,error.statusCode,error.message)
+                              )
+                          }else{
+                              res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+                          }
     }
   },
 
@@ -62,7 +83,14 @@ const WebinarController = {
       res.json(new ApiResponse(true, 200, "Webinar updated", webinar));
 
     } catch (error) {
-      handleError(error, res);
+             console.log("Error in updating webinar",error);
+                          if(error instanceof ApiError){
+                              res.status(error.statusCode).json(
+                              new ApiResponse(false,error.statusCode,error.message)
+                              )
+                          }else{
+                              res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+                          }
     }
   },
 
@@ -78,7 +106,14 @@ const WebinarController = {
       res.json(new ApiResponse(true, 200, "Webinar published", webinar));
 
     } catch (error) {
-      handleError(error, res);
+             console.log("Error in publishing webinar",error);
+                          if(error instanceof ApiError){
+                              res.status(error.statusCode).json(
+                              new ApiResponse(false,error.statusCode,error.message)
+                              )
+                          }else{
+                              res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+                          }
     }
   },
 
@@ -94,7 +129,14 @@ const WebinarController = {
       res.json(new ApiResponse(true, 200, "Webinar unpublished", webinar));
 
     } catch (error) {
-      handleError(error, res);
+            console.log("Error in un-publishing webinar",error);
+                          if(error instanceof ApiError){
+                              res.status(error.statusCode).json(
+                              new ApiResponse(false,error.statusCode,error.message)
+                              )
+                          }else{
+                              res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+                          }
     }
   }
 };

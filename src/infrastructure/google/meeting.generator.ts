@@ -104,7 +104,6 @@ export async function createGoogleMeet(
   return {
     meetLink,
     provider : "GOOGLE_MEET"
-    
   }
 
 }

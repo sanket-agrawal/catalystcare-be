@@ -550,6 +550,9 @@ model Payment {
   programPurchaseId   String?   @unique @map("program_purchase_id")
   programPurchase     ProgramPurchase?  @relation(fields: [programPurchaseId], references: [id])
 
+  webinarRegistrationId String? @unique @map("webinar_registration_id")
+  webinarRegistration   WebinarRegistration? @relation(fields: [webinarRegistrationId], references: [id])
+
   bookingType        BookingType   @default(SINGLE)@map("booking_type")
 
   @@map("payments")
@@ -558,6 +561,7 @@ model Payment {
 enum PurchaseType{
   SINGLE
   PROGRAM
+  WEBINAR
 }
 
 enum PaymentStatus {
@@ -829,6 +833,7 @@ enum ProgramCadence {
 enum BookingType {
   SINGLE
   PROGRAM
+  WEBINAR
 }
 
 enum ProgramPurchaseStatus {
@@ -935,13 +940,6 @@ model WebinarRegistration {
 
   status            WebinarRegistrationStatus @default(PENDING_PAYMENT)
 
-  // Payment snapshot (null for free webinars)
-  razorpayOrderId   String?                   @unique @map("razorpay_order_id")
-  razorpayPaymentId String?                   @unique @map("razorpay_payment_id")
-  amount            Int                       @map("amount")
-  amountPaise       Int                       @map("amount_paise")
-  currency          String                    @default("INR")
-
   // Email job tracking
   confirmationSentAt DateTime?               @map("confirmation_sent_at")
   confirmationJobId  String?                 @map("confirmation_job_id")
@@ -952,9 +950,12 @@ model WebinarRegistration {
   createdAt         DateTime                  @default(now()) @map("created_at")
   updatedAt         DateTime                  @updatedAt @map("updated_at")
 
+  paymentId  String?
+  payment    Payment?
+
+
   @@index([webinarId, status])
   @@index([guestEmail, webinarId])
-  @@index([razorpayOrderId])
   @@map("webinar_registrations")
 }
 

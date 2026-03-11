@@ -7,7 +7,8 @@ import { createCommissionRateSchema } from './admin.dto';
 import { fetchAllContactFormSubmissions } from '../../../infrastructure/mongodb/controllers/contact.controller';
 import assessmentRoutes from "./assessments/assessment.route"
 import testimonialRoutes from "./testimonial/testimonail.routes";
-import sessionRoutes from './sessions/session.route'
+import sessionRoutes from './sessions/session.route';
+import webinarRoutes from './webinars/webinar.routes';
 
 const router = express.Router();
 
@@ -32,5 +33,7 @@ router.use('/testimonials',authenticate,authorizeRoles('ADMIN'),testimonialRoute
 router.get('/program-billings-dashboard',authenticate,authorizeRoles('ADMIN'),adminController.programBillingDashboard);
 
 router.use('/sessions',authenticate,authorizeRoles('ADMIN'),sessionRoutes);
+
+router.use('/webinars',authenticate,authorizeRoles('ADMIN'),webinarRoutes);
 
 export default router;

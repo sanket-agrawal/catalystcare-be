@@ -2,10 +2,11 @@ import ApiError from "../../../../shared/utils/ApiError";
 import {prisma} from '../../../../infrastructure/prisma/client';
 import crypto from 'crypto';
 import { razorpayInstance } from "../../../../infrastructure/razorpay";
-import { InitiateRegistrationInput, VerifyPaymentInput, WebinarRegistrationStatus } from "./webinar.dto";
+import { InitiateRegistrationInput, PaymentStatus, PurchaseType, VerifyPaymentInput, WebinarRegistrationStatus } from "./webinar.dto";
 import { emailQueue } from "../../../../infrastructure/queues";
 import { emailFromAddress, webinarEmailSubjects } from "../../../../shared/config/email.config";
 import { clientWebinarConfirmationTemplate, therapistWebinarRegistrationTemplate } from "../../../../shared/email-templates/webinarRegistration";
+import { calculateProgramComissions } from "../../../../shared/lib/money";
 // import { WebinarConfirmationJobData, webinarEmailQueue } from "../../../../infrastructure/queues/webinarEmailQueue";
 
 export const fetchWebinarByIdService = async (webinarId : string) => {
@@ -78,6 +79,31 @@ async function handlePaidRegistration(webinar: any, input: InitiateRegistrationI
     guestName:  input.guestName,
   };
 
+  const now = new Date();
+
+      const commissionRate = await prisma.commissionRate.findFirst({
+            where: {
+              purchaseType : "WEBINAR",
+              effectiveFrom: { lte: now },
+              OR: [
+                { effectiveTo: null },
+                { effectiveTo: { gt: now } }
+              ]
+            },
+            orderBy: { effectiveFrom: 'desc' },
+          });
+  
+          const commission = calculateProgramComissions({
+      amountPaise: webinar.pricePaise,
+      commissionRate: commissionRate
+        ? {
+            id: commissionRate.id,
+            platformPercent: Number(commissionRate.platformPercent),
+            gatewayPercent: Number(commissionRate.gatewayPercent),
+          }
+        : null,
+    });
+
   const order = await razorpayInstance.orders.create({
     amount:   webinar.pricePaise,
     currency: webinar.currency ?? 'INR',
@@ -93,15 +119,23 @@ async function handlePaidRegistration(webinar: any, input: InitiateRegistrationI
       guestEmail:      input.guestEmail,
       guestPhone:      input.guestPhone,
       status:          WebinarRegistrationStatus.PENDING_PAYMENT,
-      razorpayOrderId: order.id,
-      amount :          webinar.price,
-      amountPaise:     webinar.pricePaise,
-      currency:        webinar.currency ?? 'INR',
     },
   });
 
+  await prisma.payment.create({
+  data: {
+    webinarRegistrationId: registration.id,
+    razorpayOrderId: order.id,
+    amount: webinar.price,
+    amountPaise: webinar.pricePaise,
+    currency: webinar.currency,
+    bookingType : "WEBINAR",
+    status: "PENDING",
+      ...commission
+  }
+});
+
   return {
-    type:           'PAID',
     registrationId: registration.id,
     razorpayOrderId: order.id,
     razorpayKeyId:   process.env.RAZORPAY_KEY_ID,
@@ -157,9 +191,19 @@ export async function verifyWebinarPayment(input: VerifyPaymentInput) {
       where: { id: registration.id },
       data: {
         status:            WebinarRegistrationStatus.CONFIRMED,
-        razorpayPaymentId: input.razorpayPaymentId,
       },
     }),
+
+   prisma.payment.update({
+    where: { razorpayOrderId: input.razorpayOrderId },
+    data: {
+      status: PaymentStatus.CAPTURED,
+      razorpayPaymentId: input.razorpayPaymentId,
+       capturedAt: new Date(),
+    }
+  }),
+
+
     prisma.webinar.update({
       where: { id: webinar.id },
       data:  { registrationCount: { increment: 1 } },

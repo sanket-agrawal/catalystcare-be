@@ -898,6 +898,8 @@ model Webinar {
 
   registrationCount Int    @default(0) @map("registration_count")
 
+  registrations     WebinarRegistration[]
+
   publishedAt     DateTime?  @map("published_at")
   createdAt       DateTime @default(now())@map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -914,4 +916,45 @@ enum WebinarStatus {
   CANCELLED
 }
 
+enum WebinarRegistrationStatus {
+  PENDING_PAYMENT   // order created, awaiting Razorpay capture
+  CONFIRMED         // payment captured / free webinar confirmed
+  CANCELLED
+  REFUNDED
+}
+
+model WebinarRegistration {
+  id                String                    @id @default(uuid())
+  webinarId         String                    @map("webinar_id")
+  webinar           Webinar                   @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+
+  // Guest identity — no auth required
+  guestName         String                    @map("guest_name")
+  guestEmail        String                    @map("guest_email")
+  guestPhone        String?                   @map("guest_phone")
+
+  status            WebinarRegistrationStatus @default(PENDING_PAYMENT)
+
+  // Payment snapshot (null for free webinars)
+  razorpayOrderId   String?                   @unique @map("razorpay_order_id")
+  razorpayPaymentId String?                   @unique @map("razorpay_payment_id")
+  amount            Int                       @map("amount")
+  amountPaise       Int                       @map("amount_paise")
+  currency          String                    @default("INR")
+
+  // Email job tracking
+  confirmationSentAt DateTime?               @map("confirmation_sent_at")
+  confirmationJobId  String?                 @map("confirmation_job_id")
+
+  // Soft idempotency key so the same guest can't double-register
+  // (unique on webinarId + guestEmail, only one CONFIRMED allowed — enforced at app layer)
+  
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+
+  @@index([webinarId, status])
+  @@index([guestEmail, webinarId])
+  @@index([razorpayOrderId])
+  @@map("webinar_registrations")
+}
 

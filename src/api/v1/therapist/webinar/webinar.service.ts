@@ -199,6 +199,132 @@ static async fetchAll(therapistId: string) {
       }
     });
   }
+
+static async fetchWebinarRegistrations(therapistId: string) {
+
+  const [registrations, billingTotals] = await Promise.all([
+
+    prisma.webinarRegistration.findMany({
+      where: {
+        webinar: { therapistId },
+        status: "CONFIRMED"
+      },
+      include: {
+        webinar: {
+          select: {
+            id: true,
+            price: true,
+            currency: true,
+            title: true,
+            startTime: true,
+            endTime: true,
+            meetingLink: true,
+            therapist: {
+              include: { user: true }
+            }
+          }
+        },
+        payment: {
+          select: {
+            id: true,
+            status: true,
+            amountPaise: true,
+            currency: true,
+
+            platformPercent: true,
+            gatewayPercent: true,
+
+            platformFeePaise: true,
+            gatewayFeePaise: true,
+            payoutAmountPaise: true,
+
+            capturedAt: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    }),
+
+    prisma.payment.aggregate({
+      where: {
+        webinarRegistration: {
+          webinar: {
+            therapistId
+          }
+        },
+        status: "CAPTURED"
+      },
+      _sum: {
+        amountPaise: true,
+        platformFeePaise: true,
+        gatewayFeePaise: true,
+        payoutAmountPaise: true
+      }
+    })
+
+  ]);
+
+  const formattedRegistrations = registrations.map(reg => {
+
+    const payment = reg.payment;
+
+    return {
+      id: reg.id,
+
+      webinar: {
+        id: reg.webinar.id,
+        title: reg.webinar.title,
+        price: reg.webinar.price,
+        currency: reg.webinar.currency,
+        startTime: reg.webinar.startTime,
+        endTime: reg.webinar.endTime
+      },
+
+      guest: {
+        name: reg.guestName,
+        email: reg.guestEmail,
+        phone: reg.guestPhone
+      },
+
+      billing: payment ? {
+        paymentId: payment.id,
+        status: payment.status,
+
+        amountPaise: payment.amountPaise,
+
+        commissions: {
+          platformPercent: payment.platformPercent,
+          gatewayPercent: payment.gatewayPercent,
+          platformFeePaise: payment.platformFeePaise,
+          gatewayFeePaise: payment.gatewayFeePaise
+        },
+
+        payoutAmountPaise: payment.payoutAmountPaise,
+
+        capturedAt: payment.capturedAt
+      } : null,
+
+      registeredAt: reg.createdAt
+    };
+
+  });
+
+  return {
+    totals: {
+      totalRevenue: billingTotals._sum.amountPaise ?? 0,
+      totalPlatformFees: billingTotals._sum.platformFeePaise ?? 0,
+      totalGatewayFees: billingTotals._sum.gatewayFeePaise ?? 0,
+      totalPayout: billingTotals._sum.payoutAmountPaise ?? 0
+    },
+
+    registrations: formattedRegistrations
+  };
+
+}
+
+   
 }
 
 export default WebinarService;

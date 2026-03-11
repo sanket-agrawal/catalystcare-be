@@ -27,3 +27,14 @@ export interface VerifyPaymentInput {
   razorpayPaymentId: string;
   razorpaySignature: string;
 }
+
+export enum PurchaseType {
+  WEBINAR = "WEBINAR"
+}
+
+export enum PaymentStatus {
+  PENDING = "PENDING",
+  CAPTURED = "CAPTURED",
+  FAILED = "FAILED",
+  REFUNDED = "REFUNDED"
+}

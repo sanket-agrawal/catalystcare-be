@@ -138,20 +138,27 @@ const WebinarController = {
                               res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
                           }
     }
-  }
+  },
+
+  fetchRegistrations: async (req: Request, res: Response) => {
+    try {
+      const { therapistProfileId } = req.user;  
+      const registrations = await WebinarService.fetchWebinarRegistrations(therapistProfileId);
+
+      res.json(new ApiResponse(true, 200, "Webinar registrations fetched", registrations)); 
+    } catch (error) {
+            console.log("Error in fetching webinar registrations",error);
+                          if(error instanceof ApiError){
+                              res.status(error.statusCode).json(
+                              new ApiResponse(false,error.statusCode,error.message)
+                              )
+                          }else{
+                              res.status(400).json(new ApiResponse(false, 400, "Something went wrong"))
+                          }
+    }
+   }
 };
 
 export default WebinarController;
 
 
-function handleError(error: any, res: Response) {
-  console.error(error);
-  if (error instanceof ApiError)
-    return res.status(error.statusCode).json(
-      new ApiResponse(false, error.statusCode, error.message)
-    );
-
-  return res.status(500).json(
-    new ApiResponse(false, 500, "Internal Server Error")
-  );
-}

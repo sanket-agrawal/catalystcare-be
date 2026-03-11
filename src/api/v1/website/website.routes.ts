@@ -11,6 +11,6 @@ router.get('/category/:slug',fetchCategoryDetailsBySlug);
 router.get('/therapist/:slug',fetchTherapistBySlug);
 router.post('/contact',createContact);
 router.use('/assessments', assessmentRoutes);
-router.get('/webinars',webinarRoutes);
+router.use('/webinars',webinarRoutes);
 
 export default router;

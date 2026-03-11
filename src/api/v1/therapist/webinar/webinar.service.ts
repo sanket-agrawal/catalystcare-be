@@ -39,13 +39,13 @@ class WebinarService {
     }
 
 
-    // const { meetLink , provider } = await createGoogleMeet({
-    //   therapistId,
-    //   startTime : data.startTime,
-    //   endTime : data.endTime,
-    //   webinarTitle : data.title,
-    //   webinarDescription : data.description ? data.description : ""
-    // })
+    const { meetLink , provider } = await createGoogleMeet({
+      therapistId,
+      startTime : data.startTime,
+      endTime : data.endTime,
+      webinarTitle : data.title,
+      webinarDescription : data.description ? data.description : ""
+    })
 
     const webinar = await prisma.webinar.create({
       data: {
@@ -56,8 +56,8 @@ class WebinarService {
         timezone : "IST",
         pricePaise : data.price * 100,
         currency : "INR",
-        meetingProvider : "provider",
-        meetingLink : "meetLink"
+        meetingProvider : provider,
+        meetingLink : meetLink
       }
     });
 

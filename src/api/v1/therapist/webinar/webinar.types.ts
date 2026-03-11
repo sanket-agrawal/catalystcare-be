@@ -4,13 +4,7 @@ export interface CreateWebinarDTO {
   bannerUrl?: string;
   startTime: Date;
   endTime: Date;
-  timezone?: string;
-  capacity?: number;
-  isPaid?: boolean;
   price: number;
-  pricePaise?: number;
-  currency?: string;
-  meetingProvider?: string;
 }
 
 export interface UpdateWebinarDTO extends Partial<CreateWebinarDTO> {}

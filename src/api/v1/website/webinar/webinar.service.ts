@@ -44,14 +44,14 @@ export const initiateWebinarRegistrationService = async (webinarId : string, use
     throw new ApiError(404,"Webinar not found");  
   }
 
-    const existing = await prisma.webinarRegistration.findFirst({
-    where: {
-      webinarId,
-      guestEmail: userEmail,
-      status:     WebinarRegistrationStatus.CONFIRMED,
-    },
-  });
-  if (existing) throw new ApiError(409,'You are already registered for this webinar')
+  //   const existing = await prisma.webinarRegistration.findFirst({
+  //   where: {
+  //     webinarId,
+  //     guestEmail: userEmail,
+  //     status:     WebinarRegistrationStatus.CONFIRMED,
+  //   },
+  // });
+  // if (existing) throw new ApiError(409,'You are already registered for this webinar')
 
  return handlePaidRegistration(webinar, {
     guestEmail: userEmail,
@@ -167,7 +167,7 @@ export async function verifyWebinarPayment(input: VerifyPaymentInput) {
   ]);
 
 
-    await emailQueue.add("send-assessment-result", {
+    await emailQueue.add("client-confirmation-webinar", {
         to: registration.guestEmail,
         subject: webinarEmailSubjects(registration.webinar.title).clinetRegistrationConfirmation,
         html: clientWebinarConfirmationTemplate(
@@ -181,7 +181,7 @@ export async function verifyWebinarPayment(input: VerifyPaymentInput) {
         sender: emailFromAddress().infoEmail
       });
 
-          await emailQueue.add("send-assessment-result", {
+          await emailQueue.add("therapist-confirmation-webinar", {
         to: registration.webinar.therapist.user.email,
         subject: webinarEmailSubjects(registration.webinar.title).therapistConfirmation,
         html: therapistWebinarRegistrationTemplate(

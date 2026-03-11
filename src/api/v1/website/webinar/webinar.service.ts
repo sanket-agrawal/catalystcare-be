@@ -315,13 +315,13 @@ export async function handleRazorpayWebhook(
     }),
   ]);
 
-  await enqueueConfirmationEmail(
-    registration.id,
-    webinar,
-    { guestName: registration.guestName, guestEmail: registration.guestEmail },
-    true,
-    registration.amountPaise ?? 0
-  );
+  // await enqueueConfirmationEmail(
+  //   registration.id,
+  //   webinar,
+  //   { guestName: registration.guestName, guestEmail: registration.guestEmail },
+  //   true,
+  //   registration.amountPaise ?? 0
+  // );
 
   // logger.info({ registrationId: registration.id, orderId }, 'Webinar confirmed via webhook');
   return { processed: true };
@@ -341,45 +341,45 @@ function verifyRazorpaySignature(orderId: string, paymentId: string, signature: 
   }
 }
 
-async function enqueueConfirmationEmail(
-  registrationId: string,
-  webinar: any,
-  guest: { guestName: string; guestEmail: string },
-  isPaid: boolean,
-  amountPaise: number
-) {
-  const therapist = webinar.therapist;
-  const therapistName  = `${therapist.user.firstName} ${therapist.user.lastName}`;
-  const therapistEmail = therapist.googleEmail ?? therapist.user.email;
+// async function enqueueConfirmationEmail(
+//   registrationId: string,
+//   webinar: any,
+//   guest: { guestName: string; guestEmail: string },
+//   isPaid: boolean,
+//   amountPaise: number
+// ) {
+//   const therapist = webinar.therapist;
+//   const therapistName  = `${therapist.user.firstName} ${therapist.user.lastName}`;
+//   const therapistEmail = therapist.googleEmail ?? therapist.user.email;
 
-  const jobData = {
-    registrationId,
-    guestEmail:     guest.guestEmail,
-    guestName:      guest.guestName,
-    webinarId:      webinar.id,
-    webinarTitle:   webinar.title,
-    webinarDesc:    webinar.description ?? '',
-    startTime:      webinar.startTime.toISOString(),
-    endTime:        webinar.endTime.toISOString(),
-    meetingLink:    webinar.meetingLink ?? '',
-    therapistName,
-    therapistEmail,
-    isPaid,
-    amountPaise,
-  };
+//   const jobData = {
+//     registrationId,
+//     guestEmail:     guest.guestEmail,
+//     guestName:      guest.guestName,
+//     webinarId:      webinar.id,
+//     webinarTitle:   webinar.title,
+//     webinarDesc:    webinar.description ?? '',
+//     startTime:      webinar.startTime.toISOString(),
+//     endTime:        webinar.endTime.toISOString(),
+//     meetingLink:    webinar.meetingLink ?? '',
+//     therapistName,
+//     therapistEmail,
+//     isPaid,
+//     amountPaise,
+//   };
 
-  const job = await webinarEmailQueue.add(
-    `confirmation-${registrationId}`,
-    jobData,
-    {
-      jobId: `confirmation-${registrationId}`, // deduplication
-      delay: 0,
-    }
-  );
+//   const job = await webinarEmailQueue.add(
+//     `confirmation-${registrationId}`,
+//     jobData,
+//     {
+//       jobId: `confirmation-${registrationId}`, // deduplication
+//       delay: 0,
+//     }
+//   );
 
-  // Store job ID for traceability
-  await prisma.webinarRegistration.update({
-    where: { id: registrationId },
-    data:  { confirmationJobId: job.id },
-  });
-}
+//   // Store job ID for traceability
+//   await prisma.webinarRegistration.update({
+//     where: { id: registrationId },
+//     data:  { confirmationJobId: job.id },
+//   });
+// }

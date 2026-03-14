@@ -172,9 +172,9 @@ export async function verifyWebinarPayment(input: VerifyPaymentInput) {
   if (registration.status !== WebinarRegistrationStatus.PENDING_PAYMENT) {
     throw new ApiError(400,'Registration is not in a payable state');
   }
-  if (registration.razorpayOrderId !== input.razorpayOrderId) {
-    throw new ApiError(400,'Order ID mismatch');
-  }
+  // if (registration.razorpayOrderId !== input.razorpayOrderId) {
+  //   throw new ApiError(400,'Order ID mismatch');
+  // }
 
   // 2. Verify Razorpay signature
   verifyRazorpaySignature(

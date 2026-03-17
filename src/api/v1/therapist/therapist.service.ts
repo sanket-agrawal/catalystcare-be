@@ -204,8 +204,8 @@ export const therapistService = {
           client : booking.client,
           startDateTime : booking.startDateTime,
           endDateTime : booking.endDateTime,
-          meetingLink : permission.canJoinSession ? booking.meetingLink : null,
-           canJoinSession : permission.canJoinSession,
+          meetingLink : booking.meetingLink,
+           canJoinSession : true,
            canReschedule : permission.canReschedule,
            rescheduleStatus : permission.rescheduleStatus
           };

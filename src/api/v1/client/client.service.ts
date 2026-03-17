@@ -263,7 +263,6 @@ export const clientService = {
         // return bookings;
         return bookings.map(booking => {
        const permission =  clientBookingPermission(booking.startDateTime, booking.endDateTime, booking.hasClientRescheduledEarlier,booking.rescheduleStatus);
-       console.log(permission)
         return  {
           ...booking,
         hasRated: !!booking.testimonial,
@@ -271,7 +270,7 @@ export const clientService = {
         !booking.testimonial &&
         new Date() > booking.endDateTime,
         // permissions: getClientBookingPermissions(booking.startDateTime),
-        canJoinSession : permission.canJoinSession,
+        canJoinSession : true,
         canReschedule : permission.canReschedule,
         rescheduleStatus : permission.rescheduleStatus
       };

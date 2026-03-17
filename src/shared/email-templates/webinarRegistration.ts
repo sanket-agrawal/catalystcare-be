@@ -1,3 +1,4 @@
+import { companyWhatsappDetails } from "../config/whatsapp.config";
 import { serverConfig } from "../config/server.config";
 
 export const clientWebinarConfirmationTemplate = (
@@ -96,9 +97,18 @@ export const clientWebinarConfirmationTemplate = (
                   style="background-color:#f3f4f6; padding:12px; font-size:13px; color:#555;">
                   © Catalyst Care |
                   <a href="${serverConfig.baseFrontendUrl}"
+                  target="_blank"
+                                     rel="noopener noreferrer"
                     style="color:#007bff; text-decoration:none;">
                     ${serverConfig.baseFrontendUrl}
                   </a>
+                  <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+                                     target="_blank"
+                                     rel="noopener noreferrer"
+                  
+                         style="color: #25D366; text-decoration: none;">
+                         WhatsApp Support
+                      </a>
                 </td>
               </tr>
 
@@ -207,6 +217,13 @@ export const therapistWebinarRegistrationTemplate = (
                     style="color:#28a745; text-decoration:none;">
                     ${serverConfig.baseFrontendUrl}
                   </a>
+                   <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+                                     target="_blank"
+                                     rel="noopener noreferrer"
+                  
+                         style="color: #25D366; text-decoration: none;">
+                         WhatsApp Support
+                      </a>
                 </td>
               </tr>
 

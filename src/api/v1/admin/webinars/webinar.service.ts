@@ -81,6 +81,8 @@ webinarBillingsDashboard: async () => {
                   id: true,
                   title: true,
                   startTime: true,
+                  meetingLink : true,
+                  meetingProvider : true,
                   therapist: {
                     select: {
                       user: {

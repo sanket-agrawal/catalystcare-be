@@ -130,6 +130,8 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
   try {
 
     const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+
+    const now = new Date();
     // ---------- FETCH THERAPIST BASIC DETAILS ----------
     const therapist = await prisma.therapistProfile.findFirst({
       where: {
@@ -162,7 +164,7 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
           where: {
             status: "AVAILABLE",
             startDateTime: {
-      gte: nowIST
+      gte: now
     }
           },
           select: {

@@ -263,14 +263,25 @@ export const clientService = {
         // return bookings;
         return bookings.map(booking => {
        const permission =  clientBookingPermission(booking.startDateTime, booking.endDateTime, booking.hasClientRescheduledEarlier,booking.rescheduleStatus);
+
+       const today = new Date();
+        const bookingDate = new Date(booking.startDateTime);
+
+  const isSameDay =
+    today.getFullYear() === bookingDate.getFullYear() &&
+    today.getMonth() === bookingDate.getMonth() &&
+    today.getDate() === bookingDate.getDate();
+
+
         return  {
           ...booking,
+           meetingLink: isSameDay ? booking.meetingLink : null,
         hasRated: !!booking.testimonial,
       canRate:
         !booking.testimonial &&
         new Date() > booking.endDateTime,
         // permissions: getClientBookingPermissions(booking.startDateTime),
-        canJoinSession : true,
+        canJoinSession : isSameDay,
         canReschedule : permission.canReschedule,
         rescheduleStatus : permission.rescheduleStatus
       };

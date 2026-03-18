@@ -195,7 +195,9 @@ export async function verifyWebinarPayment(input: VerifyPaymentInput) {
     }),
 
    prisma.payment.update({
-    where: { razorpayOrderId: input.razorpayOrderId },
+    where: { 
+      webinarRegistrationId: registration.id,
+     },
     data: {
       status: PaymentStatus.CAPTURED,
       razorpayPaymentId: input.razorpayPaymentId,

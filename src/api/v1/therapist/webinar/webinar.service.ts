@@ -21,6 +21,24 @@ class WebinarService {
       throw new ApiError(403, "Only approved therapists can create webinars");
     }
 
+    if (new Date(data.startTime) >= new Date(data.endTime)) {
+  throw new ApiError(400, "End time must be after start time");
+}
+
+// 2. Must be in future (optional but good guard)
+if (new Date(data.startTime) <= new Date()) {
+  throw new ApiError(400, "Webinar must be scheduled in the future");
+}
+
+// 3. Minimum 24-hour constraint
+const minAllowedStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
+if (new Date(data.startTime) < minAllowedStart) {
+  throw new ApiError(
+    400,
+    "Webinar must be scheduled at least 24 hours in advance"
+  );
+}
+
     const bookings = await prisma.booking.findMany({
       where: {
         therapistId,

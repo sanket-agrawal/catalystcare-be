@@ -1,5 +1,6 @@
 import { companyWhatsappDetails } from "../config/whatsapp.config";
-import { serverConfig } from "../../shared/config/server.config";
+import { serverConfig } from "../config/server.config";
+import { emailFromAddress } from "../config/email.config";
 
 export const clientBookingConfirmationTemplate = (
   clientFirstName: string,
@@ -62,6 +63,7 @@ export const clientBookingConfirmationTemplate = (
                     Join Session
                   </a>
 
+
                   <p style="font-size:13px; color:#777; margin-top:15px;">
                     Please join 2 minutes before the scheduled time.
                   </p>
@@ -78,13 +80,23 @@ export const clientBookingConfirmationTemplate = (
                    rel="noopener noreferrer"
                      style="color: #007bff; text-decoration: none;">${serverConfig.baseFrontendUrl}</a>
 
-                   <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
-                   target="_blank"
-                   rel="noopener noreferrer"
+                  <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+target="_blank"
+rel="noopener noreferrer"
+style="margin-left:10px;">
+<img src="https://cdn-icons-png.flaticon.com/24/733/733585.png" 
+     width="20" height="20" 
+     alt="WhatsApp" style="vertical-align:middle;">
+</a>
 
-       style="color: #25D366; text-decoration: none;">
-       WhatsApp Support
-    </a>
+<a href="mailto:${emailFromAddress().infoEmail.email}"
+target="_blank"
+rel="noopener noreferrer"
+style="margin-left:10px;">
+<img src="https://cdn-icons-png.flaticon.com/24/732/732200.png" 
+     width="20" height="20" 
+     alt="Email" style="vertical-align:middle;">
+</a>
 
                 </td>
               </tr>
@@ -152,14 +164,14 @@ export const therapistBookingConfirmationTemplate = (
                     Use the link below to join the session at the scheduled time.
                   </p>
 
-                  <a href="${serverConfig.baseFrontendUrl}/therapist-dashboard"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style="display:inline-block; margin-top:20px; padding:10px 20px; 
-                    background-color:#28a745; color:#fff; border-radius:6px; 
-                    text-decoration:none; font-size:14px;">
-                    Join Session
-                  </a>
+                 <a href="${serverConfig.baseFrontendUrl}/therapist-dashboard"
+  target="_blank"
+  rel="noopener noreferrer"
+  style="display:inline-block; margin-top:20px; padding:10px 20px; 
+  background-color:#28a745; color:#fff; border-radius:6px; 
+  text-decoration:none; font-size:14px;">
+  Join Session
+</a>
 
                   <p style="font-size:13px; color:#777; margin-top:15px;">
                     Please ensure you are available and prepared for the session.
@@ -178,13 +190,23 @@ export const therapistBookingConfirmationTemplate = (
                   style="color: #28a745; text-decoration: none;">
                     ${serverConfig.baseFrontendUrl}
                   </a>
-                  <a href="${companyWhatsappDetails().contactWhatsappLink}" 
-                   target="_blank"
-                   rel="noopener noreferrer"
+                                    <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+target="_blank"
+rel="noopener noreferrer"
+style="margin-left:10px;">
+<img src="https://cdn-icons-png.flaticon.com/24/733/733585.png" 
+     width="20" height="20" 
+     alt="WhatsApp" style="vertical-align:middle;">
+</a>
 
-       style="color: #25D366; text-decoration: none;">
-       WhatsApp Support
-    </a>
+<a href="mailto:${emailFromAddress().infoEmail.email}"
+target="_blank"
+rel="noopener noreferrer"
+style="margin-left:10px;">
+<img src="https://cdn-icons-png.flaticon.com/24/732/732200.png" 
+     width="20" height="20" 
+     alt="Email" style="vertical-align:middle;">
+</a>
                 </td>
               </tr>
 

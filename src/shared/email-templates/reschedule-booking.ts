@@ -1,4 +1,6 @@
+import { emailFromAddress } from "../../shared/config/email.config";
 import { serverConfig } from "../../shared/config/server.config";
+import { companyWhatsappDetails } from "../../shared/config/whatsapp.config";
 
 export const clientBookingRescheduledTemplate = (
   clientFirstName: string,
@@ -61,6 +63,7 @@ export const clientBookingRescheduledTemplate = (
                     text-decoration:none; font-size:14px;">
                     View Dashboard
                   </a>
+                  
 
                   <p style="font-size:13px; color:#777; margin-top:15px;">
                     Please join 2 minutes before the scheduled time.
@@ -76,6 +79,23 @@ export const clientBookingRescheduledTemplate = (
                   <a href="${serverConfig.baseFrontendUrl}" 
                      style="color: #007bff; text-decoration: none;">
                      ${serverConfig.baseFrontendUrl}
+                  </a>
+                                    <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style="margin-left:10px;">
+                  <img src="https://cdn-icons-png.flaticon.com/24/733/733585.png" 
+                       width="20" height="20" 
+                       alt="WhatsApp" style="vertical-align:middle;">
+                  </a>
+                  
+                  <a href="mailto:${emailFromAddress().infoEmail.email}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style="margin-left:10px;">
+                  <img src="https://cdn-icons-png.flaticon.com/24/732/732200.png" 
+                       width="20" height="20" 
+                       alt="Email" style="vertical-align:middle;">
                   </a>
                 </td>
               </tr>
@@ -167,6 +187,23 @@ export const therapistBookingRescheduledTemplate = (
                      style="color: #28a745; text-decoration: none;">
                     ${serverConfig.baseFrontendUrl}
                   </a>
+                                    <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+target="_blank"
+rel="noopener noreferrer"
+style="margin-left:10px;">
+<img src="https://cdn-icons-png.flaticon.com/24/733/733585.png" 
+     width="20" height="20" 
+     alt="WhatsApp" style="vertical-align:middle;">
+</a>
+
+<a href="mailto:${emailFromAddress().infoEmail.email}"
+target="_blank"
+rel="noopener noreferrer"
+style="margin-left:10px;">
+<img src="https://cdn-icons-png.flaticon.com/24/732/732200.png" 
+     width="20" height="20" 
+     alt="Email" style="vertical-align:middle;">
+</a>
                 </td>
               </tr>
 

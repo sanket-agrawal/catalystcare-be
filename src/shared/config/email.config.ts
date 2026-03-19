@@ -54,4 +54,4 @@ export const webinarEmailSubjects = (webinarTitle : string) => ({
     therapistConfirmation : `New Registration for Your Webinar: ${webinarTitle}`,
     reminder : `Reminder: Upcoming Webinar "${webinarTitle}" - CatalystCare`,
     followUp : `Thank You for Attending "${webinarTitle}" - CatalystCare`
-})
+}) 

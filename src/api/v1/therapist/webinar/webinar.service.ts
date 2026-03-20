@@ -79,7 +79,7 @@ if (new Date(data.startTime) < minAllowedStart) {
       }
     });
 
-    return data;
+    return {...data, id : webinar.id, bannerUrl : webinar.bannerUrl};
   }
 
   // 2️⃣ FETCH ALL (Therapist specific)

@@ -1,4 +1,6 @@
+import { companyWhatsappDetails } from "../config/whatsapp.config";
 import { serverConfig } from "../config/server.config";
+import { emailFromAddress } from "../config/email.config";
 
 export const clientProgramBookingConfirmationTemplate = (
   clientFirstName: string,
@@ -73,9 +75,30 @@ export const clientProgramBookingConfirmationTemplate = (
                     font-size: 13px; color: #555;">
                   © Catalyst Care |
                   <a href="${serverConfig.baseFrontendUrl}"
+                  target="_blank"
+                                     rel="noopener noreferrer"
                      style="color: #007bff; text-decoration: none;">
                     ${serverConfig.baseFrontendUrl}
                   </a>
+
+<a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+target="_blank"
+rel="noopener noreferrer"
+style="margin-left:10px;">
+<img src="https://cdn-icons-png.flaticon.com/24/733/733585.png" 
+     width="20" height="20" 
+     alt="WhatsApp" style="vertical-align:middle;">
+</a>
+
+<a href="mailto:${emailFromAddress().infoEmail.email}"
+target="_blank"
+rel="noopener noreferrer"
+style="margin-left:10px;">
+<img src="https://cdn-icons-png.flaticon.com/24/732/732200.png" 
+     width="20" height="20" 
+     alt="Email" style="vertical-align:middle;">
+</a>
+
                 </td>
               </tr>
 
@@ -157,9 +180,28 @@ export const therapistProgramBookingConfirmationTemplate = (
                     font-size: 13px; color: #555;">
                   © Catalyst Care |
                   <a href="${serverConfig.baseFrontendUrl}"
+                  target="_blank"
+                                     rel="noopener noreferrer"
                      style="color: #28a745; text-decoration: none;">
                     ${serverConfig.baseFrontendUrl}
                   </a>
+                                     <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+target="_blank"
+rel="noopener noreferrer"
+style="margin-left:10px;">
+<img src="https://cdn-icons-png.flaticon.com/24/733/733585.png" 
+     width="20" height="20" 
+     alt="WhatsApp" style="vertical-align:middle;">
+</a>
+
+<a href="mailto:${emailFromAddress().infoEmail.email}"
+target="_blank"
+rel="noopener noreferrer"
+style="margin-left:10px;">
+<img src="https://cdn-icons-png.flaticon.com/24/732/732200.png" 
+     width="20" height="20" 
+     alt="Email" style="vertical-align:middle;">
+</a>                
                 </td>
               </tr>
 
@@ -280,9 +322,28 @@ export const clientProgramSessionSlotBookedTemplate = (
                     font-size: 13px; color: #555;">
                   © Catalyst Care |
                   <a href="${serverConfig.baseFrontendUrl}"
+                  target="_blank"
+                                     rel="noopener noreferrer"
                      style="color: #007bff; text-decoration: none;">
                     ${serverConfig.baseFrontendUrl}
                   </a>
+                                   <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+target="_blank"
+rel="noopener noreferrer"
+style="margin-left:10px;">
+<img src="https://cdn-icons-png.flaticon.com/24/733/733585.png" 
+     width="20" height="20" 
+     alt="WhatsApp" style="vertical-align:middle;">
+</a>
+
+<a href="mailto:${emailFromAddress().infoEmail.email}"
+target="_blank"
+rel="noopener noreferrer"
+style="margin-left:10px;">
+<img src="https://cdn-icons-png.flaticon.com/24/732/732200.png" 
+     width="20" height="20" 
+     alt="Email" style="vertical-align:middle;">
+</a>
                 </td>
               </tr>
 
@@ -402,6 +463,23 @@ export const therapistProgramSessionSlotBookedTemplate = (
                   <a href="${serverConfig.baseFrontendUrl}"
                      style="color: #28a745; text-decoration: none;">
                     ${serverConfig.baseFrontendUrl}
+                  </a>
+                                    <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style="margin-left:10px;">
+                  <img src="https://cdn-icons-png.flaticon.com/24/733/733585.png" 
+                       width="20" height="20" 
+                       alt="WhatsApp" style="vertical-align:middle;">
+                  </a>
+                  
+                  <a href="mailto:${emailFromAddress().infoEmail.email}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style="margin-left:10px;">
+                  <img src="https://cdn-icons-png.flaticon.com/24/732/732200.png" 
+                       width="20" height="20" 
+                       alt="Email" style="vertical-align:middle;">
                   </a>
                 </td>
               </tr>

@@ -10,6 +10,7 @@ export enum TherapistProfileStatus {
 export enum PurchaseType {
   SINGLE = "SINGLE",
   PROGRAM = "PROGRAM",
+  WEBINAR = "WEBINAR"
 }
 
 export const createCommissionRateSchema = z.object({

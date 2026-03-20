@@ -263,14 +263,25 @@ export const clientService = {
         // return bookings;
         return bookings.map(booking => {
        const permission =  clientBookingPermission(booking.startDateTime, booking.endDateTime, booking.hasClientRescheduledEarlier,booking.rescheduleStatus);
+
+       const today = new Date();
+        const bookingDate = new Date(booking.startDateTime);
+
+  const isSameDay =
+    today.getFullYear() === bookingDate.getFullYear() &&
+    today.getMonth() === bookingDate.getMonth() &&
+    today.getDate() === bookingDate.getDate();
+
+
         return  {
           ...booking,
+           meetingLink: isSameDay ? booking.meetingLink : null,
         hasRated: !!booking.testimonial,
       canRate:
         !booking.testimonial &&
         new Date() > booking.endDateTime,
         // permissions: getClientBookingPermissions(booking.startDateTime),
-        canJoinSession : permission.canJoinSession,
+        canJoinSession : isSameDay,
         canReschedule : permission.canReschedule,
         rescheduleStatus : permission.rescheduleStatus
       };
@@ -458,6 +469,7 @@ export const clientBookingPermission = (startDateTime : Date, endDateTime : Date
   // 15 minutes before start
   const joinWindowStart = new Date(start.getTime() - 15 * 60 * 1000);
 
+
   const response = {
     canJoinSession: false,
     canReschedule: false,
@@ -465,7 +477,11 @@ export const clientBookingPermission = (startDateTime : Date, endDateTime : Date
   };
 
   // Can join only between (start - 15 mins) and end time
-  if (now >= joinWindowStart && now <= end && rescheduleStatus ! == 'REQUESTED') {
+  // if (now >= joinWindowStart && now <= end && rescheduleStatus ! == 'REQUESTED') {
+  //   response.canJoinSession = true;
+  // }
+
+   if (now >= joinWindowStart && now <= end && rescheduleStatus !== 'REQUESTED') {
     response.canJoinSession = true;
   }
 

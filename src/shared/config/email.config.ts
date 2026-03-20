@@ -48,3 +48,10 @@ export const emailFromAddress = () => ({
     otpVerification : {name : "CatalystCare", email : "noreply@catalystcare.in"},
     infoEmail : {name : "CatalystCare", email : "info@catalystcare.in"}
 });
+
+export const webinarEmailSubjects = (webinarTitle : string) => ({
+    clinetRegistrationConfirmation : `Your Registration for ${webinarTitle} is Confirmed - CatalystCare ✔`,
+    therapistConfirmation : `New Registration for : ${webinarTitle}`,
+    reminder : `Reminder: Upcoming Webinar "${webinarTitle}" - CatalystCare`,
+    followUp : `Thank You for Attending "${webinarTitle}" - CatalystCare`
+}) 

@@ -128,6 +128,10 @@ subCategories : {
 
 export const fetchTherapistBySlugService = async (therapistSlug: string) => {
   try {
+
+    const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+
+    const now = new Date();
     // ---------- FETCH THERAPIST BASIC DETAILS ----------
     const therapist = await prisma.therapistProfile.findFirst({
       where: {
@@ -159,6 +163,9 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
         slots: {
           where: {
             status: "AVAILABLE",
+            startDateTime: {
+      gte: now
+    }
           },
           select: {
             id: true,
@@ -280,28 +287,3 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
   }
 };
 
-export const fetchWebinarByIdService = async (webinarId : string) => {
-  const webinar = await prisma.webinar.findUnique({
-    where : {
-      id : webinarId
-    },
-    select : {
-      id : true,
-      title : true,
-      description : true,
-      bannerUrl : true,
-      startTime : true,
-      endTime : true,
-      isPaid : true,
-      price : true,
-      currency : true,
-      status : true
-    }
-  });
-
-  if(!webinar || webinar.status !== "PUBLISHED"){
-    throw new ApiError(404,"Webinar not found");  
-  }
-
-  return webinar;
-}

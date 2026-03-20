@@ -198,14 +198,26 @@ export const therapistService = {
         booking.hasTherapistRescheduledEarlier,
         booking.rescheduleStatus
       );
+
+                const today = new Date();
+        const bookingDate = new Date(booking.startDateTime);
+
+  const isSameDay =
+    today.getFullYear() === bookingDate.getFullYear() &&
+    today.getMonth() === bookingDate.getMonth() &&
+    today.getDate() === bookingDate.getDate();
+
+
+           
+
           return {
             id : booking.id,
             status : booking.status,
           client : booking.client,
           startDateTime : booking.startDateTime,
           endDateTime : booking.endDateTime,
-          meetingLink : permission.canJoinSession ? booking.meetingLink : null,
-           canJoinSession : permission.canJoinSession,
+          meetingLink: isSameDay ? booking.meetingLink : null,
+           canJoinSession : isSameDay,
            canReschedule : permission.canReschedule,
            rescheduleStatus : permission.rescheduleStatus
           };

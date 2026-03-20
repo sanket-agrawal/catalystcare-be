@@ -39,8 +39,8 @@ export async function createGoogleMeet(
   // googleapis will auto-refresh using refresh_token if needed
   const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
-    const startDateTime = payload.startTime;
-  const endDateTime = payload.endTime;
+    const startDateTime = new Date(payload.startTime);
+  const endDateTime = new Date(payload.endTime);
 
   const startIso = startDateTime.toISOString();
   const endIso = endDateTime.toISOString();
@@ -104,7 +104,6 @@ export async function createGoogleMeet(
   return {
     meetLink,
     provider : "GOOGLE_MEET"
-    
   }
 
 }

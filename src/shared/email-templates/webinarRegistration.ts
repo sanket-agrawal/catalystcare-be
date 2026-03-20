@@ -49,7 +49,7 @@ export const clientWebinarConfirmationTemplate = (
                   </h3>
 
                   <p style="color:#555; font-size:15px; line-height:1.6; margin:0;">
-                    You have successfully registered for the webinar:
+                    You have successfully registered for the Group Session:
                   </p>
 
                   <p style="font-size:18px; font-weight:bold; margin:10px 0; color:#333;">
@@ -73,7 +73,7 @@ export const clientWebinarConfirmationTemplate = (
                   </table>
 
                   <p style="color:#555; margin-top:15px; font-size:15px;">
-                    Join the webinar using the link below.
+                    Join the session using the link below.
                   </p>
 
                   <a href="${meetingLink}"
@@ -87,7 +87,7 @@ export const clientWebinarConfirmationTemplate = (
 
 
                   <p style="font-size:13px; color:#777; margin-top:15px;">
-                    Please join 5 minutes before the webinar begins.
+                    Please join 5 minutes before the session begins.
                   </p>
 
                 </td>
@@ -184,7 +184,7 @@ export const therapistWebinarRegistrationTemplate = (
                   </h3>
 
                   <p style="color:#555; font-size:15px; line-height:1.6;">
-                    Someone has registered for your webinar:
+                    Someone has registered for your Group Session:
                   </p>
 
                   <p style="font-size:18px; font-weight:bold; margin:10px 0; color:#333;">

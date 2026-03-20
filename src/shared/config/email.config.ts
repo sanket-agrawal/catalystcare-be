@@ -51,7 +51,7 @@ export const emailFromAddress = () => ({
 
 export const webinarEmailSubjects = (webinarTitle : string) => ({
     clinetRegistrationConfirmation : `Your Registration for ${webinarTitle} is Confirmed - CatalystCare ✔`,
-    therapistConfirmation : `New Registration for Your Webinar: ${webinarTitle}`,
+    therapistConfirmation : `New Registration for : ${webinarTitle}`,
     reminder : `Reminder: Upcoming Webinar "${webinarTitle}" - CatalystCare`,
     followUp : `Thank You for Attending "${webinarTitle}" - CatalystCare`
 }) 

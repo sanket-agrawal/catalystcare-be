@@ -9,6 +9,7 @@ import assessmentRoutes from "./assessments/assessment.route"
 import testimonialRoutes from "./testimonial/testimonail.routes";
 import sessionRoutes from './sessions/session.route';
 import webinarRoutes from './webinars/webinar.routes';
+import organizationRoutes from "./organization/index";
 
 const router = express.Router();
 
@@ -35,5 +36,7 @@ router.get('/program-billings-dashboard',authenticate,authorizeRoles('ADMIN'),ad
 router.use('/sessions',authenticate,authorizeRoles('ADMIN'),sessionRoutes);
 
 router.use('/webinars',authenticate,authorizeRoles('ADMIN'),webinarRoutes);
+
+router.use('/organizations',authenticate,authorizeRoles('ADMIN'),organizationRoutes);
 
 export default router;

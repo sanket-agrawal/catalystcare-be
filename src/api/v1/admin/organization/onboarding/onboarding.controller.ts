@@ -2,7 +2,7 @@ import ApiError from "../../../../../shared/utils/ApiError";
 import ApiResponse from "../../../../../shared/utils/ApiResponse";
 import { Request, Response } from "express";
 import OnboardingService from "./onboarding.service";
-import { Prisma } from "@prisma/client";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 const OnboardingController = {
     fetchOnboardingRequests : async (req : Request, res : Response) => {
@@ -30,7 +30,7 @@ const OnboardingController = {
 
         }catch(error){
         console.log("Error creating organization:", error);
-         if (error instanceof Prisma.PrismaClientKnownRequestError) {
+         if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === "P2002") {
             const field = (error.meta?.target as string[])?.join(", ");
 
@@ -54,7 +54,7 @@ const OnboardingController = {
 
         }catch(error){
         console.log("Error updating organization:", error);
-                 if (error instanceof Prisma.PrismaClientKnownRequestError) {
+                 if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === "P2002") {
             const field = (error.meta?.target as string[])?.join(", ");
 

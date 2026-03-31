@@ -42,6 +42,8 @@ model User {
   orgInvitationsSent  OrgInvitation[]     @relation("UserOrgInvitations")
   
   customPlanRequests  CustomPlanRequest[] @relation("AdminCustomPlanRequests")
+
+  orgsPaymentMarked   OrgPayment[]        @relation("AdminMarkedOrgPayments")
   
 
 
@@ -1126,7 +1128,18 @@ model OrgPayment {
   currency            String          @default("INR")
   status              PaymentStatus   @default(PENDING)
   method              String?
+
+
+  offlineReference    String?        @map("offline_reference")  // cheque no / UTR
+  offlineNote         String?        @map("offline_note")
+  markedPaidByAdminId String?        @map("marked_paid_by_admin_id")
+  markedPaidBy        User?          @relation("AdminMarkedOrgPayments", fields: [markedPaidByAdminId], references: [id])
+  markedPaidAt        DateTime?      @map("marked_paid_at")
+
+
   rawPayload          Json?           @map("raw_payload")
+
+    // Invoice
   invoiceNumber       String?         @unique @map("invoice_number")
   invoiceUrl          String?         @map("invoice_url")
   capturedAt          DateTime?       @map("captured_at")

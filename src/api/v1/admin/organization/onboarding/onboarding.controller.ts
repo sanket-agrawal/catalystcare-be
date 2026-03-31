@@ -69,35 +69,6 @@ const OnboardingController = {
                     return res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
             }
     },
-        fetchOrganization : async (req : Request, res : Response) => {
-        try{
-
-            const {status} = req.query;
-            
-
-
-        }catch(error){
-        console.log("Error fetching organizations:", error);
-                    if(error instanceof ApiError){
-                        return res.status(error.statusCode).json(new ApiResponse(false, error.statusCode,error.message));
-                    }
-                    return res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
-            }
-    },
-    fetchOrganizationById : async (req : Request, res : Response) => {
-        try{
-            
-
-
-        }catch(error){
-        console.log("Error fetching organization by id:", error);
-                    if(error instanceof ApiError){
-                        return res.status(error.statusCode).json(new ApiResponse(false, error.statusCode,error.message));
-                    }
-
-                    return res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
-            }
-    },
 };
 
 export default OnboardingController;

@@ -36,7 +36,7 @@ export const orgQueryReceivedTemplate = (firstName: string) => {
                     Let’s connect briefly to understand your needs and explore how we can support your organization.
                   </p>
 
-                  <a href="${calendlyConfig.clientId}" 
+                  <a href="${calendlyConfig.url}" 
                      style="display:inline-block; margin-top:20px; padding:10px 20px; background-color:#007bff; color:#fff; border-radius:6px; text-decoration:none; font-size:14px; cursor:pointer;">
                      Schedule a Call
                   </a>
@@ -47,7 +47,10 @@ export const orgQueryReceivedTemplate = (firstName: string) => {
               <tr>
                 <td align="center" style="background-color: #f3f4f6; padding: 12px; font-size: 13px; color: #555;">
                   © Catalyst Care | 
-                  <a href="${serverConfig.baseFrontendUrl}" style="color: #007bff; text-decoration: none;">
+                  <a href="${serverConfig.baseFrontendUrl}"
+                   target="_blank"
+                  rel="noopener noreferrer"
+                  style="color: #007bff; text-decoration: none;">
                     ${serverConfig.baseFrontendUrl}
                   </a>
                 </td>

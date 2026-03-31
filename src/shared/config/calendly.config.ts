@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 export const calendlyConfig =  {
-    clientId : ""
+    url : process.env.CALENDLY_URL
 }

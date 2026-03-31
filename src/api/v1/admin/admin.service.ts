@@ -360,7 +360,8 @@ export const adminService = {
                                         }
                                     }
                                    }
-                                }
+                                },
+                                meetingLink : true
                             }
                         }
 

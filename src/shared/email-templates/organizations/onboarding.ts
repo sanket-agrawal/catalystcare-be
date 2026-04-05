@@ -1,5 +1,7 @@
+import { emailFromAddress } from "../../config/email.config";
 import { calendlyConfig } from "../../config/calendly.config";
 import { serverConfig } from "../../config/server.config";
+import { companyWhatsappDetails } from "../../config/whatsapp.config";
 
 export const orgQueryReceivedTemplate = (firstName: string) => {
   return `
@@ -45,16 +47,34 @@ export const orgQueryReceivedTemplate = (firstName: string) => {
 
               <!-- Footer -->
               <tr>
-                <td align="center" style="background-color: #f3f4f6; padding: 12px; font-size: 13px; color: #555;">
-                  © Catalyst Care | 
-                  <a href="${serverConfig.baseFrontendUrl}"
-                   target="_blank"
-                  rel="noopener noreferrer"
-                  style="color: #007bff; text-decoration: none;">
-                    ${serverConfig.baseFrontendUrl}
-                  </a>
-                </td>
-              </tr>
+                              <td align="center" style="background-color: #f3f4f6; padding: 12px; 
+                                  font-size: 13px; color: #555;">
+                                © Catalyst Care |
+                                <a href="${serverConfig.baseFrontendUrl}"
+                                target="_blank"
+                                 rel="noopener noreferrer"
+                                style="color: #28a745; text-decoration: none;">
+                                  ${serverConfig.baseFrontendUrl}
+                                </a>
+                                                  <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+              target="_blank"
+              rel="noopener noreferrer"
+              style="margin-left:10px;">
+              <img src="https://cdn-icons-png.flaticon.com/24/733/733585.png" 
+                   width="20" height="20" 
+                   alt="WhatsApp" style="vertical-align:middle;">
+              </a>
+              
+              <a href="mailto:${emailFromAddress().infoEmail.email}"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="margin-left:10px;">
+              <img src="https://cdn-icons-png.flaticon.com/24/732/732200.png" 
+                   width="20" height="20" 
+                   alt="Email" style="vertical-align:middle;">
+              </a>
+                              </td>
+                            </tr>
 
             </table>
           </td>

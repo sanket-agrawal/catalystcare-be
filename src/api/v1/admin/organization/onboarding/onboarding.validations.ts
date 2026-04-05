@@ -14,6 +14,8 @@ export const createOrganizationSchema = z.object({
     website: z.string().optional(),
     gstNumber: z.string().optional(),
     address: z.any().optional(),
+    notes : z.string().optional(),
+    orgSize : z.number().nonnegative().optional()
   }),
 });
 
@@ -31,5 +33,7 @@ export const updateOrganizationSchema = z.object({
     gstNumber: z.string().optional(),
     address: z.any().optional(),
     status: z.nativeEnum(OrgStatus).optional(),
+    notes : z.string().optional(),
+    orgSize : z.number().nonnegative().optional()
   }),
 });

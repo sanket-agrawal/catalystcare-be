@@ -12,9 +12,14 @@ import { emailFromAddress, organizationOnboardingSubjects } from "../../../../..
 
 const OnboardingService = {
  fetchOnboardingRequests : async (status? : string) => {
-    const whereClause = status ? {status} : {}
-
-    return await prisma.organization.findMany(whereClause)
+    return await prisma.organization.findMany({
+  include: {
+    customPlanReq : true
+  },
+  orderBy: {
+    updatedAt : "desc"
+  },
+});
  },
  createOrganization : async (data : CreateOrganizationDTO) => {
     

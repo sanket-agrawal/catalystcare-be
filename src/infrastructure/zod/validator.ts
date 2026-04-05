@@ -12,6 +12,7 @@ export const validate =
       });
       next();
     } catch (err: any) {
+      console.log(err)
       return res.status(400).json({
         message: "Validation failed",
         errors: err.issues.map((issue : any) => ({

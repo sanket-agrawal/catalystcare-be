@@ -361,7 +361,9 @@ export const adminService = {
                                     }
                                    }
                                 },
-                                meetingLink : true
+                                meetingLink : true,
+                                startDateTime : true,
+                                endDateTime : true
                             }
                         }
 

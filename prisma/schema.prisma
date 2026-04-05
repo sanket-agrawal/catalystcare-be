@@ -982,6 +982,10 @@ enum OrgType {
 
 enum OrgStatus {
   PENDING_ONBOARDING
+  DISCUSSION_PENDING
+  IN_DISCUSSION
+  PLAN_CREATED
+  PAYMENT_LINK_SENT
   ACTIVE
   SUSPENDED
   EXPIRED
@@ -1025,8 +1029,8 @@ enum OrgInvitationStatus {
 }
 
 enum CustomPlanRequestStatus {
-  PENDING
   IN_DISCUSSION
+  PAYMENT_LINK_SENT
   PLAN_CREATED
   REJECTED
 }
@@ -1038,6 +1042,7 @@ model Organization {
   name          String
   slug          String      @unique
   type          OrgType     @default(CORPORATE)
+  orgSize          Int?     @map("org_size")
   contactName String @map("contact_name")
   contactEmail String @map("contact_email")
   contactPhone  String @map("contact_phone")
@@ -1050,6 +1055,7 @@ model Organization {
   status        OrgStatus   @default(PENDING_ONBOARDING)
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
+  notes         String?     @db.Text
 
   subscriptions OrgSubscription[]
   members       OrgMember[]
@@ -1192,13 +1198,19 @@ model CustomPlanRequest {
   id               String                  @id @default(uuid())
   orgId            String                  @unique @map("org_id")
   org              Organization            @relation(fields: [orgId], references: [id])
-  contactName      String                  @map("contact_name")
-  contactEmail     String                  @map("contact_email")
-  contactPhone     String?                 @map("contact_phone")
-  orgSize          Int?                    @map("org_size")
-  sessionsNeeded   Int?                    @map("sessions_needed")
   notes            String?
-  status           CustomPlanRequestStatus @default(PENDING)
+  status           CustomPlanRequestStatus @default(IN_DISCUSSION)
+  paymentLink       String?      @map("payment_link")
+  sessionsCount     Int          @map("sessions_count")
+  maxMembers        Int          @map("max_members")
+  sessionDuration   Int          @map("session_duration")
+  price             Int          
+   pricePaise        Int                   @map("price_paise")
+  currency          String                 @default("INR")
+  billingCycle      BillingCycle           @map("billing_cycle")@default(ANNUAL)
+  features          Json?
+  description       String?
+  highlightedText   String?                 @map("highlighted_text")
   assignedAdminId  String?                 @map("assigned_admin_id")
   assignedAdmin    User?                   @relation("AdminCustomPlanRequests", fields: [assignedAdminId], references: [id])
   createdAt        DateTime                @default(now()) @map("created_at")

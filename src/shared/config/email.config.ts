@@ -64,7 +64,7 @@ export const organizationOnboardingSubjects = (orgName: string) => ({
 
   onboardingApproved: `Your Organization ${orgName} is Approved - Next Steps Inside`,
 
-  planCreated: `Your Custom Plan for ${orgName} is Ready - CatalystCare`,
+  planCreated: `Complete Your Payment to Activate Your Custom Plan for ${orgName} - CatalystCare`,
 
   paymentPending: `Action Required: Complete Payment for ${orgName} - CatalystCare`,
 

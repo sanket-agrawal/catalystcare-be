@@ -10,22 +10,23 @@ export enum BillingCycle{
 }
 
 
-export interface CreateOrgPlanDTO {
-  name: string;
-  slug: string;
-  type: OrgType;
+export interface CreateCustomPlanDTO {
+  orgId: string;
+  notes?: string;
   sessionsCount: number;
   maxMembers: number;
   sessionDuration: number;
-  pricePaise: number;
+  price: number;
   currency?: string;
   billingCycle: BillingCycle;
   features?: any;
   description?: string;
   highlightedText?: string;
-  isVisible?: boolean;
-  isCustom?: boolean;
-  isActive?: boolean;
+  status? : string;
 }
 
-export interface UpdateOrgPlanDTO extends Partial<CreateOrgPlanDTO> {}
+export interface createPaymentLinkDTO {
+paymentLink : string
+}
+
+export interface UpdateCustomPlanDTO extends Partial<CreateCustomPlanDTO> {}

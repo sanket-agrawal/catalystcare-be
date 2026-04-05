@@ -11,7 +11,7 @@ export enum OrgStatus {
       ACTIVE = "ACTIVE",
       EXPIRED = "EXPIRED",
       CANCELLED = "CANCELLED",
-      SUSPENDED = "SUSPENDED"
+      SUSPENDED = "SUSPENDED",
 }
 
 export interface CreateOrganizationDTO {
@@ -26,6 +26,8 @@ export interface CreateOrganizationDTO {
   website?: string;
   gstNumber?: string;
   address?: string;
+  notes? : string;
+  orgSize? : number;
 }
 
 export interface UpdateOrganizationDTO {
@@ -41,4 +43,6 @@ export interface UpdateOrganizationDTO {
   gstNumber?: string;
   address?: any;
   status?: OrgStatus;
+  notes? : string;
+  orgSize? : number;
 }

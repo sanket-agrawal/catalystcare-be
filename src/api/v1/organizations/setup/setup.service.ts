@@ -5,7 +5,7 @@ import {randomUUID} from "crypto";
 import { addDays } from "date-fns";
 import { emailQueue } from "../../../../infrastructure/queues/index";
 import { emailFromAddress, organizationOnboardingSubjects } from "../../../../shared/config/email.config";
-import { orgAdminInviteTemplate } from "../../../../shared/email-templates/organizations/custom-plan";
+import { orgAdminInviteTemplate } from "../../../../shared/email-templates/organizations/setup";
 
 
 const SetupService = {

@@ -75,4 +75,8 @@ export const organizationOnboardingSubjects = (orgName: string) => ({
   onboardingRejected: `Update on Your Onboarding Request for ${orgName}`,
 
   followUp: `Need Help Completing Onboarding for ${orgName}?`,
+  
+  activated : `Welcome Aboard, ${orgName}! Your Plan is Now Active 🎉 CatalystCare!`,
+
+  adminInvite: `You've Been Invited to Manage ${orgName} on Catalyst Care`,
 }); 

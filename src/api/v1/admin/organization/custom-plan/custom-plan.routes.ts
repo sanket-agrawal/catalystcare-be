@@ -2,6 +2,7 @@ import express from "express"
 import {
   createCustomPlanSchema,
   createPaymentLinkSchema,
+  recordPaymentSchema,
   updateCustomPlanSchema,
 } from "./custom-plan.validations";
 import { validate } from "../../../../../infrastructure/zod/validator";
@@ -25,6 +26,6 @@ router.patch(
 
 router.post("/:orgId/send-payment-link", validate(createPaymentLinkSchema),CustomPlanController.sendPaymentLink);
 
-router.post("/:orgId/record-payment", CustomPlanController.recordPayment);
+router.post("/:orgId/record-payment", validate(recordPaymentSchema),CustomPlanController.recordPayment);
 
 export default router;

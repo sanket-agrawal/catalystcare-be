@@ -1057,6 +1057,10 @@ model Organization {
   updatedAt     DateTime    @updatedAt @map("updated_at")
   notes         String?     @db.Text
 
+  setupToken          String?   @unique @map("setup_token")
+  setupTokenExpiresAt DateTime? @map("setup_token_expires_at")
+  setupCompletedAt    DateTime? @map("setup_completed_at")
+
   subscriptions OrgSubscription[]
   members       OrgMember[]
   invitations   OrgInvitation[]
@@ -1119,6 +1123,12 @@ model OrgSubscription {
 
   payment        OrgPayment?
   bookings       Booking[]
+
+  customPlanRequestId  String?  @unique @map("custom_plan_request_id")
+  customPlanRequest    CustomPlanRequest? @relation(fields: [customPlanRequestId], references: [id])
+
+  sessionAllocPolicy   String   @default("POOL") @map("session_alloc_policy") // values: "POOL" | "PER_MEMBER"
+  defaultSessionsPerMember Int? @map("default_sessions_per_member")
 
   @@index([orgId, status])
   @@map("org_subscriptions")
@@ -1215,6 +1225,8 @@ model CustomPlanRequest {
   assignedAdmin    User?                   @relation("AdminCustomPlanRequests", fields: [assignedAdminId], references: [id])
   createdAt        DateTime                @default(now()) @map("created_at")
   updatedAt        DateTime                @updatedAt @map("updated_at")
+
+  subscription  OrgSubscription?
 
   @@map("custom_plan_requests")
 }

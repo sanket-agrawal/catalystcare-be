@@ -29,4 +29,12 @@ export interface createPaymentLinkDTO {
 paymentLink : string
 }
 
+
 export interface UpdateCustomPlanDTO extends Partial<CreateCustomPlanDTO> {}
+
+
+export type ConfirmOrgPaymentDTO = {
+  offlineReference: string;
+  offlineNote?: string;
+  invoiceNumber : string;
+};

@@ -10,6 +10,8 @@ import clientRoutes from "./client/client.routes";
 import healthRoutes from './health/health.routes';
 import paymentRoutes from './payments/payments.routes';
 import emailRoutes from "./email/email.routes";
+import organizationRoutes from "./organizations/index";
+
 import { authorizeRoles } from "../../shared/middlewares/rbac";
 import { authenticate } from "../../shared/middlewares/authenticatation";
 // import chatRoutes from "./chat/chat.routes";
@@ -21,6 +23,7 @@ router.use('/auth',authRoutes);
 router.use('/website',websiteRoutes);
 router.use('/therapist',therapistRoutes);
 router.use('/master-data', authenticate,authorizeRoles('ADMIN'),masterRoutes);
+router.use('/organizations', organizationRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/admin',adminRoutes);
 router.use('/client',clientRoutes);

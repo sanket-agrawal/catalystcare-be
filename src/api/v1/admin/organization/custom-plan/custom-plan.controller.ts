@@ -81,7 +81,7 @@ const CustomPlanController = {
     try {
       const { orgId } = req.params;
 
-      const result = await CustomPlanService.recordPayment(orgId);
+      const result = await CustomPlanService.recordPayment(orgId, req.body, req.user?.id);
 
       return res
         .status(200)

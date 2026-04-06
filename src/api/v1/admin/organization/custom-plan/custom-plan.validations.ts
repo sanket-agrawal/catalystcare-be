@@ -33,7 +33,17 @@ export const updateCustomPlanSchema = z.object({
 
 export const createPaymentLinkSchema = z.object({
   body : z.object({
-  paymentLink : z.string().url()
+  paymentLink : z.string().url().nonempty()
   })
 });
+
+
+export const recordPaymentSchema = z.object({
+  body : z.object({
+  invoiceNumber : z.string().nonempty(),
+  offlineReference : z.string().nonempty(),
+  offlineNote : z.string().optional()
+  })
+});
+
 

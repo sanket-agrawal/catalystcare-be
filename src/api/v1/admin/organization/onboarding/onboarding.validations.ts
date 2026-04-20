@@ -34,6 +34,8 @@ export const updateOrganizationSchema = z.object({
     address: z.any().optional(),
     status: z.nativeEnum(OrgStatus).optional(),
     notes : z.string().optional(),
-    orgSize : z.number().nonnegative().optional()
+    orgSize : z.number().nonnegative().optional(),
+    orgAccountTeamContactName : z.string().optional(),
+    orgAccountTeamContactEmail : z.string().email().optional()
   }),
 });

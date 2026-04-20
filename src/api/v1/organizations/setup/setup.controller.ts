@@ -1,18 +1,183 @@
 import { Request, Response } from "express";
+import ApiResponse from "../../../../shared/utils/ApiResponse";
+import ApiError from "../../../../shared/utils/ApiError";
+import SetupService from "./setup.service";
 
 const SetupController = {
-validateSetupToken : async (req : Request, res : Response) => {
 
-},
-submitAdminEmail : async (req : Request, res : Response) => {
+  // ── 1. Validate setup token ──────────────────────────────────
+  // Called by frontend as soon as the contact lands on /org-setup?token=
+  // Tells frontend: is this token valid? what org is it for?
+  validateSetupToken: async (req: Request, res: Response) => {
+    try {
+      const { token } = req.query as { token: string };
 
-},
-validateAdminInviteToken : async (req : Request, res : Response) => {
+      if (!token) {
+        return res
+          .status(400)
+          .json(new ApiResponse(false, 400, "Setup token is required"));
+      }
 
-},
-acceptAdminInvite : async (req : Request, res : Response) => {
+      const result = await SetupService.validateSetupToken(token);
 
-},
-}
+      return res
+        .status(200)
+        .json(new ApiResponse(true, 200, "Token is valid", result));
+    } catch (error) {
+      console.error("Error validating setup token:", error);
+      if (error instanceof ApiError) {
+        return res
+          .status(error.statusCode)
+          .json(new ApiResponse(false, error.statusCode, error.message));
+      }
+      return res
+        .status(500)
+        .json(new ApiResponse(false, 500, "Internal Server Error"));
+    }
+  },
+
+  // ── 2. Submit org admin email ────────────────────────────────
+  // Contact fills the form on /org-setup — enters the email of whoever
+  // should be the ORG_ADMIN. Platform sends them an invite.
+  // Requires req.user to be a platform admin (protect with admin middleware).
+  submitOrgAdminEmail: async (req: Request, res: Response) => {
+    try {
+      const { token } = req.query as { token: string };
+
+      if (!token) {
+        return res
+          .status(400)
+          .json(new ApiResponse(false, 400, "Setup token is required"));
+      }
+
+      // req.user is the platform admin who is acting on behalf
+      // (if this endpoint is hit from the org-setup page by the contact
+      //  without auth, swap req.user?.id for a dedicated system/admin id)
+
+      const result = await SetupService.submitOrgAdminEmail(
+        token,
+        req.body
+      );
+
+      return res
+        .status(200)
+        .json(new ApiResponse(true, 200, result.message));
+    } catch (error) {
+      console.error("Error submitting org admin email:", error);
+      if (error instanceof ApiError) {
+        return res
+          .status(error.statusCode)
+          .json(new ApiResponse(false, error.statusCode, error.message));
+      }
+      return res
+        .status(500)
+        .json(new ApiResponse(false, 500, "Internal Server Error"));
+    }
+  },
+
+  // ── 3. Validate invite token ─────────────────────────────────
+  // Called when the invited admin opens /org-invite?token=
+  // Returns: email, orgName, role, userExists
+  // Frontend uses userExists to decide: show signup form or login redirect
+  validateInviteToken: async (req: Request, res: Response) => {
+    try {
+      const { token } = req.query as { token: string };
+
+      if (!token) {
+        return res
+          .status(400)
+          .json(new ApiResponse(false, 400, "Invite token is required"));
+      }
+
+      const result = await SetupService.validateInviteToken(token);
+
+      return res
+        .status(200)
+        .json(new ApiResponse(true, 200, "Invite is valid", result));
+    } catch (error) {
+      console.error("Error validating invite token:", error);
+      if (error instanceof ApiError) {
+        return res
+          .status(error.statusCode)
+          .json(new ApiResponse(false, error.statusCode, error.message));
+      }
+      return res
+        .status(500)
+        .json(new ApiResponse(false, 500, "Internal Server Error"));
+    }
+  },
+
+  // ── 4. Accept org invite ─────────────────────────────────────
+  // Called after the invited user has authenticated (signed up or logged in).
+  // Frontend passes the invite token + the now-authenticated userId.
+  // Protect this route with your normal auth middleware.
+  acceptOrgInvite: async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res
+          .status(401)
+          .json(new ApiResponse(false, 401, "Unauthorized"));
+      }
+
+      const { token } = req.body as { token: string };
+      if (!token) {
+        return res
+          .status(400)
+          .json(new ApiResponse(false, 400, "Invite token is required"));
+      }
+
+      // Guard: the authenticated user's email must match the invite email
+      // Fetch the invite email and compare before delegating to service
+      const { PrismaClient } = await import("@prisma/client");
+      // Better: inject prisma directly — shown inline for clarity
+      const { prisma } = await import("../../../../infrastructure/prisma/client");
+
+      const invite = await prisma.orgInvitation.findUnique({
+        where: { token },
+        select: { email: true },
+      });
+
+      if (!invite) {
+        return res
+          .status(404)
+          .json(new ApiResponse(false, 404, "Invalid invite link"));
+      }
+
+      const authUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+
+      if (!authUser || authUser.email !== invite.email) {
+        return res
+          .status(403)
+          .json(
+            new ApiResponse(
+              false,
+              403,
+              "This invite was sent to a different email address"
+            )
+          );
+      }
+
+      const result = await SetupService.acceptOrgInvite({ token, userId });
+
+      return res
+        .status(200)
+        .json(new ApiResponse(true, 200, "Organization setup complete", result));
+    } catch (error) {
+      console.error("Error accepting org invite:", error);
+      if (error instanceof ApiError) {
+        return res
+          .status(error.statusCode)
+          .json(new ApiResponse(false, error.statusCode, error.message));
+      }
+      return res
+        .status(500)
+        .json(new ApiResponse(false, 500, "Internal Server Error"));
+    }
+  },
+};
 
 export default SetupController;

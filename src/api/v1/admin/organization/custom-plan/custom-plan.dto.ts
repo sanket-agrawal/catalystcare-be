@@ -26,7 +26,9 @@ export interface CreateCustomPlanDTO {
 }
 
 export interface createPaymentLinkDTO {
-paymentLink : string
+paymentLink : string;
+  orgAccountTeamContactName?: string;
+  orgAccountTeamContactEmail?: string;
 }
 
 

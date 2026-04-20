@@ -28,4 +28,6 @@ router.post("/:orgId/send-payment-link", validate(createPaymentLinkSchema),Custo
 
 router.post("/:orgId/record-payment", validate(recordPaymentSchema),CustomPlanController.recordPayment);
 
+
+
 export default router;

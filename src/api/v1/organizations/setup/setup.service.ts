@@ -9,7 +9,27 @@ import { orgAdminInviteTemplate } from "../../../../shared/email-templates/organ
 
 
 const SetupService = {
-submitOrgAdminEmail: async (token: string, data: OrgSetupDTO, adminId: string) => {
+   validateSetupToken: async (token: string) => {
+  const org = await prisma.organization.findUnique({
+    where: { setupToken: token },
+    select: {
+      id: true,
+      name: true,
+      setupToken: true,
+      setupTokenExpiresAt: true,
+      setupCompletedAt: true,
+    },
+  });
+
+  if (!org) throw new ApiError(404, "Invalid setup link");
+  if (org.setupCompletedAt) throw new ApiError(400, "Organization setup is already complete");
+  if (!org.setupTokenExpiresAt || org.setupTokenExpiresAt < new Date()) {
+    throw new ApiError(400, "This setup link has expired. Please contact support.");
+  }
+
+  return { orgId: org.id, orgName: org.name };
+},
+submitOrgAdminEmail: async (token: string, data: OrgSetupDTO) => {
   const org = await prisma.organization.findUnique({
     where: { setupToken: token },
   });
@@ -40,7 +60,7 @@ submitOrgAdminEmail: async (token: string, data: OrgSetupDTO, adminId: string) =
       token: inviteToken,
       expiresAt,
       status: "PENDING",
-      invitedByUserId: adminId, // the platform admin who confirmed payment
+      invitedByUserId: null,
     },
   });
 

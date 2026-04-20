@@ -5,12 +5,13 @@ import { acceptAdminInviteSchema, OrgSetupSchema } from "./setup.validations";
 
 const router = express.Router();
 
-router.route("/:token")
-  .get(SetupController.validateSetupToken)
-  .post(validate(OrgSetupSchema), SetupController.submitAdminEmail);
+router.route("/validate-token").get(SetupController.validateSetupToken)
 
-router.get("/invite/:token", SetupController.validateAdminInviteToken)
+router.route("/submit-admin-email")
+  .post(validate(OrgSetupSchema), SetupController.submitOrgAdminEmail);
 
-router.post("/invite/accept", validate(acceptAdminInviteSchema), SetupController.acceptAdminInvite)
+router.get("/invite/validate", SetupController.validateInviteToken)
+
+router.post("/invite/accept", validate(acceptAdminInviteSchema), SetupController.acceptOrgInvite)
 
 export default router;

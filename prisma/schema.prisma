@@ -1061,6 +1061,9 @@ model Organization {
   setupTokenExpiresAt DateTime? @map("setup_token_expires_at")
   setupCompletedAt    DateTime? @map("setup_completed_at")
 
+  orgAccountTeamContactName  String?  @map("org_account_team_contact_name")
+  orgAccountTeamContactEmail String?  @map("org_account_team_contact_email")
+
   subscriptions OrgSubscription[]
   members       OrgMember[]
   invitations   OrgInvitation[]

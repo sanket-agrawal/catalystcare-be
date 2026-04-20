@@ -9,16 +9,18 @@ type senderObj = {
   email : string
 }
 
-export const sendEmail = async (to: string, subject: string, body: string,sender : senderObj) => {
+export const sendEmail = async (to: string, subject: string, body: string,sender : senderObj, cc? : string) => {
   try{
     const result = await resend.emails.send({
     from: `${sender.name} <${sender.email}>`,
     to,
     subject,
     html: body,
+     ...(cc && { cc }),
   });
   return result;
   }catch(error){
     throw error;
   }
 };
+

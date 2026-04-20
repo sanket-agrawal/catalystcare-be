@@ -103,21 +103,55 @@ const CustomPlanService = {
     throw new ApiError(400, "Payment link is required");
   }
 
-  // ✅ Update DB
-  const updatedPlan = await prisma.customPlanRequest.update({
+  const accountTeamEmail =
+    data.orgAccountTeamContactEmail ?? plan.org.orgAccountTeamContactEmail;
+
+  const accountTeamName =
+    data.orgAccountTeamContactName ?? plan.org.orgAccountTeamContactName;
+
+  const hasAccountTeam = !!accountTeamEmail && !!accountTeamName;
+
+  const emailTo = hasAccountTeam ? accountTeamEmail! : plan.org.contactEmail;
+  const emailCc = hasAccountTeam ? plan.org.contactEmail : undefined;
+  const recipientFirstName = hasAccountTeam
+    ? accountTeamName!
+    : plan.org.contactName;
+
+      await prisma.$transaction([
+
+      prisma.customPlanRequest.update({
     where: { orgId },
     data: {
       status: "PAYMENT_LINK_SENT",
       paymentLink: data.paymentLink,
     },
-  });
+  }),
+
+      prisma.organization.update({
+      where: { id: orgId },
+      data: {
+        status: "PAYMENT_LINK_SENT",
+        // update account team details if freshly provided
+        ...(data.orgAccountTeamContactName && {
+          orgAccountTeamContactName: data.orgAccountTeamContactName,
+        }),
+        ...(data.orgAccountTeamContactEmail && {
+          orgAccountTeamContactEmail: data.orgAccountTeamContactEmail,
+        }),
+      },
+    }),
+      ])
+
+  // ✅ Update DB
+
 
   // ✅ Send Email with full plan details
   await emailQueue.add("sendPaymentLinkEmail", {
-    to: plan.org.contactEmail,
+    to: emailTo,
+    cc: emailCc,
     subject: organizationOnboardingSubjects(plan.org.name).planCreated,
     html: customPlanPaymentLinkTemplate({
-      firstName: plan.org.contactName,
+      firstName: recipientFirstName,
       paymentLink: data.paymentLink,
 
       sessionsCount: plan.sessionsCount,
@@ -130,12 +164,10 @@ const CustomPlanService = {
     sender: emailFromAddress().onboarding,
   });
 
-  await prisma.organization.update({
-    where : { id : orgId },
-    data : {
-      status : "PAYMENT_LINK_SENT"
-    }
-  })
+    const updatedPlan = await prisma.customPlanRequest.findUnique({
+      where: { orgId },
+    });
+
 
   return updatedPlan;
 },
@@ -236,27 +268,6 @@ const CustomPlanService = {
   });
 
   return result;
-},
-
- validateSetupToken: async (token: string) => {
-  const org = await prisma.organization.findUnique({
-    where: { setupToken: token },
-    select: {
-      id: true,
-      name: true,
-      setupToken: true,
-      setupTokenExpiresAt: true,
-      setupCompletedAt: true,
-    },
-  });
-
-  if (!org) throw new ApiError(404, "Invalid setup link");
-  if (org.setupCompletedAt) throw new ApiError(400, "Organization setup is already complete");
-  if (!org.setupTokenExpiresAt || org.setupTokenExpiresAt < new Date()) {
-    throw new ApiError(400, "This setup link has expired. Please contact support.");
-  }
-
-  return { orgId: org.id, orgName: org.name };
 },
 };
 

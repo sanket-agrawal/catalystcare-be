@@ -1,5 +1,5 @@
 import { emailFromAddress } from "../../config/email.config";
-import { serverConfig } from "../../config/server.config";
+import { serverTempConfig } from "../../config/server.config";
 import { companyWhatsappDetails } from "../../config/whatsapp.config";
 
 export const orgAdminInviteTemplate = ({
@@ -9,7 +9,7 @@ export const orgAdminInviteTemplate = ({
   orgName: string;
   inviteToken: string;
 }) => {
-  const inviteUrl = `${serverConfig.baseFrontendUrl}/accept-invite?token=${inviteToken}`;
+  const inviteUrl = `${serverTempConfig.baseFrontendUrl}/accept-invite?token=${inviteToken}`;
 
   return `
   <!DOCTYPE html>
@@ -28,7 +28,7 @@ export const orgAdminInviteTemplate = ({
               <!-- Header -->
               <tr>
                 <td align="center" style="padding: 20px;">
-                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
+                  <img src="${serverTempConfig.baseFrontendUrl}/assets/favicon.ico" alt="Catalyst Care" width="120" style="display:block;">
                 </td>
               </tr>
 
@@ -61,11 +61,11 @@ export const orgAdminInviteTemplate = ({
               <tr>
                 <td align="center" style="background-color: #f3f4f6; padding: 12px; font-size: 13px; color: #555;">
                   © Catalyst Care |
-                  <a href="${serverConfig.baseFrontendUrl}"
+                  <a href="${serverTempConfig.baseFrontendUrl}"
                      target="_blank"
                      rel="noopener noreferrer"
                      style="color: #28a745; text-decoration: none;">
-                    ${serverConfig.baseFrontendUrl}
+                    ${serverTempConfig.baseFrontendUrl}
                   </a>
 
                   <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 

@@ -6,6 +6,7 @@ import { addDays } from "date-fns";
 import { emailQueue } from "../../../../infrastructure/queues/index";
 import { emailFromAddress, organizationOnboardingSubjects } from "../../../../shared/config/email.config";
 import { orgAdminInviteTemplate } from "../../../../shared/email-templates/organizations/setup";
+import bcrypt from "bcryptjs";
 
 
 const SetupService = {
@@ -34,6 +35,7 @@ submitOrgAdminEmail: async (token: string, data: OrgSetupDTO) => {
     where: { setupToken: token },
   });
 
+
   if (!org) throw new ApiError(404, "Invalid setup link");
   if (org.setupCompletedAt) throw new ApiError(400, "Organization setup is already complete");
   if (!org.setupTokenExpiresAt || org.setupTokenExpiresAt < new Date()) {
@@ -49,6 +51,15 @@ submitOrgAdminEmail: async (token: string, data: OrgSetupDTO) => {
     throw new ApiError(400, "An invite has already been sent to this email");
   }
 
+  const existingUser = await prisma.user.findUnique({
+    where: { email: data.adminEmail },
+    select: { id: true },
+  });
+  
+  if (existingUser) {
+    throw new ApiError(400, "A user with this email already exists");
+  }
+
   const inviteToken = randomUUID();
   const expiresAt = addDays(new Date(), 7);
 
@@ -60,7 +71,6 @@ submitOrgAdminEmail: async (token: string, data: OrgSetupDTO) => {
       token: inviteToken,
       expiresAt,
       status: "PENDING",
-      invitedByUserId: null,
     },
   });
 
@@ -98,7 +108,6 @@ validateInviteToken: async (token: string) => {
     email: invite.email,
     orgName: invite.org.name,
     role: invite.role,
-    userExists: !!existingUser,
   };
 },
 acceptOrgInvite: async (data: AcceptOrgInviteDTO) => {
@@ -112,48 +121,71 @@ acceptOrgInvite: async (data: AcceptOrgInviteDTO) => {
   if (invite.status === "REVOKED") throw new ApiError(400, "This invite has been revoked");
   if (invite.expiresAt < new Date()) throw new ApiError(400, "This invite link has expired");
 
-  // Check member doesn't already exist
-  const existingMember = await prisma.orgMember.findUnique({
-    where: { orgId_userId: { orgId: invite.orgId, userId: data.userId } },
+  // Check if a user with this email already exists
+  const existingUser = await prisma.user.findUnique({
+    where: { email: invite.email },
   });
 
-  if (existingMember) throw new ApiError(400, "User is already a member of this organization");
+  if (existingUser) {
+    // Edge case: user registered via another flow (e.g. Google SSO)
+    // You can either throw, or just add them as a member directly
+    throw new ApiError(400, "An account with this email already exists.");
+  }
 
-  await prisma.$transaction([
-    // 1. Create OrgMember
-    prisma.orgMember.create({
+  const hashedPassword = await bcrypt.hash(data.password, 10);
+
+  const [newUser] = await prisma.$transaction([
+    // 1. Create the user
+    prisma.user.create({
       data: {
-        orgId: invite.orgId,
-        userId: data.userId,
-        role: invite.role,
-        status: "ACTIVE",
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: invite.email,       // locked to invited email
+        password: hashedPassword,
+        role: "CLIENT",            // base role; org role is in OrgMember
+        isEmailVerified: true,     // trusted since they received the invite email
       },
     }),
+  ]);
 
-    // 2. Mark invite accepted
-    prisma.orgInvitation.update({
+  // Need newUser.id for subsequent creates, so run rest separately
+  // or use interactive transactions
+  await prisma.$transaction(async (tx) => {
+    // 2. Create OrgMember
+    await tx.orgMember.create({
+      data: {
+        orgId: invite.orgId,
+        userId: newUser.id,
+        role: invite.role,         // ORG_ADMIN
+        status: "ACTIVE",
+      },
+    });
+
+    // 3. Mark invite accepted
+    await tx.orgInvitation.update({
       where: { token: data.token },
       data: {
         status: "ACCEPTED",
         acceptedAt: new Date(),
       },
-    }),
+    });
 
-    // 3. Mark org setup complete
-    prisma.organization.update({
+    // 4. Mark org setup complete
+    await tx.organization.update({
       where: { id: invite.orgId },
       data: {
         setupCompletedAt: new Date(),
-        setupToken: null,          // invalidate token after use
+        setupToken: null,
         setupTokenExpiresAt: null,
       },
-    }),
-  ]);
+    });
+  });
 
   return {
     orgId: invite.orgId,
     orgName: invite.org.name,
     role: invite.role,
+    email: invite.email,
   };
 },
 }

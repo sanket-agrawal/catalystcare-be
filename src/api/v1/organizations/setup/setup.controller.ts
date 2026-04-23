@@ -113,55 +113,7 @@ const SetupController = {
   // Protect this route with your normal auth middleware.
   acceptOrgInvite: async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res
-          .status(401)
-          .json(new ApiResponse(false, 401, "Unauthorized"));
-      }
-
-      const { token } = req.body as { token: string };
-      if (!token) {
-        return res
-          .status(400)
-          .json(new ApiResponse(false, 400, "Invite token is required"));
-      }
-
-      // Guard: the authenticated user's email must match the invite email
-      // Fetch the invite email and compare before delegating to service
-      const { PrismaClient } = await import("@prisma/client");
-      // Better: inject prisma directly — shown inline for clarity
-      const { prisma } = await import("../../../../infrastructure/prisma/client");
-
-      const invite = await prisma.orgInvitation.findUnique({
-        where: { token },
-        select: { email: true },
-      });
-
-      if (!invite) {
-        return res
-          .status(404)
-          .json(new ApiResponse(false, 404, "Invalid invite link"));
-      }
-
-      const authUser = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { email: true },
-      });
-
-      if (!authUser || authUser.email !== invite.email) {
-        return res
-          .status(403)
-          .json(
-            new ApiResponse(
-              false,
-              403,
-              "This invite was sent to a different email address"
-            )
-          );
-      }
-
-      const result = await SetupService.acceptOrgInvite({ token, userId });
+      const result = await SetupService.acceptOrgInvite(req.body);
 
       return res
         .status(200)

@@ -303,6 +303,35 @@ for (const answer of data.answers) {
   //   }
   // }
 
+    for (const [zoneKey, rawScore] of Object.entries(zoneScores)) {
+    const max = zoneMeta[zoneKey].max;
+    const scaled = Math.round((rawScore / max) * 100);
+ 
+    // Pull label from config if available, otherwise fall back to generic
+    const band =
+      scaled < 30 ? "0-29" :
+      scaled < 50 ? "30-49" :
+      scaled < 70 ? "50-69" : "70-100";
+ 
+    const label =
+      config?.zones[zoneKey]?.bands[band]?.label ??
+      (scaled < 30 ? "Not a significant concern" :
+       scaled < 50 ? "Mild strain" :
+       scaled < 70 ? "Active strain" :
+       "Strong strain");
+ 
+    finalScores[zoneKey] = {
+      rawScore,
+      scaledScore: scaled,
+      label
+    };
+ 
+    if (scaled > highestScore) {
+      highestScore = scaled;
+      primaryZone = zoneKey;
+    }
+  }
+
     const submission = await prisma.assessmentSubmission.create({
     data: {
       assessmentId: assessment.id,
@@ -335,34 +364,7 @@ if (!primaryZoneData) {
   throw new ApiError(500, "Primary zone resolution failed");
 }
 
-  for (const [zoneKey, rawScore] of Object.entries(zoneScores)) {
-    const max = zoneMeta[zoneKey].max;
-    const scaled = Math.round((rawScore / max) * 100);
- 
-    // Pull label from config if available, otherwise fall back to generic
-    const band =
-      scaled < 30 ? "0-29" :
-      scaled < 50 ? "30-49" :
-      scaled < 70 ? "50-69" : "70-100";
- 
-    const label =
-      config?.zones[zoneKey]?.bands[band]?.label ??
-      (scaled < 30 ? "Not a significant concern" :
-       scaled < 50 ? "Mild strain" :
-       scaled < 70 ? "Active strain" :
-       "Strong strain");
- 
-    finalScores[zoneKey] = {
-      rawScore,
-      scaledScore: scaled,
-      label
-    };
- 
-    if (scaled > highestScore) {
-      highestScore = scaled;
-      primaryZone = zoneKey;
-    }
-  }
+
 
   //     await emailQueue.add("send-assessment-result", {
   //     to: email,

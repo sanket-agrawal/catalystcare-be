@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import InviteMemberController from "./inviteMembers.controller";
+// import InviteMemberController from "./inviteMembers.controller";
 
 const router = express.Router();
 
@@ -17,9 +17,9 @@ const upload = multer({
   },
 });
 
-router.post('/members',InviteMemberController.inviteMembers);
-router.post('/bulk',
-    upload.single("file"),
-    InviteMemberController.bulkInviteMembersWithCSV);
+// router.post('/members',InviteMemberController.inviteMembers);
+// router.post('/bulk',
+//     upload.single("file"),
+//     InviteMemberController.bulkInviteMembersWithCSV);
 
 export default router;

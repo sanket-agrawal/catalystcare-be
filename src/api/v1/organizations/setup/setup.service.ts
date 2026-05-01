@@ -142,7 +142,7 @@ acceptOrgInvite: async (data: AcceptOrgInviteDTO) => {
         lastName: data.lastName,
         email: invite.email,       // locked to invited email
         password: hashedPassword,
-        role: "CLIENT",            // base role; org role is in OrgMember
+        role: "ORG_ADMIN",            // base role; org role is in OrgMember
         isEmailVerified: true,     // trusted since they received the invite email
       },
     }),

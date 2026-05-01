@@ -61,6 +61,10 @@ enum UserRole {
   CLIENT
   THERAPIST
   ADMIN
+  ORG_ADMIN
+  HR_MANAGER
+  EMPLOYEE
+  STUDENT
 }
 
 model ClientProfile {

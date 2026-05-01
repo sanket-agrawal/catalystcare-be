@@ -1,17 +1,25 @@
-
+// assessmentResultTemplate.ts
+// Updated to show per-zone Insight, What this means, and Direction
+// based on the score band. Pulls content from assessmentInsights config.
 
 import { serverConfig } from "../config/server.config";
+import {
+  getZoneContent,
+  getAssessmentConfig,
+  getScoreBand,
+  ZoneBandContent,
+} from "../insights/Assessments";
 
 export interface AssessmentResultEmailPayload {
   name?: string;
   assessmentTitle: string;
+  assessmentSlug: string; // NEW — needed to look up insights config
 
   primaryZone: {
     key: string;
     title: string;
     scaledScore: number;
     label: string;
-    insight: string;
   };
 
   zones: Array<{
@@ -22,20 +30,112 @@ export interface AssessmentResultEmailPayload {
   }>;
 }
 
+// ─────────────────────────────────────────────
+// Small helpers
+// ─────────────────────────────────────────────
+
+function scoreBarHtml(score: number, color = "#4f46e5"): string {
+  const w = Math.min(Math.max(score, 0), 100);
+  return `
+<table width="100%" cellpadding="0" cellspacing="0"
+       style="background:#e5e7eb;border-radius:6px;height:10px;margin-bottom:6px;">
+  <tr>
+    <td width="${w}%" style="background:${color};border-radius:6px;height:10px;"></td>
+    <td width="${100 - w}%"></td>
+  </tr>
+</table>`;
+}
+
+function insightBlockHtml(content: ZoneBandContent): string {
+  return `
+<table width="100%" cellpadding="0" cellspacing="0"
+       style="background:#f9fafb;border-radius:8px;margin-bottom:28px;">
+  <tr>
+    <td style="padding:18px 20px;">
+
+      <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;
+                text-transform:uppercase;letter-spacing:0.06em;">Insight</p>
+      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#111827;">
+        ${content.insight}
+      </p>
+
+      <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;
+                text-transform:uppercase;letter-spacing:0.06em;">What this means</p>
+      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#111827;">
+        ${content.meaning}
+      </p>
+
+      <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;
+                text-transform:uppercase;letter-spacing:0.06em;">Direction</p>
+      <p style="margin:0;font-size:15px;line-height:1.65;color:#111827;">
+        ${content.direction}
+      </p>
+
+    </td>
+  </tr>
+</table>`;
+}
+
+// ─────────────────────────────────────────────
+// Main template
+// ─────────────────────────────────────────────
 
 export const assessmentResultTemplate = (
   payload: AssessmentResultEmailPayload
-) => {
-  const {
-    assessmentTitle,
-    primaryZone,
-    zones
-  } = payload;
+): string => {
+  const { assessmentTitle, assessmentSlug, primaryZone, zones } = payload;
 
-  const progressWidth = Math.min(
-    Math.max(primaryZone.scaledScore, 0),
-    100
+  const config = getAssessmentConfig(assessmentSlug);
+  const scaleLegend = config?.scaleLegend ?? [
+    { range: "0–29", label: "Not a significant concern" },
+    { range: "30–49", label: "Mild strain" },
+    { range: "50–69", label: "Active strain" },
+    { range: "70–100", label: "Strong strain" },
+  ];
+
+  const reportHeadline = config?.reportHeadline ?? assessmentTitle;
+  const reportSubheadline =
+    config?.reportSubheadline ??
+    "Below is a clear snapshot of how things are showing up for you right now.";
+
+  // Primary zone content (Insight / What this means / Direction)
+  const primaryContent = getZoneContent(
+    assessmentSlug,
+    primaryZone.key,
+    primaryZone.scaledScore
   );
+
+  // Zone breakdown rows
+  const zoneRowsHtml = zones
+    .map((z) => {
+      const band = getScoreBand(z.scaledScore);
+      const labelFromConfig =
+        config?.zones[z.key]?.bands[band]?.label ?? z.label;
+      return `
+<tr>
+  <td style="padding:10px 0;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;">
+    ${z.title}
+  </td>
+  <td align="right"
+      style="padding:10px 0;font-size:14px;border-bottom:1px solid #f3f4f6;white-space:nowrap;">
+    <strong style="color:#111827;">${z.scaledScore}/100</strong>
+    <span style="color:#6b7280;margin-left:6px;">(${labelFromConfig})</span>
+  </td>
+</tr>`;
+    })
+    .join("");
+
+  // Scale legend rows
+  const legendRowsHtml = scaleLegend
+    .map(
+      (row) => `
+<tr>
+  <td style="padding:5px 0;font-size:14px;color:#374151;">
+    <strong>${row.range}:</strong> ${row.label}
+  </td>
+</tr>`
+    )
+    .join("");
 
   return `
 <!DOCTYPE html>
@@ -66,97 +166,79 @@ export const assessmentResultTemplate = (
 <tr>
 <td style="padding:32px 36px;color:#111827;">
 
-<p style="font-size:15px;line-height:1.6;margin:0 0 22px;color:#374151;">
-Your <strong>${assessmentTitle}</strong> assessment is complete.  
-Below is a clear snapshot of how things are showing up for you right now.
-</p>
+  <!-- REPORT HEADLINE -->
+  <h2 style="margin:0 0 8px;font-size:22px;color:#111827;">
+    ${reportHeadline}
+  </h2>
+  <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#374151;">
+    ${reportSubheadline}
+  </p>
 
-<!-- PRIMARY RESULT -->
-<h2 style="margin:0 0 6px;color:#4f46e5;font-size:22px;">
-${primaryZone.label}
-</h2>
+  <!-- PRIMARY ZONE HEADER -->
+  <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;
+            text-transform:uppercase;letter-spacing:0.06em;">Primary focus area</p>
+  <h3 style="margin:0 0 4px;font-size:20px;color:#4f46e5;">
+    ${primaryZone.title}
+  </h3>
+  <p style="margin:0 0 14px;font-size:14px;color:#6b7280;">
+    ${primaryZone.scaledScore}/100 — ${
+    config?.zones[primaryZone.key]?.bands[getScoreBand(primaryZone.scaledScore)]
+      ?.label ?? primaryZone.label
+  }
+  </p>
 
-<p style="margin:0 0 18px;font-size:14px;color:#6b7280;">
-Primary focus area: <strong>${primaryZone.title}</strong>
-</p>
+  <!-- PRIMARY SCORE BAR -->
+  ${scoreBarHtml(primaryZone.scaledScore)}
+  <p style="margin:0 0 20px;"></p>
 
-<!-- PRIMARY SCORE BAR -->
-<p style="margin:0 0 6px;font-size:14px;">
-<strong>${primaryZone.title}:</strong> ${primaryZone.scaledScore} / 100
-</p>
+  <!-- PRIMARY ZONE INSIGHT BLOCK -->
+  ${
+    primaryContent
+      ? insightBlockHtml(primaryContent)
+      : `<p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#374151;">
+           This area is currently asking for the most care and attention.
+         </p>`
+  }
 
-<table width="100%" cellpadding="0" cellspacing="0"
-       style="background:#e5e7eb;border-radius:6px;height:10px;margin-bottom:20px;">
-<tr>
-<td width="${progressWidth}%" style="background:#4f46e5;border-radius:6px;"></td>
-<td width="${100 - progressWidth}%"></td>
-</tr>
-</table>
+  <!-- ZONE BREAKDOWN -->
+  <h3 style="margin:0 0 4px;font-size:16px;color:#111827;">
+    Your Full Score Breakdown
+  </h3>
+  <p style="margin:0 0 14px;font-size:14px;color:#6b7280;">
+    All areas are shown below with their current intensity level.
+  </p>
 
-<!-- INSIGHT -->
-<table width="100%" cellpadding="0" cellspacing="0"
-       style="background:#f9fafb;border-radius:8px;margin-bottom:28px;">
-<tr>
-<td style="padding:16px 18px;font-size:15px;line-height:1.6;color:#111827;">
-${primaryZone.insight}
-</td>
-</tr>
-</table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+    ${zoneRowsHtml}
+  </table>
 
-<!-- ZONE BREAKDOWN -->
-<h3 style="margin:0 0 12px;font-size:16px;">
-Your Full Score Breakdown
-</h3>
+  <!-- SCALE LEGEND -->
+  <h3 style="margin:0 0 12px;font-size:16px;color:#111827;">
+    How to read these scores
+  </h3>
+  <table width="100%" cellpadding="0" cellspacing="0"
+         style="font-size:14px;color:#374151;margin-bottom:32px;">
+    ${legendRowsHtml}
+  </table>
 
-<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-${zones
-  .map(
-    z => `
-<tr>
-<td style="padding:8px 0;font-size:14px;">
-${z.title}
-</td>
-<td align="right" style="font-size:14px;">
-<strong>${z.scaledScore}/100</strong>
-<span style="color:#6b7280;">(${z.label})</span>
-</td>
-</tr>
-`
-  )
-  .join("")}
-</table>
+  <!-- CTA -->
+  <a href="${serverConfig.baseFrontendUrl}" target="_blank"
+     style="display:inline-block;padding:14px 22px;
+            background:#4f46e5;color:#ffffff;
+            font-size:15px;font-weight:500;
+            text-decoration:none;border-radius:8px;">
+    Talk to a CatalystCare expert
+  </a>
 
-<!-- SCORE LEGEND -->
-<h3 style="margin:0 0 12px;font-size:16px;">
-How to read these scores
-</h3>
+  <p style="margin-top:28px;font-size:14px;color:#6b7280;line-height:1.6;">
+    This assessment is a self-reflection tool, not a diagnosis.
+    Support can help if these areas feel heavy right now.
+  </p>
 
-<table width="100%" cellpadding="0" cellspacing="0"
-       style="font-size:14px;color:#374151;margin-bottom:32px;">
-<tr><td style="padding:6px 0;"><strong>0–29:</strong> Not a significant concern</td></tr>
-<tr><td style="padding:6px 0;"><strong>30–49:</strong> Mild strain</td></tr>
-<tr><td style="padding:6px 0;"><strong>50–69:</strong> Active strain</td></tr>
-<tr><td style="padding:6px 0;"><strong>70–100:</strong> Strong strain</td></tr>
-</table>
-
-<!-- CTA -->
-<a href="${serverConfig.baseFrontendUrl}" target="_blank"
-   style="display:inline-block;padding:14px 22px;
-          background:#4f46e5;color:#ffffff;
-          font-size:15px;font-weight:500;
-          text-decoration:none;border-radius:8px;">
-Talk to a CatalystCare expert
-</a>
-
-<p style="margin-top:28px;font-size:14px;color:#6b7280;line-height:1.6;">
-This assessment is a self-reflection tool, not a diagnosis.  
-Support can help if these areas feel heavy right now.
-</p>
-
-<p style="margin-top:24px;font-size:14px;">
-Warm regards,<br/>
-<strong>Catalyst Care Team</strong>
-</p>
+  <p style="margin-top:24px;font-size:14px;">
+    Warm regards,<br/>
+    <strong>Catalyst Care Team</strong>
+  </p>
 
 </td>
 </tr>
@@ -164,7 +246,7 @@ Warm regards,<br/>
 <!-- FOOTER -->
 <tr>
 <td align="center" style="background:#f3f4f6;padding:14px;font-size:12px;color:#6b7280;">
-© ${new Date().getFullYear()} Catalyst Care. All rights reserved.
+  © ${new Date().getFullYear()} Catalyst Care. All rights reserved.
 </td>
 </tr>
 
@@ -176,5 +258,3 @@ Warm regards,<br/>
 </html>
 `;
 };
-
-

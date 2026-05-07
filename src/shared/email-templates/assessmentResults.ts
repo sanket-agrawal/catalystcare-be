@@ -1,6 +1,7 @@
 // assessmentResultTemplate.ts
-// Updated to show per-zone Insight, What this means, and Direction
-// based on the score band. Pulls content from assessmentInsights config.
+// Fixes applied:
+//   FIX 3 — Top 2 most affected zones shown at top of email with insight + direction
+//   All zones still shown in full breakdown table below
 
 import { serverConfig } from "../config/server.config";
 import {
@@ -13,7 +14,7 @@ import {
 export interface AssessmentResultEmailPayload {
   name?: string;
   assessmentTitle: string;
-  assessmentSlug: string; // NEW — needed to look up insights config
+  assessmentSlug: string;
 
   primaryZone: {
     key: string;
@@ -31,7 +32,7 @@ export interface AssessmentResultEmailPayload {
 }
 
 // ─────────────────────────────────────────────
-// Small helpers
+// Helpers
 // ─────────────────────────────────────────────
 
 function scoreBarHtml(score: number, color = "#4f46e5"): string {
@@ -46,30 +47,65 @@ function scoreBarHtml(score: number, color = "#4f46e5"): string {
 </table>`;
 }
 
-function insightBlockHtml(content: ZoneBandContent): string {
+// FIX 3 — renders a top-zone card with insight text + direction only (concise for email)
+function topZoneCardHtml(
+  zone: { key: string; title: string; scaledScore: number; label: string },
+  rank: number,
+  content: ZoneBandContent | null,
+  bandLabel: string
+): string {
+  const rankLabel =
+    rank === 0 ? "Your most affected area" : "Second most affected area";
+
+  // Accent colour: deeper indigo for #1, softer teal for #2
+  const accentColor = rank === 0 ? "#4f46e5" : "#0891b2";
+
   return `
 <table width="100%" cellpadding="0" cellspacing="0"
-       style="background:#f9fafb;border-radius:8px;margin-bottom:28px;">
+       style="border-left:4px solid ${accentColor};
+              background:#f9fafb;border-radius:0 8px 8px 0;
+              margin-bottom:28px;">
   <tr>
     <td style="padding:18px 20px;">
 
-      <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;
-                text-transform:uppercase;letter-spacing:0.06em;">Insight</p>
-      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#111827;">
+      <!-- Rank label -->
+      <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#6b7280;
+                text-transform:uppercase;letter-spacing:0.06em;">
+        ${rankLabel}
+      </p>
+
+      <!-- Zone title + score -->
+      <h3 style="margin:0 0 2px;font-size:18px;color:${accentColor};">
+        ${zone.title}
+      </h3>
+      <p style="margin:0 0 12px;font-size:13px;color:#6b7280;">
+        ${zone.scaledScore}/100 &mdash; ${bandLabel}
+      </p>
+
+      <!-- Score bar -->
+      ${scoreBarHtml(zone.scaledScore, accentColor)}
+      <p style="margin:0 0 14px;"></p>
+
+      ${
+        content
+          ? `
+      <!-- Insight -->
+      <p style="margin:0 0 10px;font-size:15px;line-height:1.65;color:#111827;">
         ${content.insight}
       </p>
 
-      <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;
-                text-transform:uppercase;letter-spacing:0.06em;">What this means</p>
-      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#111827;">
-        ${content.meaning}
+      <!-- Direction -->
+      <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#6b7280;
+                text-transform:uppercase;letter-spacing:0.06em;">
+        What to do
       </p>
-
-      <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;
-                text-transform:uppercase;letter-spacing:0.06em;">Direction</p>
       <p style="margin:0;font-size:15px;line-height:1.65;color:#111827;">
         ${content.direction}
-      </p>
+      </p>`
+          : `<p style="margin:0;font-size:15px;line-height:1.65;color:#374151;">
+               This area is currently asking for the most attention.
+             </p>`
+      }
 
     </td>
   </tr>
@@ -83,9 +119,10 @@ function insightBlockHtml(content: ZoneBandContent): string {
 export const assessmentResultTemplate = (
   payload: AssessmentResultEmailPayload
 ): string => {
-  const { assessmentTitle, assessmentSlug, primaryZone, zones } = payload;
+  const { assessmentTitle, assessmentSlug, zones } = payload;
 
   const config = getAssessmentConfig(assessmentSlug);
+
   const scaleLegend = config?.scaleLegend ?? [
     { range: "0–29", label: "Not a significant concern" },
     { range: "30–49", label: "Mild strain" },
@@ -98,14 +135,26 @@ export const assessmentResultTemplate = (
     config?.reportSubheadline ??
     "Below is a clear snapshot of how things are showing up for you right now.";
 
-  // Primary zone content (Insight / What this means / Direction)
-  const primaryContent = getZoneContent(
-    assessmentSlug,
-    primaryZone.key,
-    primaryZone.scaledScore
-  );
+  // ─────────────────────────────────────────────
+  // FIX 3 — derive top 2 zones by scaledScore descending
+  // ─────────────────────────────────────────────
+  const topTwoZones = [...zones]
+    .sort((a, b) => b.scaledScore - a.scaledScore)
+    .slice(0, 2);
 
-  // Zone breakdown rows
+  const topZonesHtml = topTwoZones
+    .map((zone, idx) => {
+      const band = getScoreBand(zone.scaledScore);
+      const bandLabel =
+        config?.zones[zone.key]?.bands[band]?.label ?? zone.label;
+      const content = getZoneContent(assessmentSlug, zone.key, zone.scaledScore);
+      return topZoneCardHtml(zone, idx, content, bandLabel);
+    })
+    .join("");
+
+  // ─────────────────────────────────────────────
+  // Full breakdown table (all zones)
+  // ─────────────────────────────────────────────
   const zoneRowsHtml = zones
     .map((z) => {
       const band = getScoreBand(z.scaledScore);
@@ -113,11 +162,13 @@ export const assessmentResultTemplate = (
         config?.zones[z.key]?.bands[band]?.label ?? z.label;
       return `
 <tr>
-  <td style="padding:10px 0;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;">
+  <td style="padding:10px 0;font-size:14px;color:#374151;
+             border-bottom:1px solid #f3f4f6;">
     ${z.title}
   </td>
   <td align="right"
-      style="padding:10px 0;font-size:14px;border-bottom:1px solid #f3f4f6;white-space:nowrap;">
+      style="padding:10px 0;font-size:14px;border-bottom:1px solid #f3f4f6;
+             white-space:nowrap;">
     <strong style="color:#111827;">${z.scaledScore}/100</strong>
     <span style="color:#6b7280;margin-left:6px;">(${labelFromConfig})</span>
   </td>
@@ -125,7 +176,7 @@ export const assessmentResultTemplate = (
     })
     .join("");
 
-  // Scale legend rows
+  // Scale legend
   const legendRowsHtml = scaleLegend
     .map(
       (row) => `
@@ -174,33 +225,17 @@ export const assessmentResultTemplate = (
     ${reportSubheadline}
   </p>
 
-  <!-- PRIMARY ZONE HEADER -->
-  <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;
-            text-transform:uppercase;letter-spacing:0.06em;">Primary focus area</p>
-  <h3 style="margin:0 0 4px;font-size:20px;color:#4f46e5;">
-    ${primaryZone.title}
-  </h3>
-  <p style="margin:0 0 14px;font-size:14px;color:#6b7280;">
-    ${primaryZone.scaledScore}/100 — ${
-    config?.zones[primaryZone.key]?.bands[getScoreBand(primaryZone.scaledScore)]
-      ?.label ?? primaryZone.label
-  }
-  </p>
+  <!-- ── FIX 3: TOP 2 MOST AFFECTED ZONES ── -->
+  ${topZonesHtml}
 
-  <!-- PRIMARY SCORE BAR -->
-  ${scoreBarHtml(primaryZone.scaledScore)}
-  <p style="margin:0 0 20px;"></p>
+  <!-- DIVIDER -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+    <tr>
+      <td style="border-top:1px solid #e5e7eb;"></td>
+    </tr>
+  </table>
 
-  <!-- PRIMARY ZONE INSIGHT BLOCK -->
-  ${
-    primaryContent
-      ? insightBlockHtml(primaryContent)
-      : `<p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#374151;">
-           This area is currently asking for the most care and attention.
-         </p>`
-  }
-
-  <!-- ZONE BREAKDOWN -->
+  <!-- FULL SCORE BREAKDOWN -->
   <h3 style="margin:0 0 4px;font-size:16px;color:#111827;">
     Your Full Score Breakdown
   </h3>
@@ -245,8 +280,9 @@ export const assessmentResultTemplate = (
 
 <!-- FOOTER -->
 <tr>
-<td align="center" style="background:#f3f4f6;padding:14px;font-size:12px;color:#6b7280;">
-  © ${new Date().getFullYear()} Catalyst Care. All rights reserved.
+<td align="center"
+    style="background:#f3f4f6;padding:14px;font-size:12px;color:#6b7280;">
+  &copy; ${new Date().getFullYear()} Catalyst Care. All rights reserved.
 </td>
 </tr>
 

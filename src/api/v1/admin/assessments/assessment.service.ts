@@ -319,11 +319,18 @@ for (const answer of data.answers) {
        scaled < 50 ? "Mild strain" :
        scaled < 70 ? "Active strain" :
        "Strong strain");
+
+        const zoneContent = getZoneContent(assessment.slug, zoneKey, scaled);
  
     finalScores[zoneKey] = {
       rawScore,
       scaledScore: scaled,
-      label
+      label,
+      title: zoneMeta[zoneKey].title,
+      // FIX 2 — rich insight content per band
+      insight: zoneContent?.insight ?? null,
+      meaning: zoneContent?.meaning ?? null,
+      direction: zoneContent?.direction ?? null,
     };
  
     if (scaled > highestScore) {
@@ -350,7 +357,7 @@ for (const answer of data.answers) {
   const zonesForEmail = Object.entries(finalScores).map(
   ([key, value]: any) => ({
     key,
-    title: zoneMeta[key].title,
+    title: value.title,
     scaledScore: value.scaledScore,
     label: value.label
   })
@@ -385,22 +392,22 @@ if (!primaryZoneData) {
   //     sender: emailFromAddress().infoEmail
   //   });
 
-    await emailQueue.add("send-assessment-result", {
+  await emailQueue.add("send-assessment-result", {
     to: email,
-    subject: emailSubjects(undefined, undefined, assessment.title).assessmentResults,
+    subject: emailSubjects(undefined, undefined, assessment.title)
+      .assessmentResults,
     html: assessmentResultTemplate({
       assessmentTitle: assessment.title,
-      assessmentSlug: assessment.slug,   // <-- ADD THIS
+      assessmentSlug: assessment.slug,
       primaryZone: {
         key: primaryZoneData.key,
         title: primaryZoneData.title,
         scaledScore: primaryZoneData.scaledScore,
         label: primaryZoneData.label,
-        // insight field removed — template now handles this internally
       },
-      zones: zonesForEmail
+      zones: zonesForEmail,
     }),
-    sender: emailFromAddress().infoEmail
+    sender: emailFromAddress().infoEmail,
   });
 
     return {

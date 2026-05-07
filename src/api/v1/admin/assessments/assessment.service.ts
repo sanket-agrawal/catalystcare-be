@@ -391,21 +391,20 @@ finalScores[zoneKey] = {
   });
 
   const zonesForEmail = Object.entries(finalScores).map(
-  ([key, value]: any) => ({
-    key,
-    title: value.title,
-    scaledScore: value.scaledScore,
-    label: value.label
-  })
-);
-
-const primaryZoneData = zonesForEmail.find(
-  z => z.key === primaryZone
-);
-
-if (!primaryZoneData) {
-  throw new ApiError(500, "Primary zone resolution failed");
-}
+    ([key, value]: any) => ({
+      key,
+      configKey: zoneKeyMap[key] ?? key.toLowerCase(), // ← FIX: needed by template for insight lookups
+      title: value.title,
+      scaledScore: value.scaledScore,
+      label: value.label,
+    })
+  );
+ 
+  const primaryZoneData = zonesForEmail.find((z) => z.key === primaryZone);
+ 
+  if (!primaryZoneData) {
+    throw new ApiError(500, "Primary zone resolution failed");
+  }
 
 
 
@@ -430,18 +429,18 @@ if (!primaryZoneData) {
 
   await emailQueue.add("send-assessment-result", {
     to: email,
-    subject: emailSubjects(undefined, undefined, assessment.title)
-      .assessmentResults,
+    subject: emailSubjects(undefined, undefined, assessment.title).assessmentResults,
     html: assessmentResultTemplate({
       assessmentTitle: assessment.title,
       assessmentSlug: assessment.slug,
       primaryZone: {
-        key: primaryZoneData.key,
-        title: primaryZoneData.title,
+        key:         primaryZoneData.key,
+        configKey:   primaryZoneData.configKey, // ← now defined
+        title:       primaryZoneData.title,
         scaledScore: primaryZoneData.scaledScore,
-        label: primaryZoneData.label,
+        label:       primaryZoneData.label,
       },
-      zones: zonesForEmail,
+      zones: zonesForEmail, // ← each zone now carries configKey
     }),
     sender: emailFromAddress().infoEmail,
   });

@@ -230,6 +230,41 @@ export const assessmentService = {
 
     const config = getAssessmentConfig(assessment.slug);
 
+    // Maps DB zone keys → assessmentInsights zone keys
+const zoneKeyMap: Record<string, string> = {
+  // relationship-emotional-zones
+  EMOTIONAL_EXPRESSION: "emotional_expression",
+  ATTACHMENT: "attachment_closeness",
+  CONFLICT: "conflict_repair",
+  SUPPORT: "support_care",
+  STRESS_SPILLOVER: "stress_spillover",
+
+  // stuck-pattern
+  FEAR: "fear",
+  OVERLOAD: "overload",
+  ENERGY: "energy",
+  ATTENTION: "attention",
+
+  // emotional-wellbeing-snapshot
+  EMOTIONAL_ENERGY: "emotional_energy",
+  MOOD_STABILITY: "mood_stability",
+  EMOTIONAL_NUMBNESS: "emotional_numbness",
+  OVERWHELM_STRESS: "overwhelm_stress",
+  POSITIVE_ENGAGEMENT: "positive_engagement",
+
+  // life-load-role-strain
+  ROLE_OVERLOAD: "role_overload",
+  EMOTIONAL_LABOUR: "emotional_labour",
+  TIME_BOUNDARY_STRAIN: "time_boundary_strain",
+  IDENTITY_SELF_LOSS: "identity_self_loss",
+  SUPPORT_SHARED_LOAD: "support_shared_load",
+
+  // burnout-self-check
+  ENERGY_DEPLETION: "energy_depletion",
+  MENTAL_LOAD: "mental_load",
+  DISENGAGEMENT: "disengagement",
+};
+
     
 
       const questionMap = new Map(
@@ -314,29 +349,30 @@ for (const answer of data.answers) {
       scaled < 70 ? "50-69" : "70-100";
  
     const label =
-      config?.zones[zoneKey]?.bands[band]?.label ??
+      config?.zones[zoneKeyMap[zoneKey]]?.bands[band]?.label ??
       (scaled < 30 ? "Not a significant concern" :
        scaled < 50 ? "Mild strain" :
        scaled < 70 ? "Active strain" :
        "Strong strain");
 
-        const zoneContent = getZoneContent(assessment.slug, zoneKey, scaled);
+       const insightKey = zoneKeyMap[zoneKey] ?? zoneKey.toLowerCase();
+  const zoneContent = getZoneContent(assessment.slug, insightKey, scaled);
+
  
-    finalScores[zoneKey] = {
-      rawScore,
-      scaledScore: scaled,
-      label,
-      title: zoneMeta[zoneKey].title,
-      // FIX 2 — rich insight content per band
-      insight: zoneContent?.insight ?? null,
-      meaning: zoneContent?.meaning ?? null,
-      direction: zoneContent?.direction ?? null,
-    };
- 
-    if (scaled > highestScore) {
-      highestScore = scaled;
-      primaryZone = zoneKey;
-    }
+finalScores[zoneKey] = {
+    rawScore,
+    scaledScore: scaled,
+    label,
+    title: zoneMeta[zoneKey].title,
+    insight: zoneContent?.insight ?? null,
+    meaning: zoneContent?.meaning ?? null,
+    direction: zoneContent?.direction ?? null,
+  };
+
+  if (scaled > highestScore) {
+    highestScore = scaled;
+    primaryZone = zoneKey;
+  }
   }
 
     const submission = await prisma.assessmentSubmission.create({

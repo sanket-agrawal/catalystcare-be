@@ -45,7 +45,7 @@ services:
     environment:
       POSTGRES_USER: devappuser
       POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: catalytcaredb
+      POSTGRES_DB: catalystcaredb
 
     volumes:
       - postgres_data:/var/lib/postgresql/data

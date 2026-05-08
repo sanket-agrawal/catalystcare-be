@@ -4,6 +4,7 @@ import ApiError from "../../../../shared/utils/ApiError";
 import slugify from "slugify";
 import { emailFromAddress, emailSubjects } from "../../../../shared/config/email.config";
 import { assessmentResultTemplate } from "../../../../shared/email-templates/assessmentResults";
+import { getZoneContent, getAssessmentConfig } from "../../../../shared/insights/Assessments";
 import {
   AssessmentResult,
   AnswerPayload,
@@ -227,6 +228,45 @@ export const assessmentService = {
       throw new ApiError(404, "Assessment not found");
     }
 
+    const config = getAssessmentConfig(assessment.slug);
+
+    // Maps DB zone keys → assessmentInsights zone keys
+const zoneKeyMap: Record<string, string> = {
+  // relationship-emotional-zones
+  EMOTIONAL_EXPRESSION: "emotional_expression",
+  ATTACHMENT: "attachment_closeness",
+  CONFLICT: "conflict_repair",
+  SUPPORT: "support_care",
+  STRESS_SPILLOVER: "stress_spillover",
+
+  // stuck-pattern
+  FEAR: "fear",
+  OVERLOAD: "overload",
+  ENERGY: "energy",
+  ATTENTION: "attention",
+
+  // emotional-wellbeing-snapshot
+  EMOTIONAL_ENERGY: "emotional_energy",
+  MOOD_STABILITY: "mood_stability",
+  EMOTIONAL_NUMBNESS: "emotional_numbness",
+  OVERWHELM_STRESS: "overwhelm_stress",
+  POSITIVE_ENGAGEMENT: "positive_engagement",
+
+  // life-load-role-strain
+  ROLE_OVERLOAD: "role_overload",
+  EMOTIONAL_LABOUR: "emotional_labour",
+  TIME_BOUNDARY_STRAIN: "time_boundary_strain",
+  IDENTITY_SELF_LOSS: "identity_self_loss",
+  SUPPORT_SHARED_LOAD: "support_shared_load",
+
+  // burnout-self-check
+  ENERGY_DEPLETION: "energy_depletion",
+  MENTAL_LOAD: "mental_load",
+  DISENGAGEMENT: "disengagement",
+};
+
+    
+
       const questionMap = new Map(
         assessment.questions.map(q => [q.id, q])
       );
@@ -276,26 +316,63 @@ for (const answer of data.answers) {
   let primaryZone = "";
   let highestScore = -1;
 
-  for (const [zoneKey, rawScore] of Object.entries(zoneScores)) {
+  // for (const [zoneKey, rawScore] of Object.entries(zoneScores)) {
+  //   const max = zoneMeta[zoneKey].max;
+  //   const scaled = Math.round((rawScore / max) * 100);
+
+  //   const label =
+  //     scaled < 30 ? "Not a significant concern" :
+  //     scaled < 50 ? "Mild strain" :
+  //     scaled < 70 ? "Active strain" :
+  //     "Strong strain";
+
+  //   finalScores[zoneKey] = {
+  //     rawScore,
+  //     scaledScore: scaled,
+  //     label
+  //   };
+
+  //   if (scaled > highestScore) {
+  //     highestScore = scaled;
+  //     primaryZone = zoneKey;
+  //   }
+  // }
+
+    for (const [zoneKey, rawScore] of Object.entries(zoneScores)) {
     const max = zoneMeta[zoneKey].max;
     const scaled = Math.round((rawScore / max) * 100);
-
+ 
+    // Pull label from config if available, otherwise fall back to generic
+    const band =
+      scaled < 30 ? "0-29" :
+      scaled < 50 ? "30-49" :
+      scaled < 70 ? "50-69" : "70-100";
+ 
     const label =
-      scaled < 30 ? "Not a significant concern" :
-      scaled < 50 ? "Mild strain" :
-      scaled < 70 ? "Active strain" :
-      "Strong strain";
+      config?.zones[zoneKeyMap[zoneKey]]?.bands[band]?.label ??
+      (scaled < 30 ? "Not a significant concern" :
+       scaled < 50 ? "Mild strain" :
+       scaled < 70 ? "Active strain" :
+       "Strong strain");
 
-    finalScores[zoneKey] = {
-      rawScore,
-      scaledScore: scaled,
-      label
-    };
+       const insightKey = zoneKeyMap[zoneKey] ?? zoneKey.toLowerCase();
+  const zoneContent = getZoneContent(assessment.slug, insightKey, scaled);
 
-    if (scaled > highestScore) {
-      highestScore = scaled;
-      primaryZone = zoneKey;
-    }
+ 
+finalScores[zoneKey] = {
+    rawScore,
+    scaledScore: scaled,
+    label,
+    title: zoneMeta[zoneKey].title,
+    insight: zoneContent?.insight ?? null,
+    meaning: zoneContent?.meaning ?? null,
+    direction: zoneContent?.direction ?? null,
+  };
+
+  if (scaled > highestScore) {
+    highestScore = scaled;
+    primaryZone = zoneKey;
+  }
   }
 
     const submission = await prisma.assessmentSubmission.create({
@@ -314,40 +391,59 @@ for (const answer of data.answers) {
   });
 
   const zonesForEmail = Object.entries(finalScores).map(
-  ([key, value]: any) => ({
-    key,
-    title: zoneMeta[key].title,
-    scaledScore: value.scaledScore,
-    label: value.label
-  })
-);
+    ([key, value]: any) => ({
+      key,
+      configKey: zoneKeyMap[key] ?? key.toLowerCase(), // ← FIX: needed by template for insight lookups
+      title: value.title,
+      scaledScore: value.scaledScore,
+      label: value.label,
+    })
+  );
+ 
+  const primaryZoneData = zonesForEmail.find((z) => z.key === primaryZone);
+ 
+  if (!primaryZoneData) {
+    throw new ApiError(500, "Primary zone resolution failed");
+  }
 
-const primaryZoneData = zonesForEmail.find(
-  z => z.key === primaryZone
-);
 
-if (!primaryZoneData) {
-  throw new ApiError(500, "Primary zone resolution failed");
-}
 
-      await emailQueue.add("send-assessment-result", {
-      to: email,
-      subject: emailSubjects(undefined, undefined, assessment.title).assessmentResults,
-      html: assessmentResultTemplate({
-    assessmentTitle: assessment.title,
-    primaryZone: {
-      key: primaryZoneData.key,
-      title: primaryZoneData.title,
-      scaledScore: primaryZoneData.scaledScore,
-      label: primaryZoneData.label,
-      insight:
-        zoneInsights[primaryZoneData.key] ??
-        "This area is currently asking for the most care and attention."
-    },
-    zones: zonesForEmail
-  }),
-      sender: emailFromAddress().infoEmail
-    });
+  //     await emailQueue.add("send-assessment-result", {
+  //     to: email,
+  //     subject: emailSubjects(undefined, undefined, assessment.title).assessmentResults,
+  //     html: assessmentResultTemplate({
+  //   assessmentTitle: assessment.title,
+  //   primaryZone: {
+  //     key: primaryZoneData.key,
+  //     title: primaryZoneData.title,
+  //     scaledScore: primaryZoneData.scaledScore,
+  //     label: primaryZoneData.label,
+  //     insight:
+  //       zoneInsights[primaryZoneData.key] ??
+  //       "This area is currently asking for the most care and attention."
+  //   },
+  //   zones: zonesForEmail
+  // }),
+  //     sender: emailFromAddress().infoEmail
+  //   });
+
+  await emailQueue.add("send-assessment-result", {
+    to: email,
+    subject: emailSubjects(undefined, undefined, assessment.title).assessmentResults,
+    html: assessmentResultTemplate({
+      assessmentTitle: assessment.title,
+      assessmentSlug: assessment.slug,
+      primaryZone: {
+        key:         primaryZoneData.key,
+        configKey:   primaryZoneData.configKey, // ← now defined
+        title:       primaryZoneData.title,
+        scaledScore: primaryZoneData.scaledScore,
+        label:       primaryZoneData.label,
+      },
+      zones: zonesForEmail, // ← each zone now carries configKey
+    }),
+    sender: emailFromAddress().infoEmail,
+  });
 
     return {
     submissionId: submission.id,

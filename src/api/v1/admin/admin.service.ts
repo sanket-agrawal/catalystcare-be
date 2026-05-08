@@ -360,7 +360,10 @@ export const adminService = {
                                         }
                                     }
                                    }
-                                }
+                                },
+                                meetingLink : true,
+                                startDateTime : true,
+                                endDateTime : true
                             }
                         }
 

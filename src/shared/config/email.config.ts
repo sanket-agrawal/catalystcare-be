@@ -55,3 +55,28 @@ export const webinarEmailSubjects = (webinarTitle : string) => ({
     reminder : `Reminder: Upcoming Webinar "${webinarTitle}" - CatalystCare`,
     followUp : `Thank You for Attending "${webinarTitle}" - CatalystCare`
 }) 
+
+
+export const organizationOnboardingSubjects = (orgName: string) => ({
+  onboardingInitiated: `Your Request for ${orgName} is being Processed - CatalystCare`,
+
+  adminInternalNotification: `New Organization Onboarding Request: ${orgName}`,
+
+  onboardingApproved: `Your Organization ${orgName} is Approved - Next Steps Inside`,
+
+  planCreated: `Complete Your Payment to Activate Your Custom Plan for ${orgName} - CatalystCare`,
+
+  paymentPending: `Action Required: Complete Payment for ${orgName} - CatalystCare`,
+
+  paymentReceived: `Payment Received for ${orgName} - CatalystCare`,
+
+  onboardingCompleted: `${orgName} is Now Live on CatalystCare 🚀`,
+
+  onboardingRejected: `Update on Your Onboarding Request for ${orgName}`,
+
+  followUp: `Need Help Completing Onboarding for ${orgName}?`,
+  
+  activated : `Welcome Aboard, ${orgName}! Your Plan is Now Active 🎉 CatalystCare!`,
+
+  adminInvite: `You've Been Invited to Manage ${orgName} on Catalyst Care`,
+}); 

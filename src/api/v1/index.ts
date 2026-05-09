@@ -11,6 +11,7 @@ import healthRoutes from './health/health.routes';
 import paymentRoutes from './payments/payments.routes';
 import emailRoutes from "./email/email.routes";
 import organizationRoutes from "./organizations/index";
+import aiRoutes from "./ai/ai.routes";
 
 import { authorizeRoles } from "../../shared/middlewares/rbac";
 import { authenticate } from "../../shared/middlewares/authenticatation";
@@ -30,6 +31,7 @@ router.use('/client',clientRoutes);
 router.use('/health',healthRoutes);
 router.use('/payments',paymentRoutes);
 router.use('/email',emailRoutes);
+router.use('/ai', aiRoutes);
 // router.use('/chat',chatRoutes);
 
 

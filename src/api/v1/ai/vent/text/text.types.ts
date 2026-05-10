@@ -15,7 +15,7 @@ export interface VentSession {
 export interface LLMResponse {
   valid: boolean;
   reply?: string;
-  message?: string; 
+  message?: string; // returned when valid=false
 }
 
 export interface VentTextRequest {
@@ -24,7 +24,6 @@ export interface VentTextRequest {
 }
 
 export interface VentTextResponse {
-  success: boolean;
   sessionId: string;
   reply: string;
   isValid: boolean;

@@ -6,7 +6,7 @@ import { VentContextService } from "./text.service";
 import { VentLLMService } from "./text.llm.service";
 import { VentPersistenceService } from "./text.persistence";
 // import { createRedisRateLimiter } from "../middleware/rateLimiter";
-// import { authenticateJWT } from "../middleware/auth"; // your existing middleware
+import { authenticate } from '../../../../../shared/middlewares/authenticatation';
 
 export function createVentRouter(redis: Redis, prisma: PrismaClient): Router {
   const router = Router();
@@ -22,8 +22,8 @@ export function createVentRouter(redis: Redis, prisma: PrismaClient): Router {
 //     keyPrefix: "vent:text",
 //   });
 
-//   router.use(authenticateJWT);
-  router.post("/text", controller.ventText);
+  router.use(authenticate);
+  router.post("/message", controller.ventText);
   router.delete("/session/:sessionId", controller.clearSession);
 
   return router;

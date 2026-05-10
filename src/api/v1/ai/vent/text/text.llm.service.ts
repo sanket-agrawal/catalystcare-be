@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import { callGroq, safeParseJSON, GroqMessage } from "../../../../../infrastructure/groq";
 import { LLMResponse } from "./text.types";
 
 const BASE_SYSTEM_PROMPT = `You are Manasi, a compassionate AI companion on an Indian mental wellness platform. Your role is to provide a safe, non-judgmental space for users to express their feelings freely.
@@ -10,10 +10,10 @@ FIRST, assess if the user's message is meaningfully related to:
 - Life situations, personal struggles, self-worth
 - Sleep, motivation, burnout, loneliness
 
-If NOT related (e.g. code, trivia, homework), respond ONLY with:
+If NOT related (e.g. code, trivia, homework), respond ONLY with this JSON:
 {"valid": false, "message": "I'm here to support your emotional wellbeing. Feel free to share what's on your mind."}
 
-If VALID, respond ONLY with:
+If VALID, respond ONLY with this JSON:
 {"valid": true, "reply": "<your_response_here>"}
 
 Guidelines for reply:
@@ -21,11 +21,16 @@ Guidelines for reply:
 - Be culturally aware — Indian family pressure, career stress, societal expectations are common
 - Ask ONE thoughtful follow-up question
 - Never diagnose or give medical advice
-- If crisis/self-harm is mentioned, gently suggest a therapist on the platform
-- 3–6 sentences. Respond in same language as user (Hindi/Hinglish/English)
-- You are Manasi. Never reveal you are an AI.
+- If crisis or self-harm is mentioned, gently suggest a therapist on the platform
+- Determine response language ONLY from the latest user message in this request.
+- Ignore conversation history language for language selection.
+- If latest message is clearly English, reply in English only.
+- If latest message is clearly Hindi, reply in Hindi only.
+- If latest message is mixed Hinglish, reply in Hinglish.
+- If ambiguous, default to English.
+- Never switch language unless the latest user message indicates it.
 
-CRITICAL: Single valid JSON object only. No markdown, no preamble.`;
+CRITICAL: Your entire response must be a single valid JSON object. No markdown, no preamble, nothing outside the JSON.`;
 
 function buildSystemPrompt(userSummary: string | null): string {
   if (!userSummary) return BASE_SYSTEM_PROMPT;
@@ -33,47 +38,41 @@ function buildSystemPrompt(userSummary: string | null): string {
 
 --- WHAT YOU KNOW ABOUT THIS USER (from prior conversations) ---
 ${userSummary}
---- Use this to feel continuous and caring. Don't reference it directly unless it feels natural. ---`;
+--- Use this to feel continuous and caring. Don't reference it directly unless natural. ---`;
 }
 
 export class VentLLMService {
-  private client: OpenAI;
-  private model: string;
-
-  constructor() {
-    this.client = new OpenAI({
-      apiKey: process.env.GROQ_API_KEY!,
-      baseURL: "https://api.groq.com/openai/v1",
-    });
-    this.model = process.env.GROQ_MODEL ?? "llama-3.1-8b-instant";
-  }
-
   async processVentMessage(
     userMessage: string,
-    conversationHistory: { role: "user" | "assistant"; content: string }[],
+    conversationHistory: Pick<GroqMessage, "role" | "content">[],
     userSummary: string | null = null
   ): Promise<LLMResponse> {
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    const messages: GroqMessage[] = [
       { role: "system", content: buildSystemPrompt(userSummary) },
-      ...conversationHistory,
+      // conversationHistory roles are already "user" | "assistant" — cast is safe
+      ...(conversationHistory as GroqMessage[]),
       { role: "user", content: userMessage },
     ];
 
-    const completion = await this.client.chat.completions.create({
-      model: this.model,
-      messages,
-      temperature: 0.7,
-      max_tokens: 512,
-      response_format: { type: "json_object" },
-    });
-
-    const raw = completion.choices[0]?.message?.content ?? "{}";
-
     try {
-      const parsed = JSON.parse(raw) as LLMResponse;
-      if (typeof parsed.valid !== "boolean") throw new Error("Invalid shape");
+      const raw = await callGroq({
+        model: "llama-3.1-8b-instant",
+        messages,
+        temperature: 0.7,
+        max_tokens: 512,
+        response_format: { type: "json_object" },
+      });
+
+      const parsed = safeParseJSON<LLMResponse>(raw);
+
+      if (typeof parsed.valid !== "boolean") {
+        throw new Error("Unexpected LLM response shape");
+      }
+
       return parsed;
-    } catch {
+    } catch (err) {
+      // Log but don't crash the request — return a safe fallback
+      console.error("[VentLLMService] processVentMessage error:", err);
       return {
         valid: true,
         reply:

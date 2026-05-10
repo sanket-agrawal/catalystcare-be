@@ -5,6 +5,8 @@ import { VentContextService } from "./text.service";
 import { VentLLMService } from "./text.llm.service";
 import { VentPersistenceService } from "./text.persistence";
 import { VentMessage, VentTextResponse } from "./text.types";
+import ApiResponse from "../../../../../shared/utils/ApiResponse";
+import ApiError from "../../../../../shared/utils/ApiError";
 
 export class VentController {
   constructor(
@@ -20,11 +22,7 @@ export class VentController {
     try {
       const parsed = VentTextSchema.safeParse(req.body);
       if (!parsed.success) {
-        res.status(400).json({
-          success: false,
-          error: "Validation failed",
-          details: parsed.error.flatten().fieldErrors,
-        });
+        res.status(400).json(new ApiResponse(false,400,"Validation failed",parsed.error.flatten().fieldErrors));
         return;
       }
 
@@ -59,15 +57,19 @@ export class VentController {
         : (llmResponse.message ?? "I'm here for your emotional wellbeing. Feel free to share what's on your mind.");
 
       const response: VentTextResponse = {
-        success: true,
         sessionId,
         reply,
         isValid: llmResponse.valid,
       };
 
-      res.status(200).json(response);
+      res.status(200).json(new ApiResponse(true, 200,"Vent Reply Successfully",response));
     } catch (error) {
-      next(error);
+       console.log('Fetching vent response failed', error);
+              if(error instanceof ApiError){
+                  res.status(error.statusCode).json(new ApiResponse(false, error.statusCode,error.message));
+              }else{
+                  res.status(500).json(new ApiResponse(false, 500,"Something went wrong while fetching vent response"));
+              }
     }
   };
 

@@ -58,7 +58,7 @@ export class VentPersistenceService {
     const lastMsgMap = new Map(lastMessages.map((m) => [m.sessionId,String(m.content)]));
 
     return sessions.map((s) => {
-      const firstMsg = s.messages[0]?.content ?? "New conversation";
+      const firstMsg = String(s.messages[0]?.content ?? "New conversation");
       return {
         sessionId: s.id,
         title: firstMsg.slice(0, 60) + (firstMsg.length > 60 ? "..." : ""),

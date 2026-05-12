@@ -1,8 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import OpenAI from "openai";
-import {callGroq} from "../../../../../infrastructure/groq/index";
+import { callGroq } from "../../../../../infrastructure/groq/index";
+import { VentSessionPreview } from "./text.types";
 
-const SUMMARY_TRIGGER_EVERY_N = 10; // regenerate summary every 10 new messages
+const SUMMARY_TRIGGER_EVERY_N = 10;
 
 const SUMMARY_SYSTEM_PROMPT = `You are a clinical assistant helping a mental wellness AI maintain a compassionate memory of a user.
 
@@ -18,100 +18,173 @@ Rules:
 
 export class VentPersistenceService {
   constructor(private prisma: PrismaClient) {}
- 
-  /**
-   * Persist a user+assistant message pair to Postgres.
-   * Increments the summary counter and triggers re-summarization when threshold is hit.
-   */
+
+  // ─── Session Management ────────────────────────────────────────
+
+  async createSession(userId: string): Promise<{ sessionId: string }> {
+    const session = await this.prisma.ventSession.create({
+      data: { userId },
+    });
+    return { sessionId: session.id };
+  }
+
+  async getUserSessions(userId: string): Promise<VentSessionPreview[]> {
+    const sessions = await this.prisma.ventSession.findMany({
+      where: { userId, isActive: true },
+      orderBy: { lastActiveAt: "desc" },
+      take: 30,
+      include: {
+        messages: {
+          orderBy: { createdAt: "asc" },
+          take: 1,    // first message = title
+          select: { content: true, role: true },
+        },
+        _count: { select: { messages: true } },
+      },
+    });
+
+    // Fetch last message separately for preview
+    const sessionIds = sessions.map((s) => s.id);
+    const lastMessages = await this.prisma.ventMessage.findMany({
+      where: {
+        sessionId: { in: sessionIds },
+        role: "assistant", // show last AI reply as preview
+      },
+      orderBy: { createdAt: "desc" },
+      distinct: ["sessionId"],
+      select: { sessionId: true, content: true },
+    });
+
+    const lastMsgMap = new Map(lastMessages.map((m) => [m.sessionId, m.content]));
+
+    return sessions.map((s) => {
+      const firstMsg = s.messages[0]?.content ?? "New conversation";
+      return {
+        sessionId: s.id,
+        title: firstMsg.slice(0, 60) + (firstMsg.length > 60 ? "..." : ""),
+        preview: (lastMsgMap.get(s.id) ?? "").slice(0, 80),
+        lastActiveAt: s.lastActiveAt,
+        startedAt: s.startedAt,
+        messageCount: s._count.messages,
+      };
+    });
+  }
+
+  async getSessionMessages(
+    userId: string,
+    sessionId: string
+  ): Promise<{ role: string; content: string; createdAt: Date }[]> {
+    // Verify session belongs to user
+    const session = await this.prisma.ventSession.findFirst({
+      where: { id: sessionId, userId },
+    });
+    if (!session) throw new Error("Session not found");
+
+    return this.prisma.ventMessage.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: "asc" },
+      select: { role: true, content: true, createdAt: true },
+    });
+  }
+
+  async deleteSession(userId: string, sessionId: string): Promise<void> {
+    // Soft delete — keeps data, removes from user's list
+    await this.prisma.ventSession.updateMany({
+      where: { id: sessionId, userId },
+      data: { isActive: false },
+    });
+  }
+
+  async verifySessionOwner(userId: string, sessionId: string): Promise<boolean> {
+    const session = await this.prisma.ventSession.findFirst({
+      where: { id: sessionId, userId, isActive: true },
+      select: { id: true },
+    });
+    return !!session;
+  }
+
+  // ─── Messaging ─────────────────────────────────────────────────
+
   async persistMessages(
     userId: string,
     sessionId: string,
     userMessage: string,
     assistantReply: string
   ): Promise<void> {
-    // Upsert the session row
-    await this.prisma.ventSession.upsert({
+    await this.prisma.ventSession.update({
       where: { id: sessionId },
-      create: { id: sessionId, userId },
-      update: { lastActiveAt: new Date(), isActive: true },
+      data: { lastActiveAt: new Date() },
     });
- 
-    // Insert both messages in one query
+
     await this.prisma.ventMessage.createMany({
       data: [
         { sessionId, role: "user", content: userMessage },
         { sessionId, role: "assistant", content: assistantReply },
       ],
     });
- 
-    // Increment counter; upsert creates the row on first message
+
     const memory = await this.prisma.userVentMemory.upsert({
       where: { userId },
       create: { userId, summary: "", messagesSinceLastSummary: 2 },
       update: { messagesSinceLastSummary: { increment: 2 } },
     });
- 
+
     if (memory.messagesSinceLastSummary >= SUMMARY_TRIGGER_EVERY_N) {
-      // Fire-and-forget — don't block the HTTP response
       this.regenerateSummary(userId).catch((err) =>
         console.error("[VentPersistenceService] regenerateSummary error:", err)
       );
     }
   }
- 
-  /**
-   * Returns the LLM-generated user memory summary, or null if none exists yet.
-   */
+
   async getUserSummary(userId: string): Promise<string | null> {
     const memory = await this.prisma.userVentMemory.findUnique({
       where: { userId },
       select: { summary: true },
     });
-    // Return null if empty string (no summary generated yet)
     return memory?.summary || null;
   }
- 
-  /**
-   * Fetches the most recent `limit` messages across all sessions for a user.
-   * Used to seed Redis on a cache miss (cross-session continuity).
-   */
+
   async getRecentMessages(
     userId: string,
+    sessionId: string,   // scope to current session only
     limit = 20
   ): Promise<{ role: "user" | "assistant"; content: string }[]> {
     const messages = await this.prisma.ventMessage.findMany({
-      where: { session: { userId } },
+      where: { sessionId, session: { userId } },
       orderBy: { createdAt: "desc" },
       take: limit,
       select: { role: true, content: true },
     });
- 
-    // Reverse so messages are oldest-first (correct order for LLM context)
+
     return messages
       .reverse()
       .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
   }
- 
-  /**
-   * Calls Groq to regenerate the rolling summary from recent message history.
-   * Merges with existing summary so no context is lost across summarization runs.
-   */
+
   private async regenerateSummary(userId: string): Promise<void> {
-    const [recentMessages, currentMemory] = await Promise.all([
-      this.getRecentMessages(userId, 40),
-      this.prisma.userVentMemory.findUnique({ where: { userId } }),
-    ]);
- 
+    // Pull from all sessions for the summary (cross-session memory)
+    const recentMessages = await this.prisma.ventMessage.findMany({
+      where: { session: { userId } },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+      select: { role: true, content: true },
+    });
+
     if (!recentMessages.length) return;
- 
+
+    const currentMemory = await this.prisma.userVentMemory.findUnique({
+      where: { userId },
+    });
+
     const conversationText = recentMessages
+      .reverse()
       .map((m) => `${m.role === "user" ? "User" : "Manasi"}: ${m.content}`)
       .join("\n");
- 
+
     const userPrompt = currentMemory?.summary
       ? `Existing summary:\n${currentMemory.summary}\n\nNew conversation to incorporate:\n${conversationText}`
       : `Conversation:\n${conversationText}`;
- 
+
     const newSummary = await callGroq({
       messages: [
         { role: "system", content: SUMMARY_SYSTEM_PROMPT },
@@ -119,17 +192,13 @@ export class VentPersistenceService {
       ],
       temperature: 0.3,
       max_tokens: 300,
-      // No json_object here — summary is plain text
     });
- 
+
     if (!newSummary.trim()) return;
- 
+
     await this.prisma.userVentMemory.update({
       where: { userId },
-      data: {
-        summary: newSummary.trim(),
-        messagesSinceLastSummary: 0,
-      },
+      data: { summary: newSummary.trim(), messagesSinceLastSummary: 0 },
     });
   }
 }

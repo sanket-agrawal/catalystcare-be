@@ -5,8 +5,7 @@ import { VentController } from "./text.controller";
 import { VentContextService } from "./text.service";
 import { VentLLMService } from "./text.llm.service";
 import { VentPersistenceService } from "./text.persistence";
-// import { createRedisRateLimiter } from "../middleware/rateLimiter";
-import { authenticate } from '../../../../../shared/middlewares/authenticatation';
+import { authenticate } from "../../../../../shared/middlewares/authenticatation";
 
 export function createVentRouter(redis: Redis, prisma: PrismaClient): Router {
   const router = Router();
@@ -16,18 +15,16 @@ export function createVentRouter(redis: Redis, prisma: PrismaClient): Router {
   const llmService = new VentLLMService();
   const controller = new VentController(contextService, llmService, persistenceService);
 
-//   const ventRateLimiter = createRedisRateLimiter(redis, {
-//     windowSeconds: 60,
-//     maxRequests: 30,
-//     keyPrefix: "vent:text",
-//   });
-
   router.use(authenticate);
-  router.post("/message", controller.ventText);
-  router.delete("/session/:sessionId", controller.clearSession);
+
+  // Session management
+  router.post("/sessions", controller.createSession);           // create new chat
+  router.get("/sessions", controller.getSessions);              // list all chats
+  router.get("/sessions/:sessionId", controller.getSessionMessages); // open a chat
+  router.delete("/sessions/:sessionId", controller.deleteSession);   // delete a chat
+
+  // Messaging
+  router.post("/message", controller.ventText);                 // send message
 
   return router;
 }
-
-// Mount in app.ts:
-// app.use("/api/v1/extension/vent", createVentRouter(redisClient, prisma));

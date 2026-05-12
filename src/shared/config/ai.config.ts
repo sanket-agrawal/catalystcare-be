@@ -12,7 +12,7 @@ export const aiConfig = {
 
 export const groqConfig = {
   apiUrl : "https://api.groq.com/openai/v1/chat/completions",
-  textModel : process.env.GROQ_API_KEY,
-  apiKey : process.env.GROQ_TEXT_MODEL,
+  textModel : process.env.GROQ_TEXT_MODEL,
+  apiKey : process.env.GROQ_API_KEY,
   timeoutMs : 15000,
 }

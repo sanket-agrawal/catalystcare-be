@@ -34,7 +34,7 @@ export async function callGroq(options: GroqRequestOptions): Promise<string> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error("GROQ_API_KEY is not set");
 
-  const model = options.model ?? process.env.GROQ_MODEL ?? "llama-3.1-8b-instant";
+  const model = options.model ?? groqConfig.textModel ?? "llama-3.3-70b-versatile";
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), GROQ_TIMEOUT_MS);

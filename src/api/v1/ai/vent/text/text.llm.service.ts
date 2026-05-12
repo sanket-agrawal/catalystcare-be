@@ -1,3 +1,4 @@
+import { groqConfig } from "../../../../../shared/config/ai.config";
 import { callGroq, safeParseJSON, GroqMessage } from "../../../../../infrastructure/groq";
 import { LLMResponse } from "./text.types";
 
@@ -56,7 +57,7 @@ export class VentLLMService {
 
     try {
       const raw = await callGroq({
-        model: "llama-3.1-8b-instant",
+        model: groqConfig.model,
         messages,
         temperature: 0.7,
         max_tokens: 512,

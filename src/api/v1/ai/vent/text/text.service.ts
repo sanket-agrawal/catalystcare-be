@@ -20,34 +20,31 @@ export class VentContextService {
    * Redis hit  → return immediately.
    * Redis miss → seed from Postgres (cross-session continuity).
    */
-  async getContextMessages(
-    userId: string,
-    sessionId: string
-  ): Promise<{ role: "user" | "assistant"; content: string }[]> {
-    const key = this.getKey(userId, sessionId);
-    const raw = await this.redis.get(key);
- 
-    if (raw) {
-      const session = JSON.parse(raw) as VentSession;
-      return session.messages.map(({ role, content }) => ({ role, content }));
-    }
- 
-    // Cache miss — pull from Postgres and seed Redis
-    const pgMessages = await this.persistence.getRecentMessages(userId, MAX_CONTEXT_MESSAGES);
- 
-    if (pgMessages.length > 0) {
-      const session: VentSession = {
-        sessionId,
-        userId,
-        messages: pgMessages.map((m) => ({ ...m, timestamp: Date.now() })),
-        createdAt: Date.now(),
-        lastActiveAt: Date.now(),
-      };
-      await this.redis.setex(key, CONTEXT_TTL_SECONDS, JSON.stringify(session));
-    }
- 
-    return pgMessages;
+  async getContextMessages(userId: string, sessionId: string) {
+  const key = this.getKey(userId, sessionId);
+  const raw = await this.redis.get(key);
+
+  if (raw) {
+    const session = JSON.parse(raw) as VentSession;
+    return session.messages.map(({ role, content }) => ({ role, content }));
   }
+
+  // Cache miss — seed from THIS session's Postgres messages only
+  const pgMessages = await this.persistence.getRecentMessages(userId, sessionId); // ← pass sessionId
+
+  if (pgMessages.length > 0) {
+    const session: VentSession = {
+      sessionId,
+      userId,
+      messages: pgMessages.map((m) => ({ ...m, timestamp: Date.now() })),
+      createdAt: Date.now(),
+      lastActiveAt: Date.now(),
+    };
+    await this.redis.setex(key, CONTEXT_TTL_SECONDS, JSON.stringify(session));
+  }
+
+  return pgMessages;
+}
  
   async appendMessages(
     userId: string,

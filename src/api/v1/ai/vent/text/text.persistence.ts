@@ -62,7 +62,7 @@ export class VentPersistenceService {
       return {
         sessionId: s.id,
         title: firstMsg.slice(0, 60) + (firstMsg.length > 60 ? "..." : ""),
-        preview: (lastMsgMap.get(s.id) ?? "").slice(0, 80),
+        preview: String(lastMsgMap.get(s.id) ?? "").slice(0, 80),
         lastActiveAt: s.lastActiveAt,
         startedAt: s.startedAt,
         messageCount: s._count.messages,
@@ -70,22 +70,28 @@ export class VentPersistenceService {
     });
   }
 
-  async getSessionMessages(
-    userId: string,
-    sessionId: string
-  ): Promise<{ role: string; content: string; createdAt: Date }[]> {
-    // Verify session belongs to user
-    const session = await this.prisma.ventSession.findFirst({
-      where: { id: sessionId, userId },
-    });
-    if (!session) throw new Error("Session not found");
+async getSessionMessages(
+  userId: string,
+  sessionId: string
+): Promise<{ role: string; content: string; createdAt: Date }[]> {
+  const session = await this.prisma.ventSession.findFirst({
+    where: { id: sessionId, userId },
+  });
+  if (!session) throw new Error("Session not found");
 
-    return this.prisma.ventMessage.findMany({
-      where: { sessionId },
-      orderBy: { createdAt: "asc" },
-      select: { role: true, content: true, createdAt: true },
-    });
-  }
+  const messages = await this.prisma.ventMessage.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: "asc" },
+    select: { role: true, content: true, createdAt: true },
+  });
+
+  // Cast content explicitly since Prisma infers it as unknown
+  return messages.map((m) => ({
+    role: String(m.role),
+    content: String(m.content),
+    createdAt: m.createdAt,
+  }));
+}
 
   async deleteSession(userId: string, sessionId: string): Promise<void> {
     // Soft delete — keeps data, removes from user's list

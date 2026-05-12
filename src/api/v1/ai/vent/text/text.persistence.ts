@@ -55,7 +55,7 @@ export class VentPersistenceService {
       select: { sessionId: true, content: true },
     });
 
-    const lastMsgMap = new Map(lastMessages.map((m) => [m.sessionId, m.content]));
+    const lastMsgMap = new Map(lastMessages.map((m) => [m.sessionId,String(m.content)]));
 
     return sessions.map((s) => {
       const firstMsg = s.messages[0]?.content ?? "New conversation";

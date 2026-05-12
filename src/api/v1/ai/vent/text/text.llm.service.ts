@@ -57,7 +57,7 @@ export class VentLLMService {
 
     try {
       const raw = await callGroq({
-        model: groqConfig.model,
+        model: groqConfig.textModel,
         messages,
         temperature: 0.7,
         max_tokens: 512,

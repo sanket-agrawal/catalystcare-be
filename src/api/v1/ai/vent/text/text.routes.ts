@@ -28,3 +28,4 @@ export function createVentRouter(redis: Redis, prisma: PrismaClient): Router {
 
   return router;
 }
+

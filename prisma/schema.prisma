@@ -47,12 +47,22 @@ model User {
 
   ventSessions        VentSession[]
   ventMemory          UserVentMemory?
+
+  isExtensionUser     Boolean           @default(false) @map("is_extension_user")
+  accountType         AccountType       @default(EXTENSION_ONLY) @map("account_type")
+
+   extensionUsage    ExtensionUsage?
   
-
-
   @@map("users")
   @@index([email])
 }
+
+enum AccountType {
+  EXTENSION_ONLY    // signed up via extension, no platform profile yet
+  PLATFORM          // signed up via platform directly  
+  FULL              // has both — either upgraded or was platform user who used extension
+}
+
 
 enum AuthProvider {
   LOCAL
@@ -1276,3 +1286,15 @@ model UserVentMemory {
 
   @@map("user_vent_memories")
 }
+
+model ExtensionUsage {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageCount    Int      @default(0) @map("message_count")
+  resetAt         DateTime? @map("reset_at")  // for monthly resets on paid plans
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("extension_usage")
+}
+

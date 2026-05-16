@@ -1,6 +1,7 @@
 import { Redis } from "ioredis";
 import { VentMessage, VentSession } from "./text.types";
 import { VentPersistenceService } from "./text.persistence";
+import { decryptContent, encryptContent } from "../../../../../infrastructure/crypto/vent.crypto";
 
 const CONTEXT_TTL_SECONDS = 60 * 60 * 6; // 6h — Redis is cache; Postgres is source of truth
 const MAX_CONTEXT_MESSAGES = 20;
@@ -25,12 +26,18 @@ export class VentContextService {
   const raw = await this.redis.get(key);
 
   if (raw) {
-    const session = JSON.parse(raw) as VentSession;
-    return session.messages.map(({ role, content }) => ({ role, content }));
+    try {
+      const session = JSON.parse(decryptContent(raw)) as VentSession;
+      return session.messages.map(({ role, content }) => ({ role, content }));
+    } catch {
+      // Stale or malformed cache — delete and fall through to Postgres
+      console.warn(`[VentContextService] Corrupt Redis key ${key}, re-seeding from Postgres`);
+      await this.redis.del(key);
+    }
   }
 
-  // Cache miss — seed from THIS session's Postgres messages only
-  const pgMessages = await this.persistence.getRecentMessages(userId, sessionId); // ← pass sessionId
+  // Cache miss or corrupt key — seed from Postgres
+  const pgMessages = await this.persistence.getRecentMessages(userId, sessionId);
 
   if (pgMessages.length > 0) {
     const session: VentSession = {
@@ -40,7 +47,7 @@ export class VentContextService {
       createdAt: Date.now(),
       lastActiveAt: Date.now(),
     };
-    await this.redis.setex(key, CONTEXT_TTL_SECONDS, JSON.stringify(session));
+    await this.redis.setex(key, CONTEXT_TTL_SECONDS, encryptContent(JSON.stringify(session)));
   }
 
   return pgMessages;
@@ -55,9 +62,15 @@ export class VentContextService {
     const raw = await this.redis.get(key);
     const now = Date.now();
  
-    const session: VentSession = raw
-      ? (JSON.parse(raw) as VentSession)
-      : { sessionId, userId, messages: [], createdAt: now, lastActiveAt: now };
+    const session: VentSession = (() => {
+  if (!raw) return { sessionId, userId, messages: [], createdAt: now, lastActiveAt: now };
+  try {
+    return JSON.parse(decryptContent(raw)) as VentSession;
+  } catch {
+    console.warn(`[VentContextService] Corrupt Redis key on append, starting fresh`);
+    return { sessionId, userId, messages: [], createdAt: now, lastActiveAt: now };
+  }
+})();
  
     session.messages.push(...messages);
     session.lastActiveAt = now;
@@ -67,7 +80,7 @@ export class VentContextService {
       session.messages = session.messages.slice(-MAX_CONTEXT_MESSAGES);
     }
  
-    await this.redis.setex(key, CONTEXT_TTL_SECONDS, JSON.stringify(session));
+    await this.redis.setex(key, CONTEXT_TTL_SECONDS,  encryptContent(JSON.stringify(session)));
   }
  
   async deleteSession(userId: string, sessionId: string): Promise<void> {

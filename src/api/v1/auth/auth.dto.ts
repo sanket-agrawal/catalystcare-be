@@ -44,7 +44,8 @@ export type RegisterUserInput = {
   email: string;
   password: string;
   mobileNumber : string;
-  role? : UserRole
+  role? : UserRole;
+  source?: "platform" | "extension"; 
 }
 
 export type verifyOTPInput = {

@@ -6,6 +6,7 @@ import { VentPersistenceService } from "./text.persistence";
 import { VentMessage, VentTextResponse } from "./text.types";
 import ApiResponse from "../../../../../shared/utils/ApiResponse";
 import ApiError from "../../../../../shared/utils/ApiError";
+import { INDIAN_HELPLINES } from "./text.helplines";
 
 export class VentController {
   constructor(
@@ -75,14 +76,19 @@ export class VentController {
         return;
       }
 
-      const [history, userSummary] = await Promise.all([
+      const [history, userSummary, userName] = await Promise.all([
         this.contextService.getContextMessages(userId, sessionId),
         this.persistenceService.getUserSummary(userId),
+         this.persistenceService.getUserFirstName(userId),
       ]);
 
-      const llmResponse = await this.llmService.processVentMessage(message, history, userSummary);
+      const llmResponse = await this.llmService.processVentMessage(message, history, userSummary, userName);
 
-      if (llmResponse.valid && llmResponse.reply) {
+      const isCrisis = llmResponse.isCrisis ?? false;
+
+      const shouldStore = llmResponse.valid;
+
+      if (shouldStore && llmResponse.reply) {
         const newMessages: VentMessage[] = [
           { role: "user", content: message, timestamp: Date.now() },
           { role: "assistant", content: llmResponse.reply, timestamp: Date.now() },
@@ -98,7 +104,15 @@ export class VentController {
         ? llmResponse.reply!
         : (llmResponse.message ?? "I'm here for your emotional wellbeing. Feel free to share what's on your mind.");
 
-      const response: VentTextResponse = { sessionId, reply, isValid: llmResponse.valid };
+      const response: VentTextResponse = {
+  sessionId,
+  reply: llmResponse.valid
+    ? llmResponse.reply!
+    : (llmResponse.message ?? "I'm here for your emotional wellbeing."),
+  isValid: llmResponse.valid,
+  isCrisis,
+  helplines: isCrisis ? INDIAN_HELPLINES : undefined,
+};
       res.status(200).json(new ApiResponse(true, 200, "Vent Reply Successfully", response));
     } catch (error) {
       console.error("Fetching vent response failed", error);

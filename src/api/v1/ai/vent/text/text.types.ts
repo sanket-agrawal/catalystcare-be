@@ -16,6 +16,7 @@ export interface LLMResponse {
   valid: boolean;
   reply?: string;
   message?: string;
+  isCrisis?: boolean; 
 }
 
 export interface VentTextRequest {
@@ -27,6 +28,8 @@ export interface VentTextResponse {
   sessionId: string;
   reply: string;
   isValid: boolean;
+  isCrisis: boolean;    // new — FE uses this to show helpline UI
+  helplines?: Helpline[]; // new — only present when isCrisis true
 }
 
 export interface VentSessionPreview {
@@ -36,4 +39,10 @@ export interface VentSessionPreview {
   lastActiveAt: Date;
   startedAt: Date;
   messageCount: number;
+}
+
+export interface Helpline {
+  name: string;
+  number: string;
+  available: string;
 }

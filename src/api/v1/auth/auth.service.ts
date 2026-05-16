@@ -187,7 +187,8 @@ export const loginService = async (email: string, password: string) => {
       password : true,
       mobileNumber : true,
       role : true,
-      profilePhoto : true
+      profilePhoto : true,
+      isExtensionUser : true
     }
   });
 
@@ -237,7 +238,7 @@ if (user.role === "THERAPIST") {
 
 
   const token = jwt.sign(
-    { id: user.id, email: user.email, phone : user.mobileNumber ,role: user.role, firstName : user.firstName, lastName : user.lastName, profilePhoto : user.profilePhoto, therapistProfileId, clientProfileId },
+    { id: user.id, email: user.email, phone : user.mobileNumber ,role: user.role, firstName : user.firstName, lastName : user.lastName, profilePhoto : user.profilePhoto, therapistProfileId, clientProfileId, isExtensionUser : user.isExtensionUser },
     process.env.JWT_SECRET as string,
     { expiresIn: "7d" }
   );
@@ -252,7 +253,8 @@ if (user.role === "THERAPIST") {
       email: user.email,
       role: user.role,
       isClientProfileFilled,
-      isTherapistProfileFilled
+      isTherapistProfileFilled,
+      isExtensionUser : user.isExtensionUser
     },
   };
 };

@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { callGroq } from "../../../../../infrastructure/groq/index";
 import { VentSessionPreview } from "./text.types";
+import { encryptContent, decryptContent } from "../../../../../infrastructure/crypto/vent.crypto";
 
 const SUMMARY_TRIGGER_EVERY_N = 10;
 
@@ -27,6 +28,14 @@ export class VentPersistenceService {
     });
     return { sessionId: session.id };
   }
+
+  async getUserFirstName(userId: string): Promise<string | null> {
+  const user = await this.prisma.user.findUnique({
+    where: { id: userId },
+    select: { firstName: true },
+  });
+  return user?.firstName ?? null;
+}
 
   async getUserSessions(userId: string): Promise<VentSessionPreview[]> {
     const sessions = await this.prisma.ventSession.findMany({
@@ -58,16 +67,25 @@ export class VentPersistenceService {
     const lastMsgMap = new Map(lastMessages.map((m) => [m.sessionId,String(m.content)]));
 
     return sessions.map((s) => {
-      const firstMsg = String(s.messages[0]?.content ?? "New conversation");
-      return {
-        sessionId: s.id,
-        title: firstMsg.slice(0, 60) + (firstMsg.length > 60 ? "..." : ""),
-        preview: String(lastMsgMap.get(s.id) ?? "").slice(0, 80),
-        lastActiveAt: s.lastActiveAt,
-        startedAt: s.startedAt,
-        messageCount: s._count.messages,
-      };
-    });
+  const rawFirst = String(s.messages[0]?.content ?? "");
+  const firstMsg = rawFirst
+    ? (() => { try { return decryptContent(rawFirst); } catch { return rawFirst; } })()
+    : "New conversation";
+
+  const rawPreview = lastMsgMap.get(s.id) ?? "";
+  const previewText = rawPreview
+    ? (() => { try { return decryptContent(rawPreview); } catch { return rawPreview; } })()
+    : "";
+
+  return {
+    sessionId: s.id,
+    title: firstMsg.slice(0, 60) + (firstMsg.length > 60 ? "..." : ""),
+    preview: previewText.slice(0, 80),
+    lastActiveAt: s.lastActiveAt,
+    startedAt: s.startedAt,
+    messageCount: s._count.messages,
+  };
+});
   }
 
 async getSessionMessages(
@@ -88,7 +106,7 @@ async getSessionMessages(
   // Cast content explicitly since Prisma infers it as unknown
   return messages.map((m) => ({
     role: String(m.role),
-    content: String(m.content),
+    content: decryptContent(String(m.content)),
     createdAt: m.createdAt,
   }));
 }
@@ -124,8 +142,8 @@ async getSessionMessages(
 
     await this.prisma.ventMessage.createMany({
       data: [
-        { sessionId, role: "user", content: userMessage },
-        { sessionId, role: "assistant", content: assistantReply },
+        { sessionId, role: "user", content: encryptContent(userMessage) },
+        { sessionId, role: "assistant", content: encryptContent(assistantReply) },
       ],
     });
 
@@ -142,13 +160,19 @@ async getSessionMessages(
     }
   }
 
-  async getUserSummary(userId: string): Promise<string | null> {
-    const memory = await this.prisma.userVentMemory.findUnique({
-      where: { userId },
-      select: { summary: true },
-    });
-    return memory?.summary || null;
+async getUserSummary(userId: string): Promise<string | null> {
+  const memory = await this.prisma.userVentMemory.findUnique({
+    where: { userId },
+    select: { summary: true },
+  });
+  if (!memory?.summary) return null;
+  try {
+    return decryptContent(memory.summary);
+  } catch {
+    // handles existing unencrypted rows during transition
+    return memory.summary;
   }
+}
 
   async getRecentMessages(
     userId: string,
@@ -164,7 +188,7 @@ async getSessionMessages(
 
     return messages
       .reverse()
-      .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+      .map((m) => ({ role: m.role as "user" | "assistant", content: decryptContent(String(m.content)) }));
   }
 
   private async regenerateSummary(userId: string): Promise<void> {
@@ -202,9 +226,12 @@ async getSessionMessages(
 
     if (!newSummary.trim()) return;
 
-    await this.prisma.userVentMemory.update({
-      where: { userId },
-      data: { summary: newSummary.trim(), messagesSinceLastSummary: 0 },
-    });
+   await this.prisma.userVentMemory.update({
+  where: { userId },
+  data: {
+    summary: encryptContent(newSummary.trim()),
+    messagesSinceLastSummary: 0,
+  },
+});
   }
 }

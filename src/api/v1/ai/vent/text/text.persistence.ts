@@ -38,19 +38,21 @@ export class VentPersistenceService {
 }
 
   async getUserSessions(userId: string): Promise<VentSessionPreview[]> {
-    const sessions = await this.prisma.ventSession.findMany({
-      where: { userId, isActive: true },
-      orderBy: { lastActiveAt: "desc" },
-      take: 30,
-      include: {
-        messages: {
-          orderBy: { createdAt: "asc" },
-          take: 1,    // first message = title
-          select: { content: true, role: true },
-        },
-        _count: { select: { messages: true } },
-      },
-    });
+   const sessions = await this.prisma.ventSession.findMany({
+  where: { userId, isActive: true },
+  orderBy: { lastActiveAt: "desc" },
+  take: 30,
+  include: {
+    messages: {
+      orderBy: { createdAt: "asc" },
+      take: 1,
+      select: { content: true, role: true },
+    },
+    _count: { select: { messages: true } },
+  },
+});
+
+
 
     // Fetch last message separately for preview
     const sessionIds = sessions.map((s) => s.id);
@@ -64,15 +66,16 @@ export class VentPersistenceService {
       select: { sessionId: true, content: true },
     });
 
-    const lastMsgMap = new Map(lastMessages.map((m) => [m.sessionId,String(m.content)]));
+    const lastMsgMap = new Map(lastMessages.map((m) => [m.sessionId, String(m.content)]));
 
-    return sessions.map((s) => {
-  const rawFirst = String(s.messages[0]?.content ?? "");
+
+return sessions.map((s) => {
+  const rawFirst = String(s.messages[0]?.content ?? "");  // String() already there ✓
   const firstMsg = rawFirst
     ? (() => { try { return decryptContent(rawFirst); } catch { return rawFirst; } })()
     : "New conversation";
 
-  const rawPreview = lastMsgMap.get(s.id) ?? "";
+  const rawPreview = String(lastMsgMap.get(s.id) ?? "");  // add String() here
   const previewText = rawPreview
     ? (() => { try { return decryptContent(rawPreview); } catch { return rawPreview; } })()
     : "";

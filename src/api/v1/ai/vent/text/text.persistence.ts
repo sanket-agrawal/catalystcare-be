@@ -39,7 +39,7 @@ export class VentPersistenceService {
 
   async getUserSessions(userId: string): Promise<VentSessionPreview[]> {
    const sessions = await this.prisma.ventSession.findMany({
-  where: { userId, isActive: true },
+  where: { userId, isActive: true, messages: { some: {} },},
   orderBy: { lastActiveAt: "desc" },
   take: 30,
   include: {

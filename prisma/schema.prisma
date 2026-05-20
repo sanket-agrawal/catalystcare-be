@@ -49,7 +49,7 @@ model User {
   ventMemory          UserVentMemory?
 
   isExtensionUser     Boolean           @default(false) @map("is_extension_user")
-  accountType         AccountType       @default(EXTENSION_ONLY) @map("account_type")
+  accountType         AccountType       @default(PLATFORM) @map("account_type")
 
    extensionUsage    ExtensionUsage?
   

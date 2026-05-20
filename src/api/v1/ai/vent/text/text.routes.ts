@@ -15,7 +15,8 @@ export function createVentRouter(redis: Redis, prisma: PrismaClient): Router {
   const llmService = new VentLLMService();
   const controller = new VentController(contextService, llmService, persistenceService);
 
-  router.use(authenticate);
+  // router.use(authenticate);
+
 
   // Session management
   router.post("/sessions", controller.createSession);           // create new chat

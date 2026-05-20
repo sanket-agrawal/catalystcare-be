@@ -171,7 +171,7 @@ export const verifyOTPService = async (data : verifyOTPInput) => {
   }
 };
 
-export const loginService = async (email: string, password: string) => {
+export const loginService = async (email: string, password: string, source : string) => {
   if(email == 'admin@catalystcare.in'){
     throw new ApiError(400,'Insufficient Permission')
   }
@@ -213,15 +213,34 @@ export const loginService = async (email: string, password: string) => {
     throw new ApiError(401, "Invalid password");
   }
 
-    await prisma.user.update({
-    where: { id: user.id },
-    data: { lastLogin: new Date() },
-  });
-
   let isClientProfileFilled = false;
 let isTherapistProfileFilled = false;
 let therapistProfileId =  null;
 let clientProfileId = null;
+// let updatedUser = null;
+
+// if(source == 'EXTENSION' && !user.isExtensionUser){
+//  updatedUser = await prisma.user.update({
+//   where : {id : user.id},
+//   data : {isExtensionUser : true, accountType : "FULL"}
+//  });
+// }
+
+// if(source == 'PLATFORM' && user.isExtensionUser){
+//    updatedUser = await prisma.user.update({
+//     where : {id : user.id},
+//     data : {isExtensionUser : true, accountType : "FULL"}
+//   });
+// }
+
+    const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: { 
+      lastLogin: new Date(),
+      ...(source === 'EXTENSION' && !user.isExtensionUser ? { isExtensionUser: true, accountType : "FULL" } : {}),
+      ...(source === 'PLATFORM' && user.isExtensionUser ? { isExtensionUser: true, accountType : "FULL" } : {})
+     },
+  });
 
 if (user.role === "CLIENT") {
   const clientProfile = await prisma.clientProfile.findUnique({ where: { userId: user.id } });
@@ -238,7 +257,7 @@ if (user.role === "THERAPIST") {
 
 
   const token = jwt.sign(
-    { id: user.id, email: user.email, phone : user.mobileNumber ,role: user.role, firstName : user.firstName, lastName : user.lastName, profilePhoto : user.profilePhoto, therapistProfileId, clientProfileId, isExtensionUser : user.isExtensionUser },
+    { id: user.id, email: user.email, phone : user.mobileNumber ,role: user.role, firstName : user.firstName, lastName : user.lastName, profilePhoto : user.profilePhoto, therapistProfileId, clientProfileId, isExtensionUser : updatedUser.isExtensionUser },
     process.env.JWT_SECRET as string,
     { expiresIn: "7d" }
   );
@@ -254,7 +273,7 @@ if (user.role === "THERAPIST") {
       role: user.role,
       isClientProfileFilled,
       isTherapistProfileFilled,
-      isExtensionUser : user.isExtensionUser
+      isExtensionUser : updatedUser.isExtensionUser
     },
   };
 };

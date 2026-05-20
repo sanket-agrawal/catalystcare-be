@@ -48,9 +48,9 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, source } = req.body;
 
-    const result = await loginService(email, password);
+    const result = await loginService(email, password, source);
 
     res
       .status(200)

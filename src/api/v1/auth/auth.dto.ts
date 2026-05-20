@@ -17,6 +17,16 @@ export const registerUserSchema = z.object({
     .optional(),
 });
 
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .email("Invalid email format")
+    .transform((s) => s.trim()),
+  password: z.string().max(100),
+  source : z.enum(["PLATFORM", "EXTENSION"]).default("PLATFORM"),
+});
+
+
 export const verifyOTPSchema = z.object({
     firstName: z
     .string()

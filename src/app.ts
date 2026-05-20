@@ -11,12 +11,15 @@ import { registerRepeatableJobs } from "./infrastructure/jobs/daily-jobs";
 import connectMongoDB from "./infrastructure/mongodb/index";
 import { register } from "./infrastructure/monitoring/metrics";
 import { httpMetricsMiddleware } from "./infrastructure/monitoring/http-metrics";
+import { invalidJsonHandler } from "./shared/middlewares/invalidJson";
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.use(invalidJsonHandler);
 // Relaxed CSP so Swagger UI can run inline scripts/styles. Tighten if docs are dev-only.
 app.use(
   helmet({

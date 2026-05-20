@@ -1,23 +1,25 @@
-// src/middlewares/invalidJson.middleware.ts
-
+import ApiResponse from "../utils/ApiResponse";
 import { NextFunction, Request, Response } from "express";
 
+interface JsonSyntaxError extends SyntaxError {
+  status?: number;
+  body?: unknown;
+}
+
 export const invalidJsonHandler = (
-  err: any,
+  err: JsonSyntaxError,
   _req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  // Handle invalid JSON errors from express.json()
   if (
     err instanceof SyntaxError &&
-    "body" in err &&
-    err.status === 400
+    err.status === 400 &&
+    "body" in err
   ) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid JSON payload",
-    });
+    return res
+            .status(400)
+            .json(new ApiResponse(false, 400, "Invalid JSON payload"));
   }
 
   next(err);

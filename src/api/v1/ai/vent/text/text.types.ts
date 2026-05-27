@@ -16,7 +16,8 @@ export interface LLMResponse {
   valid: boolean;
   reply?: string;
   message?: string;
-  isCrisis?: boolean; 
+  isCrisis?: boolean;
+  suggestTherapy?: boolean;
 }
 
 export interface VentTextRequest {
@@ -28,8 +29,10 @@ export interface VentTextResponse {
   sessionId: string;
   reply: string;
   isValid: boolean;
-  isCrisis: boolean;    // new — FE uses this to show helpline UI
-  helplines?: Helpline[]; // new — only present when isCrisis true
+  isCrisis: boolean;    // FE uses this to show helpline UI
+  helplines?: Helpline[]; // only present when isCrisis true
+  suggestTherapy: boolean; // true when AI thinks user should consider professional therapy
+  platformUrl?: string;    // CatalystCare URL — included when therapy is suggested
 }
 
 export interface VentSessionPreview {

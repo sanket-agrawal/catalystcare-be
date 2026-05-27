@@ -7,6 +7,7 @@ import { VentMessage, VentTextResponse } from "./text.types";
 import ApiResponse from "../../../../../shared/utils/ApiResponse";
 import ApiError from "../../../../../shared/utils/ApiError";
 import { INDIAN_HELPLINES } from "./text.helplines";
+import { frontendConfig } from "../../../../../shared/config/frontend.config";
 
 export class VentController {
   constructor(
@@ -85,6 +86,7 @@ export class VentController {
       const llmResponse = await this.llmService.processVentMessage(message, history, userSummary, userName);
 
       const isCrisis = llmResponse.isCrisis ?? false;
+      const suggestTherapy = isCrisis ?  false  : llmResponse.suggestTherapy ?? false;
 
       const shouldStore = llmResponse.valid;
 
@@ -100,19 +102,19 @@ export class VentController {
         ]);
       }
 
-      const reply = llmResponse.valid
-        ? llmResponse.reply!
-        : (llmResponse.message ?? "I'm here for your emotional wellbeing. Feel free to share what's on your mind.");
+      const platformUrl = frontendConfig.therapistListingPage || "https://catalystcare.com/therapists";
 
       const response: VentTextResponse = {
-  sessionId,
-  reply: llmResponse.valid
-    ? llmResponse.reply!
-    : (llmResponse.message ?? "I'm here for your emotional wellbeing."),
-  isValid: llmResponse.valid,
-  isCrisis,
-  helplines: isCrisis ? INDIAN_HELPLINES : undefined,
-};
+        sessionId,
+        reply: llmResponse.valid
+          ? llmResponse.reply!
+          : (llmResponse.message ?? "I'm here for your emotional wellbeing."),
+        isValid: llmResponse.valid,
+        isCrisis,
+        helplines: isCrisis ? INDIAN_HELPLINES : undefined,
+        suggestTherapy,
+        platformUrl: suggestTherapy ? platformUrl : undefined,
+      };
       res.status(200).json(new ApiResponse(true, 200, "Vent Reply Successfully", response));
     } catch (error) {
       console.error("Fetching vent response failed", error);

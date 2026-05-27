@@ -12,3 +12,6 @@ fi
 
 echo "Running tests..."
 npm test
+
+echo "Verifying production build..."
+npm run build

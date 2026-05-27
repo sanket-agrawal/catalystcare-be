@@ -9,7 +9,7 @@ import {
   AssessmentResult,
   AnswerPayload,
   calculateAssessmentScore,
-  interpretScale
+  interpretScale,
 } from "../../../../shared/lib/scoring";
 import { generateResultsEmailHTML } from "../../../../shared/email-templates/result";
 import { zoneInsights } from "../../../../shared/lib/assessment.scoring";
@@ -24,27 +24,25 @@ interface CreateAssessmentInput {
   description?: string;
   icon?: string;
   poster?: string;
-  verifiedBy? : string;
-  targetAudience? : string[];
-  guidelines : AssessmentGuidelines,
-  minTime? : number,
-  maxTime? : number,
-  numberOfStatements? : number
+  verifiedBy?: string;
+  targetAudience?: string[];
+  guidelines: AssessmentGuidelines;
+  minTime?: number;
+  maxTime?: number;
+  numberOfStatements?: number;
 }
-
-
 
 interface UpdateAssessmentInput {
   title?: string;
   description?: string;
   icon?: string;
   poster?: string;
-    verifiedBy? : string;
-  targetAudience? : string[];
-  guidelines? : AssessmentGuidelines,
-  minTime? : number,
-  maxTime? : number,
-  numberOfStatements? : number
+  verifiedBy?: string;
+  targetAudience?: string[];
+  guidelines?: AssessmentGuidelines;
+  minTime?: number;
+  maxTime?: number;
+  numberOfStatements?: number;
 }
 
 export interface AssessmentAnswerPayload {
@@ -54,7 +52,7 @@ export interface AssessmentAnswerPayload {
 }
 
 export interface SubmitAssessmentPayload {
-  slug : string;
+  slug: string;
   email: string;
   answers: AssessmentAnswerPayload[];
 }
@@ -77,12 +75,12 @@ export const assessmentService = {
         description: data.description,
         icon: data.icon,
         poster: data.poster,
-        verifiedBy : data.verifiedBy,
-        targetAudience : data.targetAudience,
-        guidelines : data.guidelines,
-          minTime : data.minTime,
-          maxTime : data.maxTime,
-          numberOfStatements : data.numberOfStatements,
+        verifiedBy: data.verifiedBy,
+        targetAudience: data.targetAudience,
+        guidelines: data.guidelines as any,
+        minTime: data.minTime,
+        maxTime: data.maxTime,
+        numberOfStatements: data.numberOfStatements,
         slug,
         isActive: false, // created as DRAFT
       },
@@ -98,10 +96,7 @@ export const assessmentService = {
 
     // Slug immutability after publish
     if (assessment.isActive && data.title) {
-      throw new ApiError(
-        400,
-        "Published assessment title cannot be changed"
-      );
+      throw new ApiError(400, "Published assessment title cannot be changed");
     }
 
     let slug: string | undefined;
@@ -121,10 +116,12 @@ export const assessmentService = {
       }
     }
 
+    const { guidelines, ...rest } = data;
     return prisma.assessment.update({
       where: { id },
       data: {
-        ...data,
+        ...rest,
+        ...(guidelines && { guidelines: guidelines as any }),
         ...(slug && { slug }),
       },
     });
@@ -145,10 +142,7 @@ export const assessmentService = {
     });
 
     if (activeQuestions === 0) {
-      throw new ApiError(
-        400,
-        "Cannot publish assessment without active questions"
-      );
+      throw new ApiError(400, "Cannot publish assessment without active questions");
     }
 
     return prisma.assessment.update({
@@ -164,7 +158,7 @@ export const assessmentService = {
       throw new ApiError(404, "Assessment not found");
     }
 
-    if(!assessment.isActive) {
+    if (!assessment.isActive) {
       throw new ApiError(400, "Assessment is already unpublished");
     }
 
@@ -178,31 +172,31 @@ export const assessmentService = {
     return prisma.assessment.findMany({
       orderBy: { createdAt: "desc" },
       select: {
-        title : true,
-        id : true,
-        slug : true,
-        isActive : true,
-        createdAt : true,
-        description : true,
-        questions : {
-          orderBy : { order : "asc" },
-          select : {
-            id : true,
-            text : true,
-            order : true,
-            isActive : true,
-            options : {
-              orderBy : { order : "asc" },
-              select : {
-                id : true,
-                label : true,
-                weight : true,
-                order : true
-              }
-            }
-          }
-        }
-      }
+        title: true,
+        id: true,
+        slug: true,
+        isActive: true,
+        createdAt: true,
+        description: true,
+        questions: {
+          orderBy: { order: "asc" },
+          select: {
+            id: true,
+            text: true,
+            order: true,
+            isActive: true,
+            options: {
+              orderBy: { order: "asc" },
+              select: {
+                id: true,
+                label: true,
+                weight: true,
+                order: true,
+              },
+            },
+          },
+        },
+      },
     });
   },
 
@@ -219,9 +213,9 @@ export const assessmentService = {
         zones: true,
         questions: {
           where: { isActive: true },
-          include: { zone : true }
-        }
-      }
+          include: { zone: true },
+        },
+      },
     });
 
     if (!assessment) {
@@ -231,226 +225,216 @@ export const assessmentService = {
     const config = getAssessmentConfig(assessment.slug);
 
     // Maps DB zone keys → assessmentInsights zone keys
-const zoneKeyMap: Record<string, string> = {
-  // relationship-emotional-zones
-  EMOTIONAL_EXPRESSION: "emotional_expression",
-  ATTACHMENT: "attachment_closeness",
-  CONFLICT: "conflict_repair",
-  SUPPORT: "support_care",
-  STRESS_SPILLOVER: "stress_spillover",
+    const zoneKeyMap: Record<string, string> = {
+      // relationship-emotional-zones
+      EMOTIONAL_EXPRESSION: "emotional_expression",
+      ATTACHMENT: "attachment_closeness",
+      CONFLICT: "conflict_repair",
+      SUPPORT: "support_care",
+      STRESS_SPILLOVER: "stress_spillover",
 
-  // stuck-pattern
-  FEAR: "fear",
-  OVERLOAD: "overload",
-  ENERGY: "energy",
-  ATTENTION: "attention",
+      // stuck-pattern
+      FEAR: "fear",
+      OVERLOAD: "overload",
+      ENERGY: "energy",
+      ATTENTION: "attention",
 
-  // emotional-wellbeing-snapshot
-  EMOTIONAL_ENERGY: "emotional_energy",
-  MOOD_STABILITY: "mood_stability",
-  EMOTIONAL_NUMBNESS: "emotional_numbness",
-  OVERWHELM_STRESS: "overwhelm_stress",
-  POSITIVE_ENGAGEMENT: "positive_engagement",
+      // emotional-wellbeing-snapshot
+      EMOTIONAL_ENERGY: "emotional_energy",
+      MOOD_STABILITY: "mood_stability",
+      EMOTIONAL_NUMBNESS: "emotional_numbness",
+      OVERWHELM_STRESS: "overwhelm_stress",
+      POSITIVE_ENGAGEMENT: "positive_engagement",
 
-  // life-load-role-strain
-  ROLE_OVERLOAD: "role_overload",
-  EMOTIONAL_LABOUR: "emotional_labour",
-  TIME_BOUNDARY_STRAIN: "time_boundary_strain",
-  IDENTITY_SELF_LOSS: "identity_self_loss",
-  SUPPORT_SHARED_LOAD: "support_shared_load",
+      // life-load-role-strain
+      ROLE_OVERLOAD: "role_overload",
+      EMOTIONAL_LABOUR: "emotional_labour",
+      TIME_BOUNDARY_STRAIN: "time_boundary_strain",
+      IDENTITY_SELF_LOSS: "identity_self_loss",
+      SUPPORT_SHARED_LOAD: "support_shared_load",
 
-  // burnout-self-check
-  ENERGY_DEPLETION: "energy_depletion",
-  MENTAL_LOAD: "mental_load",
-  DISENGAGEMENT: "disengagement",
-};
-
-    
-
-      const questionMap = new Map(
-        assessment.questions.map(q => [q.id, q])
-      );
-
-      const zoneScores: Record<string, number> = {};
-      const zoneMeta: Record<string, { max: number; title: string }> = {};
-
-       assessment.zones.forEach(z => {
-    zoneScores[z.key] = 0;
-    zoneMeta[z.key] = {
-      max: z.maxRawScore,
-      title: z.title
+      // burnout-self-check
+      ENERGY_DEPLETION: "energy_depletion",
+      MENTAL_LOAD: "mental_load",
+      DISENGAGEMENT: "disengagement",
     };
-  });
 
-for (const answer of data.answers) {
-  const question = questionMap.get(answer.questionId);
-  
-  // Type guard function
-  const hasValidZone = (q: unknown): q is { zone: { key: string }, isReverse?: boolean } => {
-    return (
-      typeof q === 'object' &&
-      q !== null &&
-      'zone' in q &&
-      q.zone !== null &&
-      typeof q.zone === 'object' &&
-      'key' in q.zone
-    );
-  };
-  
-  if (!question || !hasValidZone(question)) {
-    continue;
-  }
+    const questionMap = new Map(assessment.questions.map((q) => [q.id, q]));
 
-  const zoneKey = question.zone.key;
+    const zoneScores: Record<string, number> = {};
+    const zoneMeta: Record<string, { max: number; title: string }> = {};
 
-  let value = answer.optionWeight;
+    assessment.zones.forEach((z) => {
+      zoneScores[z.key] = 0;
+      zoneMeta[z.key] = {
+        max: z.maxRawScore,
+        title: z.title,
+      };
+    });
 
-  if (question.isReverse === true) {
-    value = 4 - value; // GLOBAL STANDARD (0–4)
-  }
+    for (const answer of data.answers) {
+      const question = questionMap.get(answer.questionId);
 
-  zoneScores[zoneKey] += value;
-}
+      // Type guard function
+      const hasValidZone = (q: unknown): q is { zone: { key: string }; isReverse?: boolean } => {
+        return (
+          typeof q === "object" &&
+          q !== null &&
+          "zone" in q &&
+          q.zone !== null &&
+          typeof q.zone === "object" &&
+          "key" in q.zone
+        );
+      };
 
-   const finalScores: Record<string, any> = {};
-  let primaryZone = "";
-  let highestScore = -1;
+      if (!question || !hasValidZone(question)) {
+        continue;
+      }
 
-  // for (const [zoneKey, rawScore] of Object.entries(zoneScores)) {
-  //   const max = zoneMeta[zoneKey].max;
-  //   const scaled = Math.round((rawScore / max) * 100);
+      const zoneKey = question.zone.key;
 
-  //   const label =
-  //     scaled < 30 ? "Not a significant concern" :
-  //     scaled < 50 ? "Mild strain" :
-  //     scaled < 70 ? "Active strain" :
-  //     "Strong strain";
+      let value = answer.optionWeight;
 
-  //   finalScores[zoneKey] = {
-  //     rawScore,
-  //     scaledScore: scaled,
-  //     label
-  //   };
+      if (question.isReverse === true) {
+        value = 4 - value; // GLOBAL STANDARD (0–4)
+      }
 
-  //   if (scaled > highestScore) {
-  //     highestScore = scaled;
-  //     primaryZone = zoneKey;
-  //   }
-  // }
+      zoneScores[zoneKey] += value;
+    }
+
+    const finalScores: Record<string, any> = {};
+    let primaryZone = "";
+    let highestScore = -1;
+
+    // for (const [zoneKey, rawScore] of Object.entries(zoneScores)) {
+    //   const max = zoneMeta[zoneKey].max;
+    //   const scaled = Math.round((rawScore / max) * 100);
+
+    //   const label =
+    //     scaled < 30 ? "Not a significant concern" :
+    //     scaled < 50 ? "Mild strain" :
+    //     scaled < 70 ? "Active strain" :
+    //     "Strong strain";
+
+    //   finalScores[zoneKey] = {
+    //     rawScore,
+    //     scaledScore: scaled,
+    //     label
+    //   };
+
+    //   if (scaled > highestScore) {
+    //     highestScore = scaled;
+    //     primaryZone = zoneKey;
+    //   }
+    // }
 
     for (const [zoneKey, rawScore] of Object.entries(zoneScores)) {
-    const max = zoneMeta[zoneKey].max;
-    const scaled = Math.round((rawScore / max) * 100);
- 
-    // Pull label from config if available, otherwise fall back to generic
-    const band =
-      scaled < 30 ? "0-29" :
-      scaled < 50 ? "30-49" :
-      scaled < 70 ? "50-69" : "70-100";
- 
-    const label =
-      config?.zones[zoneKeyMap[zoneKey]]?.bands[band]?.label ??
-      (scaled < 30 ? "Not a significant concern" :
-       scaled < 50 ? "Mild strain" :
-       scaled < 70 ? "Active strain" :
-       "Strong strain");
+      const max = zoneMeta[zoneKey].max;
+      const scaled = Math.round((rawScore / max) * 100);
 
-       const insightKey = zoneKeyMap[zoneKey] ?? zoneKey.toLowerCase();
-  const zoneContent = getZoneContent(assessment.slug, insightKey, scaled);
+      // Pull label from config if available, otherwise fall back to generic
+      const band = scaled < 30 ? "0-29" : scaled < 50 ? "30-49" : scaled < 70 ? "50-69" : "70-100";
 
- 
-finalScores[zoneKey] = {
-    rawScore,
-    scaledScore: scaled,
-    label,
-    title: zoneMeta[zoneKey].title,
-    insight: zoneContent?.insight ?? null,
-    meaning: zoneContent?.meaning ?? null,
-    direction: zoneContent?.direction ?? null,
-  };
+      const label =
+        config?.zones[zoneKeyMap[zoneKey]]?.bands[band]?.label ??
+        (scaled < 30
+          ? "Not a significant concern"
+          : scaled < 50
+            ? "Mild strain"
+            : scaled < 70
+              ? "Active strain"
+              : "Strong strain");
 
-  if (scaled > highestScore) {
-    highestScore = scaled;
-    primaryZone = zoneKey;
-  }
-  }
+      const insightKey = zoneKeyMap[zoneKey] ?? zoneKey.toLowerCase();
+      const zoneContent = getZoneContent(assessment.slug, insightKey, scaled);
+
+      finalScores[zoneKey] = {
+        rawScore,
+        scaledScore: scaled,
+        label,
+        title: zoneMeta[zoneKey].title,
+        insight: zoneContent?.insight ?? null,
+        meaning: zoneContent?.meaning ?? null,
+        direction: zoneContent?.direction ?? null,
+      };
+
+      if (scaled > highestScore) {
+        highestScore = scaled;
+        primaryZone = zoneKey;
+      }
+    }
 
     const submission = await prisma.assessmentSubmission.create({
-    data: {
-      assessmentId: assessment.id,
-      email: data.email,
-      scores: finalScores,
-      primaryZone
-    }
-  });
+      data: {
+        assessmentId: assessment.id,
+        email: data.email,
+        scores: finalScores,
+        primaryZone,
+      },
+    });
 
-  // Increment counter
-  await prisma.assessment.update({
-    where: { id: assessment.id },
-    data: { totalTakers: { increment: 1 } }
-  });
+    // Increment counter
+    await prisma.assessment.update({
+      where: { id: assessment.id },
+      data: { totalTakers: { increment: 1 } },
+    });
 
-  const zonesForEmail = Object.entries(finalScores).map(
-    ([key, value]: any) => ({
+    const zonesForEmail = Object.entries(finalScores).map(([key, value]: any) => ({
       key,
       configKey: zoneKeyMap[key] ?? key.toLowerCase(), // ← FIX: needed by template for insight lookups
       title: value.title,
       scaledScore: value.scaledScore,
       label: value.label,
-    })
-  );
- 
-  const primaryZoneData = zonesForEmail.find((z) => z.key === primaryZone);
- 
-  if (!primaryZoneData) {
-    throw new ApiError(500, "Primary zone resolution failed");
-  }
+    }));
 
+    const primaryZoneData = zonesForEmail.find((z) => z.key === primaryZone);
 
+    if (!primaryZoneData) {
+      throw new ApiError(500, "Primary zone resolution failed");
+    }
 
-  //     await emailQueue.add("send-assessment-result", {
-  //     to: email,
-  //     subject: emailSubjects(undefined, undefined, assessment.title).assessmentResults,
-  //     html: assessmentResultTemplate({
-  //   assessmentTitle: assessment.title,
-  //   primaryZone: {
-  //     key: primaryZoneData.key,
-  //     title: primaryZoneData.title,
-  //     scaledScore: primaryZoneData.scaledScore,
-  //     label: primaryZoneData.label,
-  //     insight:
-  //       zoneInsights[primaryZoneData.key] ??
-  //       "This area is currently asking for the most care and attention."
-  //   },
-  //   zones: zonesForEmail
-  // }),
-  //     sender: emailFromAddress().infoEmail
-  //   });
+    //     await emailQueue.add("send-assessment-result", {
+    //     to: email,
+    //     subject: emailSubjects(undefined, undefined, assessment.title).assessmentResults,
+    //     html: assessmentResultTemplate({
+    //   assessmentTitle: assessment.title,
+    //   primaryZone: {
+    //     key: primaryZoneData.key,
+    //     title: primaryZoneData.title,
+    //     scaledScore: primaryZoneData.scaledScore,
+    //     label: primaryZoneData.label,
+    //     insight:
+    //       zoneInsights[primaryZoneData.key] ??
+    //       "This area is currently asking for the most care and attention."
+    //   },
+    //   zones: zonesForEmail
+    // }),
+    //     sender: emailFromAddress().infoEmail
+    //   });
 
-  await emailQueue.add("send-assessment-result", {
-    to: email,
-    subject: emailSubjects(undefined, undefined, assessment.title).assessmentResults,
-    html: assessmentResultTemplate({
-      assessmentTitle: assessment.title,
-      assessmentSlug: assessment.slug,
-      primaryZone: {
-        key:         primaryZoneData.key,
-        configKey:   primaryZoneData.configKey, // ← now defined
-        title:       primaryZoneData.title,
-        scaledScore: primaryZoneData.scaledScore,
-        label:       primaryZoneData.label,
-      },
-      zones: zonesForEmail, // ← each zone now carries configKey
-    }),
-    sender: emailFromAddress().infoEmail,
-  });
+    await emailQueue.add("send-assessment-result", {
+      to: email,
+      subject: emailSubjects(undefined, undefined, assessment.title).assessmentResults,
+      html: assessmentResultTemplate({
+        assessmentTitle: assessment.title,
+        assessmentSlug: assessment.slug,
+        primaryZone: {
+          key: primaryZoneData.key,
+          configKey: primaryZoneData.configKey, // ← now defined
+          title: primaryZoneData.title,
+          scaledScore: primaryZoneData.scaledScore,
+          label: primaryZoneData.label,
+        },
+        zones: zonesForEmail, // ← each zone now carries configKey
+      }),
+      sender: emailFromAddress().infoEmail,
+    });
 
     return {
-    submissionId: submission.id,
-    primaryZone,
-    scores: finalScores
-  };
-
+      submissionId: submission.id,
+      primaryZone,
+      scores: finalScores,
+    };
 
     // Guard against misconfigured assessments (zone required for scoring)
     // const questionsMissingZone = assessment.questions.filter((q) => !q.zone || !(q as any).zone?.key);
@@ -567,26 +551,26 @@ finalScores[zoneKey] = {
     // };
   },
 
-  async fetchSubmissionsById(assessmentId : string){
-    try{
-         const submissions = await prisma.assessmentSubmission.findMany({
-          where : {assessmentId}
-         });
+  async fetchSubmissionsById(assessmentId: string) {
+    try {
+      const submissions = await prisma.assessmentSubmission.findMany({
+        where: { assessmentId },
+      });
 
-         console.log(submissions);
+      console.log(submissions);
 
-         return submissions;
+      return submissions;
     } catch (error) {
       throw new ApiError(500, "Failed to fetch submissions");
     }
-  }
+  },
 };
 
 export interface ZoneResult {
-  key: string;        // internal key (ENERGY, OVERLOAD, etc.)
-  name: string;       // display name
-  score: number;      // 0–100
-  label: string;      // Mild strain, Active blocker, etc.
+  key: string; // internal key (ENERGY, OVERLOAD, etc.)
+  name: string; // display name
+  score: number; // 0–100
+  label: string; // Mild strain, Active blocker, etc.
 }
 
 export interface ResultsEmailData {
@@ -606,9 +590,8 @@ const CONTEXT_BY_ZONE_KEY: Record<string, string> = {
 
   OVERLOAD: "Too many open tasks and decisions are competing for your attention.",
   FEAR: "Fear of mistakes or judgement may be slowing your ability to start.",
-  ATTENTION: "Your attention system feels fragmented and overstimulated."
+  ATTENTION: "Your attention system feels fragmented and overstimulated.",
 };
-
 
 const ADVICE_BY_ZONE_KEY: Record<string, string> = {
   ENERGY: "Prioritise recovery before productivity. Reduce output expectations temporarily.",
@@ -617,12 +600,11 @@ const ADVICE_BY_ZONE_KEY: Record<string, string> = {
 
   OVERLOAD: "Reduce choices. Pick one priority and ignore the rest for now.",
   FEAR: "Lower the stakes. Start imperfectly and allow small progress.",
-  ATTENTION: "Simplify your environment. Reduce digital switching."
+  ATTENTION: "Simplify your environment. Reduce digital switching.",
 };
 
-
 const getSafetyNote = (zones: ZoneResult[]): string | undefined => {
-  const highZones = zones.filter(z => z.score >= 70);
+  const highZones = zones.filter((z) => z.score >= 70);
   if (highZones.length >= 2) {
     return "Strong strain across multiple areas can benefit from professional mental health support.";
   }
@@ -635,22 +617,17 @@ export const buildResultsEmailData = (
   scoreResult: AssessmentResult,
   zoneMeta: Record<string, { name: string }>
 ) => {
-
-  const zones: ZoneResult[] = Object.entries(scoreResult.zones).map(
-    ([key, zoneScore]) => ({
-      key,
-      name: zoneMeta[key]?.name ?? key,
-      score: zoneScore.scaled,
-      label: interpretScale(zoneScore.scaled)
-    })
-  );
+  const zones: ZoneResult[] = Object.entries(scoreResult.zones).map(([key, zoneScore]) => ({
+    key,
+    name: zoneMeta[key]?.name ?? key,
+    score: zoneScore.scaled,
+    label: interpretScale(zoneScore.scaled),
+  }));
 
   // Sort zones by severity (highest score first)
   zones.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
-  const primaryZoneFromKey = zones.find(
-    z => z.key === scoreResult.primaryZone
-  );
+  const primaryZoneFromKey = zones.find((z) => z.key === scoreResult.primaryZone);
 
   const primaryZone = primaryZoneFromKey ?? zones[0];
 
@@ -671,11 +648,9 @@ export const buildResultsEmailData = (
     primaryZone,
     contextExplanation,
     focusAdvice,
-    safetyNote
+    safetyNote,
   };
 };
-
-
 
 // const buildResultsEmailData = (
 //   assessmentTitle: string,
@@ -710,6 +685,3 @@ export const buildResultsEmailData = (
 //     safetyNote: getSafetyNote(zones)
 //   };
 // };
-
-
-

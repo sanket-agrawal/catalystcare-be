@@ -1,48 +1,61 @@
 import ApiError from "../../../../shared/utils/ApiError";
-import {prisma} from '../../../../infrastructure/prisma/client';
-import crypto from 'crypto';
+import { prisma } from "../../../../infrastructure/prisma/client";
+import crypto from "crypto";
 import { razorpayInstance } from "../../../../infrastructure/razorpay";
-import { InitiateRegistrationInput, PaymentStatus, PurchaseType, VerifyPaymentInput, WebinarRegistrationStatus } from "./webinar.dto";
+import {
+  InitiateRegistrationInput,
+  PaymentStatus,
+  PurchaseType,
+  VerifyPaymentInput,
+  WebinarRegistrationStatus,
+} from "./webinar.dto";
 import { emailQueue } from "../../../../infrastructure/queues";
 import { emailFromAddress, webinarEmailSubjects } from "../../../../shared/config/email.config";
-import { clientWebinarConfirmationTemplate, therapistWebinarRegistrationTemplate } from "../../../../shared/email-templates/webinarRegistration";
+import {
+  clientWebinarConfirmationTemplate,
+  therapistWebinarRegistrationTemplate,
+} from "../../../../shared/email-templates/webinarRegistration";
 import { calculateProgramComissions } from "../../../../shared/lib/money";
 // import { WebinarConfirmationJobData, webinarEmailQueue } from "../../../../infrastructure/queues/webinarEmailQueue";
 
-export const fetchWebinarByIdService = async (webinarId : string) => {
+export const fetchWebinarByIdService = async (webinarId: string) => {
   const webinar = await prisma.webinar.findUnique({
-    where : {
-      id : webinarId
+    where: {
+      id: webinarId,
     },
-    select : {
-      id : true,
-      title : true,
-      description : true,
-      bannerUrl : true,
-      startTime : true,
-      endTime : true,
-      price : true,
-      currency : true,
-      status : true
-    }
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      bannerUrl: true,
+      startTime: true,
+      endTime: true,
+      price: true,
+      currency: true,
+      status: true,
+    },
   });
 
-  if(!webinar || webinar.status !== "PUBLISHED"){
-    throw new ApiError(404,"Webinar not found");  
+  if (!webinar || webinar.status !== "PUBLISHED") {
+    throw new ApiError(404, "Webinar not found");
   }
 
   return webinar;
-}
+};
 
-export const initiateWebinarRegistrationService = async (webinarId : string, userEmail : string, userName : string  ) => {
+export const initiateWebinarRegistrationService = async (
+  webinarId: string,
+  userEmail: string,
+  userName: string
+) => {
   const webinar = await prisma.webinar.findUnique({
-    where : {
-      id : webinarId
-    }
+    where: {
+      id: webinarId,
+    },
   });
 
-  if(!webinar || webinar.status !== "PUBLISHED"){
-    throw new ApiError(404,"Webinar not found");  
+  if (!webinar || webinar.status !== "PUBLISHED") {
+    throw new ApiError(404, "Webinar not found");
   }
 
   //   const existing = await prisma.webinarRegistration.findFirst({
@@ -54,96 +67,91 @@ export const initiateWebinarRegistrationService = async (webinarId : string, use
   // });
   // if (existing) throw new ApiError(409,'You are already registered for this webinar')
 
- return handlePaidRegistration(webinar, {
+  return handlePaidRegistration(webinar, {
     guestEmail: userEmail,
     guestName: userName,
   });
-}
-
-
+};
 
 async function handlePaidRegistration(webinar: any, input: InitiateRegistrationInput) {
   // Clean up any stale PENDING_PAYMENT entries for this guest+webinar
   await prisma.webinarRegistration.deleteMany({
     where: {
-      webinarId:  webinar.id,
+      webinarId: webinar.id,
       guestEmail: input.guestEmail,
-      status:     WebinarRegistrationStatus.PENDING_PAYMENT,
+      status: WebinarRegistrationStatus.PENDING_PAYMENT,
     },
   });
 
   // Create Razorpay order
   const orderNotes = {
-    webinarId:  webinar.id,
+    webinarId: webinar.id,
     guestEmail: input.guestEmail,
-    guestName:  input.guestName,
+    guestName: input.guestName,
   };
 
   const now = new Date();
 
-      const commissionRate = await prisma.commissionRate.findFirst({
-            where: {
-              purchaseType : "WEBINAR",
-              effectiveFrom: { lte: now },
-              OR: [
-                { effectiveTo: null },
-                { effectiveTo: { gt: now } }
-              ]
-            },
-            orderBy: { effectiveFrom: 'desc' },
-          });
-  
-          const commission = calculateProgramComissions({
-      amountPaise: webinar.pricePaise,
-      commissionRate: commissionRate
-        ? {
-            id: commissionRate.id,
-            platformPercent: Number(commissionRate.platformPercent),
-            gatewayPercent: Number(commissionRate.gatewayPercent),
-          }
-        : null,
-    });
+  const commissionRate = await prisma.commissionRate.findFirst({
+    where: {
+      purchaseType: "WEBINAR",
+      effectiveFrom: { lte: now },
+      OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+    },
+    orderBy: { effectiveFrom: "desc" },
+  });
+
+  const commission = calculateProgramComissions({
+    amountPaise: webinar.pricePaise,
+    commissionRate: commissionRate
+      ? {
+          id: commissionRate.id,
+          platformPercent: Number(commissionRate.platformPercent),
+          gatewayPercent: Number(commissionRate.gatewayPercent),
+        }
+      : null,
+  });
 
   const order = await razorpayInstance.orders.create({
-    amount:   webinar.pricePaise,
-    currency: webinar.currency ?? 'INR',
-    notes:    orderNotes,
-    receipt:  `wbr_${webinar.id.slice(0, 8)}_${Date.now()}`,
+    amount: webinar.pricePaise,
+    currency: webinar.currency ?? "INR",
+    notes: orderNotes,
+    receipt: `wbr_${webinar.id.slice(0, 8)}_${Date.now()}`,
   });
 
   // Persist pending registration
   const registration = await prisma.webinarRegistration.create({
     data: {
-      webinarId:       webinar.id,
-      guestName:       input.guestName,
-      guestEmail:      input.guestEmail,
-      guestPhone:      input.guestPhone,
-      status:          WebinarRegistrationStatus.PENDING_PAYMENT,
+      webinarId: webinar.id,
+      guestName: input.guestName,
+      guestEmail: input.guestEmail,
+      guestPhone: input.guestPhone,
+      status: WebinarRegistrationStatus.PENDING_PAYMENT,
     },
   });
 
   await prisma.payment.create({
-  data: {
-    webinarRegistrationId: registration.id,
-    razorpayOrderId: order.id,
-    amount: webinar.price,
-    amountPaise: webinar.pricePaise,
-    currency: webinar.currency,
-    bookingType : "WEBINAR",
-    status: "PENDING",
-      ...commission
-  }
-});
+    data: {
+      webinarRegistrationId: registration.id,
+      razorpayOrderId: order.id,
+      amount: webinar.price,
+      amountPaise: webinar.pricePaise,
+      currency: webinar.currency,
+      bookingType: "WEBINAR",
+      status: "PENDING",
+      ...commission,
+    },
+  });
 
   return {
     registrationId: registration.id,
     razorpayOrderId: order.id,
-    razorpayKeyId:   process.env.RAZORPAY_KEY_ID,
-    amountPaise:     webinar.pricePaise,
-    currency:        webinar.currency ?? 'INR',
-    webinarTitle:    webinar.title,
-    guestName:       input.guestName,
-    guestEmail:      input.guestEmail,
+    razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+    amountPaise: webinar.pricePaise,
+    currency: webinar.currency ?? "INR",
+    webinarTitle: webinar.title,
+    guestName: input.guestName,
+    guestEmail: input.guestEmail,
   };
 }
 
@@ -164,24 +172,20 @@ export async function verifyWebinarPayment(input: VerifyPaymentInput) {
     },
   });
 
-  if (!registration) throw new ApiError(404,'Registration not found');
+  if (!registration) throw new ApiError(404, "Registration not found");
   if (registration.status === WebinarRegistrationStatus.CONFIRMED) {
     // Idempotent — already confirmed (e.g. webhook beat us)
-    return { status: 'CONFIRMED', registrationId: registration.id };
+    return { status: "CONFIRMED", registrationId: registration.id };
   }
   if (registration.status !== WebinarRegistrationStatus.PENDING_PAYMENT) {
-    throw new ApiError(400,'Registration is not in a payable state');
+    throw new ApiError(400, "Registration is not in a payable state");
   }
   // if (registration.razorpayOrderId !== input.razorpayOrderId) {
   //   throw new ApiError(400,'Order ID mismatch');
   // }
 
   // 2. Verify Razorpay signature
-  verifyRazorpaySignature(
-    input.razorpayOrderId,
-    input.razorpayPaymentId,
-    input.razorpaySignature
-  );
+  verifyRazorpaySignature(input.razorpayOrderId, input.razorpayPaymentId, input.razorpaySignature);
 
   // 3. Confirm in a transaction
   const webinar = registration.webinar;
@@ -190,56 +194,62 @@ export async function verifyWebinarPayment(input: VerifyPaymentInput) {
     prisma.webinarRegistration.update({
       where: { id: registration.id },
       data: {
-        status:            WebinarRegistrationStatus.CONFIRMED,
+        status: WebinarRegistrationStatus.CONFIRMED,
       },
     }),
 
-   prisma.payment.update({
-    where: { 
-      webinarRegistrationId: registration.id,
-     },
-    data: {
-      status: PaymentStatus.CAPTURED,
-      razorpayPaymentId: input.razorpayPaymentId,
-       capturedAt: new Date(),
-    }
-  }),
-
+    prisma.payment.update({
+      where: {
+        webinarRegistrationId: registration.id,
+      },
+      data: {
+        status: PaymentStatus.CAPTURED,
+        razorpayPaymentId: input.razorpayPaymentId,
+        capturedAt: new Date(),
+      },
+    }),
 
     prisma.webinar.update({
       where: { id: webinar.id },
-      data:  { registrationCount: { increment: 1 } },
+      data: { registrationCount: { increment: 1 } },
     }),
   ]);
 
-
-    await emailQueue.add("client-confirmation-webinar", {
-        to: registration.guestEmail,
-        subject: webinarEmailSubjects(registration.webinar.title).clinetRegistrationConfirmation,
-        html: clientWebinarConfirmationTemplate(
+  await emailQueue.add("client-confirmation-webinar", {
+    to: registration.guestEmail,
+    subject: webinarEmailSubjects(registration.webinar.title).clinetRegistrationConfirmation,
+    html: clientWebinarConfirmationTemplate(
       registration.guestName,
       webinar.title,
-      webinar.startTime.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      webinar.startTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      webinar.startTime.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
+      webinar.startTime.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
       `${webinar.therapist.user.firstName} ${webinar.therapist.user.lastName}`,
-      webinar.meetingLink ?? ''
+      webinar.meetingLink ?? ""
     ),
-        sender: emailFromAddress().infoEmail
-      });
+    sender: emailFromAddress().infoEmail,
+  });
 
-          await emailQueue.add("therapist-confirmation-webinar", {
-        to: registration.webinar.therapist.user.email,
-        subject: webinarEmailSubjects(registration.webinar.title).therapistConfirmation,
-        html: therapistWebinarRegistrationTemplate(
+  await emailQueue.add("therapist-confirmation-webinar", {
+    to: registration.webinar.therapist.user.email,
+    subject: webinarEmailSubjects(registration.webinar.title).therapistConfirmation,
+    html: therapistWebinarRegistrationTemplate(
       registration.guestName,
       webinar.title,
-      webinar.startTime.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      webinar.startTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      webinar.startTime.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
+      webinar.startTime.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
       `${webinar.therapist.user.firstName} ${webinar.therapist.user.lastName}`,
-      webinar.meetingLink ?? ''
+      webinar.meetingLink ?? ""
     ),
-        sender: emailFromAddress().infoEmail
-      });
+    sender: emailFromAddress().infoEmail,
+  });
 
   // 4. Enqueue confirmation email
   // await enqueueConfirmationEmail(
@@ -253,31 +263,28 @@ export async function verifyWebinarPayment(input: VerifyPaymentInput) {
   // logger.info({ registrationId: registration.id }, 'Webinar payment verified and registration confirmed');
 
   return {
-    status:         'CONFIRMED',
+    status: "CONFIRMED",
     registrationId: registration.id,
-    message:        'Payment verified. Check your email for the invite.',
+    message: "Payment verified. Check your email for the invite.",
   };
 }
 
 // ─── Webhook handler (Razorpay → server-side confirmation) ───────────────────
 
-export async function handleRazorpayWebhook(
-  rawBody: Buffer,
-  signature: string
-) {
+export async function handleRazorpayWebhook(rawBody: Buffer, signature: string) {
   // Verify webhook signature
   const expectedSig = crypto
-    .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET!)
+    .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET!)
     .update(rawBody)
-    .digest('hex');
+    .digest("hex");
 
   if (expectedSig !== signature) {
-    throw new ApiError(400,'Invalid webhook signature');
+    throw new ApiError(400, "Invalid webhook signature");
   }
 
   const event = JSON.parse(rawBody.toString());
 
-  if (event.event !== 'payment.captured') return { ignored: true };
+  if (event.event !== "payment.captured") return { ignored: true };
 
   const payment = event.payload?.payment?.entity;
   if (!payment) return { ignored: true };
@@ -286,7 +293,11 @@ export async function handleRazorpayWebhook(
   if (!orderId) return { ignored: true };
 
   const registration = await prisma.webinarRegistration.findFirst({
-    where: { razorpayOrderId: orderId },
+    where: {
+      payment: {
+        razorpayOrderId: orderId,
+      },
+    },
     include: {
       webinar: {
         include: {
@@ -298,8 +309,9 @@ export async function handleRazorpayWebhook(
     },
   });
 
-  if (!registration) return { ignored: true, reason: 'No matching registration' };
-  if (registration.status === WebinarRegistrationStatus.CONFIRMED) return { ignored: true, reason: 'Already confirmed' };
+  if (!registration) return { ignored: true, reason: "No matching registration" };
+  if (registration.status === WebinarRegistrationStatus.CONFIRMED)
+    return { ignored: true, reason: "Already confirmed" };
 
   const webinar = registration.webinar;
 
@@ -307,13 +319,20 @@ export async function handleRazorpayWebhook(
     prisma.webinarRegistration.update({
       where: { id: registration.id },
       data: {
-        status:            WebinarRegistrationStatus.CONFIRMED,
+        status: WebinarRegistrationStatus.CONFIRMED,
+      },
+    }),
+    prisma.payment.update({
+      where: { webinarRegistrationId: registration.id },
+      data: {
+        status: PaymentStatus.CAPTURED,
         razorpayPaymentId: payment.id,
+        capturedAt: new Date(),
       },
     }),
     prisma.webinar.update({
       where: { id: webinar.id },
-      data:  { registrationCount: { increment: 1 } },
+      data: { registrationCount: { increment: 1 } },
     }),
   ]);
 
@@ -332,14 +351,14 @@ export async function handleRazorpayWebhook(
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function verifyRazorpaySignature(orderId: string, paymentId: string, signature: string): void {
-  const body   = `${orderId}|${paymentId}`;
+  const body = `${orderId}|${paymentId}`;
   const expected = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
     .update(body)
-    .digest('hex');
+    .digest("hex");
 
   if (expected !== signature) {
-    throw new ApiError(400,'Payment signature verification failed');
+    throw new ApiError(400, "Payment signature verification failed");
   }
 }
 

@@ -13,24 +13,24 @@ describe("VentController", () => {
   let mockLLMService: any;
   let mockPersistenceService: any;
   let controller: VentController;
-  
+
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
   let mockNext: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockContextService = {
       getContextMessages: vi.fn(),
       appendMessages: vi.fn(),
       deleteSession: vi.fn(),
     };
-    
+
     mockLLMService = {
       processVentMessage: vi.fn(),
     };
-    
+
     mockPersistenceService = {
       createSession: vi.fn(),
       getUserSessions: vi.fn(),
@@ -90,7 +90,14 @@ describe("VentController", () => {
   describe("getSessions", () => {
     it("should fetch user sessions successfully", async () => {
       const mockSessions = [
-        { sessionId: "s1", title: "Vent 1", preview: "hello", lastActiveAt: new Date(), startedAt: new Date(), messageCount: 2 }
+        {
+          sessionId: "s1",
+          title: "Vent 1",
+          preview: "hello",
+          lastActiveAt: new Date(),
+          startedAt: new Date(),
+          messageCount: 2,
+        },
       ];
       mockPersistenceService.getUserSessions.mockResolvedValue(mockSessions);
 
@@ -117,15 +124,16 @@ describe("VentController", () => {
 
   describe("getSessionMessages", () => {
     it("should fetch session messages successfully", async () => {
-      const mockMessages = [
-        { role: "user", content: "hello", createdAt: new Date() }
-      ];
+      const mockMessages = [{ role: "user", content: "hello", createdAt: new Date() }];
       mockReq.params = { sessionId: "session-uuid" };
       mockPersistenceService.getSessionMessages.mockResolvedValue(mockMessages);
 
       await controller.getSessionMessages(mockReq as Request, mockRes as Response, mockNext);
 
-      expect(mockPersistenceService.getSessionMessages).toHaveBeenCalledWith("user-123", "session-uuid");
+      expect(mockPersistenceService.getSessionMessages).toHaveBeenCalledWith(
+        "user-123",
+        "session-uuid"
+      );
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(mockRes.json).toHaveBeenCalledWith(
         new ApiResponse(true, 200, "Messages fetched", mockMessages)
@@ -156,9 +164,7 @@ describe("VentController", () => {
       expect(mockPersistenceService.deleteSession).toHaveBeenCalledWith("user-123", "session-uuid");
       expect(mockContextService.deleteSession).toHaveBeenCalledWith("user-123", "session-uuid");
       expect(mockRes.status).toHaveBeenCalledWith(200);
-      expect(mockRes.json).toHaveBeenCalledWith(
-        new ApiResponse(true, 200, "Session deleted")
-      );
+      expect(mockRes.json).toHaveBeenCalledWith(new ApiResponse(true, 200, "Session deleted"));
     });
 
     it("should handle error during deleting session", async () => {
@@ -198,17 +204,18 @@ describe("VentController", () => {
 
       await controller.ventText(mockReq as Request, mockRes as Response, mockNext);
 
-      expect(mockPersistenceService.verifySessionOwner).toHaveBeenCalledWith("user-123", validSessionId);
-      expect(mockRes.status).toHaveBeenCalledWith(404);
-      expect(mockRes.json).toHaveBeenCalledWith(
-        new ApiResponse(false, 404, "Session not found")
+      expect(mockPersistenceService.verifySessionOwner).toHaveBeenCalledWith(
+        "user-123",
+        validSessionId
       );
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+      expect(mockRes.json).toHaveBeenCalledWith(new ApiResponse(false, 404, "Session not found"));
     });
 
     it("should process normal valid message, save to history/db, and reply successfully", async () => {
       mockReq.body = { message: "I feel anxious", sessionId: validSessionId };
       mockPersistenceService.verifySessionOwner.mockResolvedValue(true);
-      
+
       const mockHistory = [{ role: "user", content: "previous" }];
       mockContextService.getContextMessages.mockResolvedValue(mockHistory);
       mockPersistenceService.getUserSummary.mockResolvedValue("User summary");
@@ -224,10 +231,13 @@ describe("VentController", () => {
 
       await controller.ventText(mockReq as Request, mockRes as Response, mockNext);
 
-      expect(mockContextService.getContextMessages).toHaveBeenCalledWith("user-123", validSessionId);
+      expect(mockContextService.getContextMessages).toHaveBeenCalledWith(
+        "user-123",
+        validSessionId
+      );
       expect(mockPersistenceService.getUserSummary).toHaveBeenCalledWith("user-123");
       expect(mockPersistenceService.getUserFirstName).toHaveBeenCalledWith("user-123");
-      
+
       expect(mockLLMService.processVentMessage).toHaveBeenCalledWith(
         "I feel anxious",
         mockHistory,
@@ -265,13 +275,17 @@ describe("VentController", () => {
     });
 
     it("should suggest therapy when LLM suggestTherapy is true", async () => {
-      mockReq.body = { message: "I've been feeling depressed for weeks", sessionId: validSessionId };
+      mockReq.body = {
+        message: "I've been feeling depressed for weeks",
+        sessionId: validSessionId,
+      };
       mockPersistenceService.verifySessionOwner.mockResolvedValue(true);
       mockContextService.getContextMessages.mockResolvedValue([]);
-      
+
       const mockLLMResponse = {
         valid: true,
-        reply: "It sounds like you have been dealing with this for a while. A therapist could offer deeper support.",
+        reply:
+          "It sounds like you have been dealing with this for a while. A therapist could offer deeper support.",
         isCrisis: false,
         suggestTherapy: true,
       };
@@ -281,10 +295,15 @@ describe("VentController", () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(mockRes.json).toHaveBeenCalledWith(
-        new ApiResponse(true, 200, "Vent Reply Successfully", expect.objectContaining({
-          suggestTherapy: true,
-          platformUrl: expect.stringContaining("catalystcare"),
-        }))
+        new ApiResponse(
+          true,
+          200,
+          "Vent Reply Successfully",
+          expect.objectContaining({
+            suggestTherapy: true,
+            platformUrl: expect.stringContaining("catalystcare"),
+          })
+        )
       );
     });
 
@@ -292,7 +311,7 @@ describe("VentController", () => {
       mockReq.body = { message: "I want to end it all", sessionId: validSessionId };
       mockPersistenceService.verifySessionOwner.mockResolvedValue(true);
       mockContextService.getContextMessages.mockResolvedValue([]);
-      
+
       const mockLLMResponse = {
         valid: true,
         reply: "Please stay safe. Support is available.",
@@ -321,7 +340,7 @@ describe("VentController", () => {
       mockReq.body = { message: "Write a python script", sessionId: validSessionId };
       mockPersistenceService.verifySessionOwner.mockResolvedValue(true);
       mockContextService.getContextMessages.mockResolvedValue([]);
-      
+
       const mockLLMResponse = {
         valid: false,
         message: "I'm here to support your emotional wellbeing.",
@@ -351,20 +370,22 @@ describe("VentController", () => {
     it("should handle ApiError properly", async () => {
       mockReq.body = { message: "Hello", sessionId: validSessionId };
       mockPersistenceService.verifySessionOwner.mockResolvedValue(true);
-      mockContextService.getContextMessages.mockRejectedValue(new ApiError(403, "Forbidden resource"));
+      mockContextService.getContextMessages.mockRejectedValue(
+        new ApiError(403, "Forbidden resource")
+      );
 
       await controller.ventText(mockReq as Request, mockRes as Response, mockNext);
 
       expect(mockRes.status).toHaveBeenCalledWith(403);
-      expect(mockRes.json).toHaveBeenCalledWith(
-        new ApiResponse(false, 403, "Forbidden resource")
-      );
+      expect(mockRes.json).toHaveBeenCalledWith(new ApiResponse(false, 403, "Forbidden resource"));
     });
 
     it("should handle generic errors by returning 500 status", async () => {
       mockReq.body = { message: "Hello", sessionId: validSessionId };
       mockPersistenceService.verifySessionOwner.mockResolvedValue(true);
-      mockContextService.getContextMessages.mockRejectedValue(new Error("Database connection lost"));
+      mockContextService.getContextMessages.mockRejectedValue(
+        new Error("Database connection lost")
+      );
 
       await controller.ventText(mockReq as Request, mockRes as Response, mockNext);
 

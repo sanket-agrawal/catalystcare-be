@@ -1,12 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { Request, Response } from "express";
-import {
-  registerUser,
-  verifyOTP,
-  login,
-  forgotPassword,
-  resetPassword
-} from "./auth.controller";
+import { registerUser, verifyOTP, login, forgotPassword, resetPassword } from "./auth.controller";
 import ApiResponse from "../../../shared/utils/ApiResponse";
 import ApiError from "../../../shared/utils/ApiError";
 
@@ -136,18 +130,19 @@ describe("Auth Controller", () => {
       const mockResult = {
         token: "jwt-token",
         user: { id: 1, email: "test@example.com" },
-        message: "Login successful"
+        message: "Login successful",
       };
       (loginService as any).mockResolvedValue(mockResult);
 
       mockReq.body = {
         email: "test@example.com",
         password: "password123",
+        source: "credentials",
       };
 
       await login(mockReq as Request, mockRes as Response);
 
-      expect(loginService).toHaveBeenCalledWith("test@example.com", "password123");
+      expect(loginService).toHaveBeenCalledWith("test@example.com", "password123", "credentials");
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(ApiResponse).toHaveBeenCalledWith(true, 200, mockResult.message, {
         token: mockResult.token,

@@ -15,7 +15,8 @@
     "prisma:studio": "prisma studio",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -78,6 +79,8 @@
     "eslint": "^9.37.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.8.3",
     "prisma": "^6.16.3",
     "supertest": "^7.0.0",
     "ts-node-dev": "^2.0.0",

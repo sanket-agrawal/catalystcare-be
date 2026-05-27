@@ -155,7 +155,7 @@ describe("VentContextService", () => {
       await contextService.appendMessages("user-1", "session-1", newMessages);
 
       expect(mockRedis.get).toHaveBeenCalledWith("vent:ctx:user-1:session-1");
-      
+
       // The session should be saved with exactly 20 messages (last 20)
       const setexCall = mockRedis.setex.mock.calls[0];
       const encryptedValue = setexCall[2];

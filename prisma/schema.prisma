@@ -48,6 +48,8 @@ model User {
   ventSessions        VentSession[]
   ventMemory          UserVentMemory?
 
+  refreshTokens       RefreshToken[]
+
   isExtensionUser     Boolean           @default(false) @map("is_extension_user")
   accountType         AccountType       @default(PLATFORM) @map("account_type")
 
@@ -1271,6 +1273,7 @@ model VentMessage {
   role      String      // "user" | "assistant"
   content   String
   createdAt DateTime    @default(now()) @map("created_at")
+  isCrisis  Boolean     @default(false) @map("is_crisis")
 
   @@index([sessionId, createdAt])
   @@map("vent_messages")
@@ -1296,5 +1299,18 @@ model ExtensionUsage {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   @@map("extension_usage")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
 }
 

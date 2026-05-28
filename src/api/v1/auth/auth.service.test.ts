@@ -24,7 +24,7 @@ import {
   loginService,
   forgotPasswordService,
   resetPasswordService,
-  verifyForgotPasswordOTPService
+  verifyForgotPasswordOTPService,
 } from "./auth.service";
 import { prisma } from "../../../infrastructure/prisma/client";
 import ApiError from "../../../shared/utils/ApiError";
@@ -49,6 +49,12 @@ vi.mock("../../../infrastructure/prisma/client", () => ({
     },
     therapistProfile: {
       findUnique: vi.fn(),
+    },
+    refreshToken: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
     },
   },
 }));
@@ -107,17 +113,17 @@ describe("Auth Service", () => {
 
       expect(prisma.user.findFirst).toHaveBeenCalledWith({
         where: {
-          OR: [
-            { email: "test@example.com" },
-            { mobileNumber: "1234567890" },
-          ],
+          OR: [{ email: "test@example.com" }, { mobileNumber: "1234567890" }],
         },
       });
       expect(OTPService.generateOTP).toHaveBeenCalledWith("test@example.com");
-      expect(emailQueue.add).toHaveBeenCalledWith("sendOtp", expect.objectContaining({
-        to: "test@example.com",
-        subject: "OTP Verification",
-      }));
+      expect(emailQueue.add).toHaveBeenCalledWith(
+        "sendOtp",
+        expect.objectContaining({
+          to: "test@example.com",
+          subject: "OTP Verification",
+        })
+      );
     });
 
     it("should throw ApiError if email already exists", async () => {
@@ -321,7 +327,9 @@ describe("Auth Service", () => {
       (hashPassword as any).mockResolvedValue("hashed-new-password");
       (prisma.user.update as any).mockResolvedValue({});
 
-      await expect(resetPasswordService(newPassword, confirmPassword, email)).resolves.not.toThrow();
+      await expect(
+        resetPasswordService(newPassword, confirmPassword, email)
+      ).resolves.not.toThrow();
 
       expect(hashPassword).toHaveBeenCalledWith(newPassword);
       expect(prisma.user.update).toHaveBeenCalledWith({
@@ -331,13 +339,17 @@ describe("Auth Service", () => {
     });
 
     it("should throw ApiError for mismatched passwords", async () => {
-      await expect(resetPasswordService("pass1", "pass2", "test@example.com")).rejects.toThrow(ApiError);
+      await expect(resetPasswordService("pass1", "pass2", "test@example.com")).rejects.toThrow(
+        ApiError
+      );
     });
 
     it("should throw ApiError for non-existent user", async () => {
       (prisma.user.findUnique as any).mockResolvedValue(null);
 
-      await expect(resetPasswordService("pass", "pass", "nonexistent@example.com")).rejects.toThrow(ApiError);
+      await expect(resetPasswordService("pass", "pass", "nonexistent@example.com")).rejects.toThrow(
+        ApiError
+      );
     });
   });
 
@@ -357,7 +369,9 @@ describe("Auth Service", () => {
     it("should throw ApiError for invalid OTP", async () => {
       (OTPService.verifyOTP as any).mockRejectedValue(new ApiError(400, "Invalid OTP"));
 
-      await expect(verifyForgotPasswordOTPService("test@example.com", "wrong-otp")).rejects.toThrow(ApiError);
+      await expect(verifyForgotPasswordOTPService("test@example.com", "wrong-otp")).rejects.toThrow(
+        ApiError
+      );
     });
   });
 });

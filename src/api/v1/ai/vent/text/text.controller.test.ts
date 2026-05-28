@@ -258,7 +258,8 @@ describe("VentController", () => {
         "user-123",
         validSessionId,
         "I feel anxious",
-        mockLLMResponse.reply
+        mockLLMResponse.reply,
+        false
       );
 
       expect(mockRes.status).toHaveBeenCalledWith(200);
@@ -321,6 +322,14 @@ describe("VentController", () => {
       mockLLMService.processVentMessage.mockResolvedValue(mockLLMResponse);
 
       await controller.ventText(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockPersistenceService.persistMessages).toHaveBeenCalledWith(
+        "user-123",
+        validSessionId,
+        "I want to end it all",
+        mockLLMResponse.reply,
+        true
+      );
 
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(mockRes.json).toHaveBeenCalledWith(

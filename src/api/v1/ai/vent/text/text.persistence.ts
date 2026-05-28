@@ -30,29 +30,27 @@ export class VentPersistenceService {
   }
 
   async getUserFirstName(userId: string): Promise<string | null> {
-  const user = await this.prisma.user.findUnique({
-    where: { id: userId },
-    select: { firstName: true },
-  });
-  return user?.firstName ?? null;
-}
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true },
+    });
+    return user?.firstName ?? null;
+  }
 
   async getUserSessions(userId: string): Promise<VentSessionPreview[]> {
-   const sessions = await this.prisma.ventSession.findMany({
-  where: { userId, isActive: true, messages: { some: {} },},
-  orderBy: { lastActiveAt: "desc" },
-  take: 30,
-  include: {
-    messages: {
-      orderBy: { createdAt: "asc" },
-      take: 1,
-      select: { content: true, role: true },
-    },
-    _count: { select: { messages: true } },
-  },
-});
-
-
+    const sessions = await this.prisma.ventSession.findMany({
+      where: { userId, isActive: true, messages: { some: {} } },
+      orderBy: { lastActiveAt: "desc" },
+      take: 30,
+      include: {
+        messages: {
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: { content: true, role: true },
+        },
+        _count: { select: { messages: true } },
+      },
+    });
 
     // Fetch last message separately for preview
     const sessionIds = sessions.map((s) => s.id);
@@ -68,51 +66,74 @@ export class VentPersistenceService {
 
     const lastMsgMap = new Map(lastMessages.map((m) => [m.sessionId, String(m.content)]));
 
+    // Fetch if any message in the sessions has isCrisis: true
+    const crisisMessages = await this.prisma.ventMessage.findMany({
+      where: {
+        sessionId: { in: sessionIds },
+        isCrisis: true,
+      },
+      select: { sessionId: true },
+    });
+    const crisisSessionIds = new Set(crisisMessages.map((m) => m.sessionId));
 
-return sessions.map((s) => {
-  const rawFirst = String(s.messages[0]?.content ?? "");  // String() already there ✓
-  const firstMsg = rawFirst
-    ? (() => { try { return decryptContent(rawFirst); } catch { return rawFirst; } })()
-    : "New conversation";
+    return sessions.map((s) => {
+      const rawFirst = String(s.messages[0]?.content ?? ""); // String() already there ✓
+      const firstMsg = rawFirst
+        ? (() => {
+            try {
+              return decryptContent(rawFirst);
+            } catch {
+              return rawFirst;
+            }
+          })()
+        : "New conversation";
 
-  const rawPreview = String(lastMsgMap.get(s.id) ?? "");  // add String() here
-  const previewText = rawPreview
-    ? (() => { try { return decryptContent(rawPreview); } catch { return rawPreview; } })()
-    : "";
+      const rawPreview = String(lastMsgMap.get(s.id) ?? ""); // add String() here
+      const previewText = rawPreview
+        ? (() => {
+            try {
+              return decryptContent(rawPreview);
+            } catch {
+              return rawPreview;
+            }
+          })()
+        : "";
 
-  return {
-    sessionId: s.id,
-    title: firstMsg.slice(0, 60) + (firstMsg.length > 60 ? "..." : ""),
-    preview: previewText.slice(0, 80),
-    lastActiveAt: s.lastActiveAt,
-    startedAt: s.startedAt,
-    messageCount: s._count.messages,
-  };
-});
+      return {
+        sessionId: s.id,
+        title: firstMsg.slice(0, 60) + (firstMsg.length > 60 ? "..." : ""),
+        preview: previewText.slice(0, 80),
+        lastActiveAt: s.lastActiveAt,
+        startedAt: s.startedAt,
+        messageCount: s._count.messages,
+        isCrisis: crisisSessionIds.has(s.id),
+      };
+    });
   }
 
-async getSessionMessages(
-  userId: string,
-  sessionId: string
-): Promise<{ role: string; content: string; createdAt: Date }[]> {
-  const session = await this.prisma.ventSession.findFirst({
-    where: { id: sessionId, userId },
-  });
-  if (!session) throw new Error("Session not found");
+  async getSessionMessages(
+    userId: string,
+    sessionId: string
+  ): Promise<{ role: string; content: string; createdAt: Date; isCrisis: boolean }[]> {
+    const session = await this.prisma.ventSession.findFirst({
+      where: { id: sessionId, userId },
+    });
+    if (!session) throw new Error("Session not found");
 
-  const messages = await this.prisma.ventMessage.findMany({
-    where: { sessionId },
-    orderBy: { createdAt: "asc" },
-    select: { role: true, content: true, createdAt: true },
-  });
+    const messages = await this.prisma.ventMessage.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: "asc" },
+      select: { role: true, content: true, createdAt: true, isCrisis: true },
+    });
 
-  // Cast content explicitly since Prisma infers it as unknown
-  return messages.map((m) => ({
-    role: String(m.role),
-    content: decryptContent(String(m.content)),
-    createdAt: m.createdAt,
-  }));
-}
+    // Cast content explicitly since Prisma infers it as unknown
+    return messages.map((m) => ({
+      role: String(m.role),
+      content: decryptContent(String(m.content)),
+      createdAt: m.createdAt,
+      isCrisis: m.isCrisis,
+    }));
+  }
 
   async deleteSession(userId: string, sessionId: string): Promise<void> {
     // Soft delete — keeps data, removes from user's list
@@ -136,7 +157,8 @@ async getSessionMessages(
     userId: string,
     sessionId: string,
     userMessage: string,
-    assistantReply: string
+    assistantReply: string,
+    isCrisis: boolean = false
   ): Promise<void> {
     await this.prisma.ventSession.update({
       where: { id: sessionId },
@@ -145,8 +167,8 @@ async getSessionMessages(
 
     await this.prisma.ventMessage.createMany({
       data: [
-        { sessionId, role: "user", content: encryptContent(userMessage) },
-        { sessionId, role: "assistant", content: encryptContent(assistantReply) },
+        { sessionId, role: "user", content: encryptContent(userMessage), isCrisis },
+        { sessionId, role: "assistant", content: encryptContent(assistantReply), isCrisis: false },
       ],
     });
 
@@ -163,23 +185,23 @@ async getSessionMessages(
     }
   }
 
-async getUserSummary(userId: string): Promise<string | null> {
-  const memory = await this.prisma.userVentMemory.findUnique({
-    where: { userId },
-    select: { summary: true },
-  });
-  if (!memory?.summary) return null;
-  try {
-    return decryptContent(memory.summary);
-  } catch {
-    // handles existing unencrypted rows during transition
-    return memory.summary;
+  async getUserSummary(userId: string): Promise<string | null> {
+    const memory = await this.prisma.userVentMemory.findUnique({
+      where: { userId },
+      select: { summary: true },
+    });
+    if (!memory?.summary) return null;
+    try {
+      return decryptContent(memory.summary);
+    } catch {
+      // handles existing unencrypted rows during transition
+      return memory.summary;
+    }
   }
-}
 
   async getRecentMessages(
     userId: string,
-    sessionId: string,   // scope to current session only
+    sessionId: string, // scope to current session only
     limit = 20
   ): Promise<{ role: "user" | "assistant"; content: string }[]> {
     const messages = await this.prisma.ventMessage.findMany({
@@ -189,9 +211,10 @@ async getUserSummary(userId: string): Promise<string | null> {
       select: { role: true, content: true },
     });
 
-    return messages
-      .reverse()
-      .map((m) => ({ role: m.role as "user" | "assistant", content: decryptContent(String(m.content)) }));
+    return messages.reverse().map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: decryptContent(String(m.content)),
+    }));
   }
 
   private async regenerateSummary(userId: string): Promise<void> {
@@ -229,12 +252,12 @@ async getUserSummary(userId: string): Promise<string | null> {
 
     if (!newSummary.trim()) return;
 
-   await this.prisma.userVentMemory.update({
-  where: { userId },
-  data: {
-    summary: encryptContent(newSummary.trim()),
-    messagesSinceLastSummary: 0,
-  },
-});
+    await this.prisma.userVentMemory.update({
+      where: { userId },
+      data: {
+        summary: encryptContent(newSummary.trim()),
+        messagesSinceLastSummary: 0,
+      },
+    });
   }
 }

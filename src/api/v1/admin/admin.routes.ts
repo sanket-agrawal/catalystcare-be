@@ -1,42 +1,103 @@
-import express from 'express';
-import { adminController } from './admin.controller';
-import { authorizeRoles } from '../../../shared/middlewares/rbac';
-import { authenticate } from '../../../shared/middlewares/authenticatation';
-import { validateRequest } from '../../../shared/middlewares/validate';
-import { createCommissionRateSchema } from './admin.dto';
-import { fetchAllContactFormSubmissions } from '../../../infrastructure/mongodb/controllers/contact.controller';
-import assessmentRoutes from "./assessments/assessment.route"
+import express from "express";
+import { adminController } from "./admin.controller";
+import { authorizeRoles } from "../../../shared/middlewares/rbac";
+import { authenticate } from "../../../shared/middlewares/authenticatation";
+import { validateRequest } from "../../../shared/middlewares/validate";
+import { createCommissionRateSchema } from "./admin.dto";
+import { fetchAllContactFormSubmissions } from "../../../infrastructure/mongodb/controllers/contact.controller";
+import assessmentRoutes from "./assessments/assessment.route";
 import testimonialRoutes from "./testimonial/testimonail.routes";
-import sessionRoutes from './sessions/session.route';
-import webinarRoutes from './webinars/webinar.routes';
+import sessionRoutes from "./sessions/session.route";
+import webinarRoutes from "./webinars/webinar.routes";
 import organizationRoutes from "./organization/index";
 
 const router = express.Router();
 
-router.post('/login',adminController.adminLogin);
-router.post('/verify-admin-login-otp',adminController.adminVerifyLoginOtp)
-router.get('/therapist-profiles',authenticate, authorizeRoles("ADMIN"),adminController.fetchTherapistProfiles);
-router.patch('/therapist-profiles/:profileId/approve-reject',authenticate, authorizeRoles("ADMIN"),adminController.approveRejectTherapistProfile); 
-router.post('/commission-rate/create',authenticate,authorizeRoles('ADMIN'),validateRequest(createCommissionRateSchema),adminController.createComissionRate);
-router.get('/commission-rates/all',authenticate,authorizeRoles('ADMIN'),adminController.fetchAllCommissionRate);
-router.get('/dashboard',authenticate,authorizeRoles('ADMIN'),adminController.dashboard);
-router.get('/billing-dashboard',authenticate,authorizeRoles('ADMIN'),adminController.billingDashboard)
-router.get('/therapist/vpa/:therapistId',authenticate,authorizeRoles('ADMIN'),adminController.fetchTherapistVPA);
-router.get('/approved-therapist',authenticate,authorizeRoles('ADMIN'),adminController.fetchApprovedTherapist);
-router.get('/email-blast-logs',authenticate,authorizeRoles('ADMIN'),adminController.fetchEmailBlastLogs);
-router.post('/put-on-hold-therapist',authenticate, authorizeRoles("ADMIN"),adminController.putTherapistProfileOnHold);
-router.post('/remove-hold-therapist',authenticate, authorizeRoles("ADMIN"),adminController.removeTherapistProfileHold);
-router.get('/contact-form-submissions',authenticate,authorizeRoles('ADMIN'),fetchAllContactFormSubmissions);
-router.use('/assessments',authenticate,authorizeRoles('ADMIN'),assessmentRoutes);
-router.use('/testimonials',authenticate,authorizeRoles('ADMIN'),testimonialRoutes);
+router.post("/login", adminController.adminLogin);
+router.post("/verify-admin-login-otp", adminController.adminVerifyLoginOtp);
+router.post("/logout", adminController.adminLogout);
+router.get(
+  "/therapist-profiles",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminController.fetchTherapistProfiles
+);
+router.patch(
+  "/therapist-profiles/:profileId/approve-reject",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminController.approveRejectTherapistProfile
+);
+router.post(
+  "/commission-rate/create",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  validateRequest(createCommissionRateSchema),
+  adminController.createComissionRate
+);
+router.get(
+  "/commission-rates/all",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminController.fetchAllCommissionRate
+);
+router.get("/dashboard", authenticate, authorizeRoles("ADMIN"), adminController.dashboard);
+router.get(
+  "/billing-dashboard",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminController.billingDashboard
+);
+router.get(
+  "/therapist/vpa/:therapistId",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminController.fetchTherapistVPA
+);
+router.get(
+  "/approved-therapist",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminController.fetchApprovedTherapist
+);
+router.get(
+  "/email-blast-logs",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminController.fetchEmailBlastLogs
+);
+router.post(
+  "/put-on-hold-therapist",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminController.putTherapistProfileOnHold
+);
+router.post(
+  "/remove-hold-therapist",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminController.removeTherapistProfileHold
+);
+router.get(
+  "/contact-form-submissions",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  fetchAllContactFormSubmissions
+);
+router.use("/assessments", authenticate, authorizeRoles("ADMIN"), assessmentRoutes);
+router.use("/testimonials", authenticate, authorizeRoles("ADMIN"), testimonialRoutes);
 
+router.get(
+  "/program-billings-dashboard",
+  authenticate,
+  authorizeRoles("ADMIN"),
+  adminController.programBillingDashboard
+);
 
-router.get('/program-billings-dashboard',authenticate,authorizeRoles('ADMIN'),adminController.programBillingDashboard);
+router.use("/sessions", authenticate, authorizeRoles("ADMIN"), sessionRoutes);
 
-router.use('/sessions',authenticate,authorizeRoles('ADMIN'),sessionRoutes);
+router.use("/webinars", authenticate, authorizeRoles("ADMIN"), webinarRoutes);
 
-router.use('/webinars',authenticate,authorizeRoles('ADMIN'),webinarRoutes);
-
-router.use('/organizations',authenticate,authorizeRoles('ADMIN'),organizationRoutes);
+router.use("/organizations", authenticate, authorizeRoles("ADMIN"), organizationRoutes);
 
 export default router;

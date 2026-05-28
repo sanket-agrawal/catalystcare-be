@@ -23,7 +23,7 @@ export class VentController {
       const result = await this.persistenceService.createSession(req.user!.id);
       res.status(201).json(new ApiResponse(true, 201, "Session created", result));
     } catch (error) {
-       res.status(404).json(new ApiResponse(false, 400, "Error Creating Session"));
+      res.status(404).json(new ApiResponse(false, 400, "Error Creating Session"));
     }
   };
 
@@ -63,7 +63,11 @@ export class VentController {
     try {
       const parsed = VentTextSchema.safeParse(req.body);
       if (!parsed.success) {
-        res.status(400).json(new ApiResponse(false, 400, "Validation failed", parsed.error.flatten().fieldErrors));
+        res
+          .status(400)
+          .json(
+            new ApiResponse(false, 400, "Validation failed", parsed.error.flatten().fieldErrors)
+          );
         return;
       }
 
@@ -80,13 +84,18 @@ export class VentController {
       const [history, userSummary, userName] = await Promise.all([
         this.contextService.getContextMessages(userId, sessionId),
         this.persistenceService.getUserSummary(userId),
-         this.persistenceService.getUserFirstName(userId),
+        this.persistenceService.getUserFirstName(userId),
       ]);
 
-      const llmResponse = await this.llmService.processVentMessage(message, history, userSummary, userName);
+      const llmResponse = await this.llmService.processVentMessage(
+        message,
+        history,
+        userSummary,
+        userName
+      );
 
       const isCrisis = llmResponse.isCrisis ?? false;
-      const suggestTherapy = isCrisis ?  false  : llmResponse.suggestTherapy ?? false;
+      const suggestTherapy = isCrisis ? false : (llmResponse.suggestTherapy ?? false);
 
       const shouldStore = llmResponse.valid;
 
@@ -98,11 +107,18 @@ export class VentController {
 
         await Promise.all([
           this.contextService.appendMessages(userId, sessionId, newMessages),
-          this.persistenceService.persistMessages(userId, sessionId, message, llmResponse.reply),
+          this.persistenceService.persistMessages(
+            userId,
+            sessionId,
+            message,
+            llmResponse.reply,
+            isCrisis
+          ),
         ]);
       }
 
-      const platformUrl = frontendConfig.therapistListingPage || "https://catalystcare.com/therapists";
+      const platformUrl =
+        frontendConfig.therapistListingPage || "https://catalystcare.com/therapists";
 
       const response: VentTextResponse = {
         sessionId,
@@ -121,7 +137,9 @@ export class VentController {
       if (error instanceof ApiError) {
         res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
       } else {
-        res.status(500).json(new ApiResponse(false, 500, "Something went wrong while fetching vent response"));
+        res
+          .status(500)
+          .json(new ApiResponse(false, 500, "Something went wrong while fetching vent response"));
       }
     }
   };

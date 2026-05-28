@@ -19,6 +19,8 @@ describe("Auth Controller", () => {
     mockRes = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
+      cookie: vi.fn().mockReturnThis(),
+      clearCookie: vi.fn().mockReturnThis(),
     };
     mockNext = vi.fn();
     vi.clearAllMocks();

@@ -2,7 +2,8 @@ import { randomUUID } from "crypto";
 import { Response } from "express";
 import { prisma } from "../../infrastructure/prisma/client";
 
-const REFRESH_TOKEN_EXPIRY_DAYS = 15;
+// const REFRESH_TOKEN_EXPIRY_DAYS = 15;
+const REFRESH_TOKEN_EXPIRY_MINUTES = 10;
 
 /**
  * Generate a refresh token, store it in the database, and return the raw token string.
@@ -10,7 +11,8 @@ const REFRESH_TOKEN_EXPIRY_DAYS = 15;
 export const generateRefreshToken = async (userId: string): Promise<string> => {
   const token = randomUUID();
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
+  // expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
+  expiresAt.setMinutes(expiresAt.getMinutes() + REFRESH_TOKEN_EXPIRY_MINUTES);
 
   await prisma.refreshToken.create({
     data: {
@@ -47,7 +49,8 @@ export const validateAndRotateRefreshToken = async (
   // Rotate: delete old token and create a new one
   const newToken = randomUUID();
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
+  // expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
+  expiresAt.setMinutes(expiresAt.getMinutes() + REFRESH_TOKEN_EXPIRY_MINUTES);
 
   await prisma.$transaction([
     prisma.refreshToken.delete({ where: { id: existing.id } }),
@@ -89,7 +92,8 @@ export const setRefreshTokenCookie = (res: Response, token: string): void => {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000, // 15 days in ms
+    // maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000, // 15 days in ms
+    maxAge: REFRESH_TOKEN_EXPIRY_MINUTES * 60 * 1000, // 10 mins in ms
     path: "/",
   });
 };

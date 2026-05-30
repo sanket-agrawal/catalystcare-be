@@ -17,6 +17,7 @@ import {
   validateAndRotateRefreshToken,
   revokeSingleRefreshToken,
 } from "../../../shared/utils/refreshToken.service";
+import { tokenConfig } from "../../../shared/config/token.config";
 
 export const registerUserService = async (data: RegisterUserInput) => {
   try {
@@ -108,7 +109,7 @@ export const verifyOTPService = async (data: verifyOTPInput) => {
           clientProfileId: clientProfile ? clientProfile.id : null,
         },
         process.env.JWT_SECRET as string,
-        { expiresIn: "7d" }
+        { expiresIn: tokenConfig.accessTokenExpiry }
       );
 
       await emailQueue.add("clientWelcome", {
@@ -152,7 +153,7 @@ export const verifyOTPService = async (data: verifyOTPInput) => {
           role: user.role,
         },
         process.env.JWT_SECRET as string,
-        { expiresIn: "7d" }
+        { expiresIn: tokenConfig.accessTokenExpiry }
       );
 
       // Step 6: Return same structure as loginService
@@ -282,7 +283,7 @@ export const loginService = async (email: string, password: string, source: stri
       isExtensionUser: updatedUser.isExtensionUser,
     },
     process.env.JWT_SECRET as string,
-    { expiresIn: "7d" }
+    { expiresIn: tokenConfig.accessTokenExpiry }
   );
 
   const refreshToken = await generateRefreshToken(user.id);
@@ -412,7 +413,7 @@ export const refreshTokenService = async (refreshToken: string) => {
         isExtensionUser: user.isExtensionUser,
       },
       process.env.JWT_SECRET as string,
-      { expiresIn: "7d" }
+      { expiresIn: tokenConfig.accessTokenExpiry }
     );
 
     return { token, refreshToken: newToken };

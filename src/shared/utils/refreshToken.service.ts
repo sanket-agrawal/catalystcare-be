@@ -90,8 +90,8 @@ export const revokeSingleRefreshToken = async (token: string): Promise<void> => 
 export const setRefreshTokenCookie = (res: Response, token: string): void => {
   res.cookie("refreshToken", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: true,
+    sameSite: "none",
     // maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000, // 15 days in ms
     maxAge: REFRESH_TOKEN_EXPIRY_MINUTES * 60 * 1000, // 10 mins in ms
     path: "/",
@@ -104,8 +104,8 @@ export const setRefreshTokenCookie = (res: Response, token: string): void => {
 export const clearRefreshTokenCookie = (res: Response): void => {
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: true,
+    sameSite: "none",
     path: "/",
   });
 };

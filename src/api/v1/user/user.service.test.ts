@@ -16,6 +16,16 @@ vi.mock("../../../infrastructure/prisma/client", () => ({
     therapistProfile: {
       findUnique: vi.fn(),
     },
+    extensionUsage: {
+      findUnique: vi.fn(),
+    },
+    ventSession: {
+      count: vi.fn(),
+      findFirst: vi.fn(),
+    },
+    userVentMemory: {
+      findUnique: vi.fn(),
+    },
   },
 }));
 
@@ -264,6 +274,132 @@ describe("User Service", () => {
   describe("updateClientProfileService", () => {
     it("should run without throwing since it is currently a no-op", async () => {
       await expect(userService.updateClientProfileService("user-1", {})).resolves.toBeUndefined();
+    });
+  });
+
+  describe("extensionDashboardService", () => {
+    const mockUser = {
+      id: "user-1",
+      email: "user@test.com",
+      firstName: "John",
+      lastName: "Doe",
+      role: "CLIENT" as const,
+    };
+
+    it("should fetch dashboard details successfully when extension usage and venting statistics exist", async () => {
+      const mockUserDetails = {
+        id: "user-1",
+        firstName: "John",
+        lastName: "Doe",
+        email: "user@test.com",
+        role: "CLIENT",
+        profilePhoto: "photo-url",
+        accountType: "EXTENSION_ONLY",
+      };
+
+      const mockExtensionUsage = {
+        messageCount: 15,
+        resetAt: new Date("2026-07-01T00:00:00Z"),
+      };
+
+      const mockLastActiveSession = {
+        lastActiveAt: new Date("2026-06-01T12:00:00Z"),
+      };
+
+      const mockVentMemory = {
+        summary: "John has been feeling stressed recently.",
+      };
+
+      (prisma.user.findUnique as any).mockResolvedValue(mockUserDetails);
+      (prisma.extensionUsage.findUnique as any).mockResolvedValue(mockExtensionUsage);
+      (prisma.ventSession.count as any).mockResolvedValue(5);
+      (prisma.ventSession.findFirst as any).mockResolvedValue(mockLastActiveSession);
+      (prisma.userVentMemory.findUnique as any).mockResolvedValue(mockVentMemory);
+
+      const result = await userService.extensionDashboardService(mockUser);
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: "user-1" },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          role: true,
+          profilePhoto: true,
+          accountType: true,
+        },
+      });
+      expect(prisma.extensionUsage.findUnique).toHaveBeenCalledWith({
+        where: { userId: "user-1" },
+        select: { messageCount: true, resetAt: true },
+      });
+      expect(prisma.ventSession.count).toHaveBeenCalledWith({
+        where: { userId: "user-1" },
+      });
+      expect(prisma.ventSession.findFirst).toHaveBeenCalledWith({
+        where: { userId: "user-1" },
+        orderBy: { lastActiveAt: "desc" },
+        select: { lastActiveAt: true },
+      });
+      expect(prisma.userVentMemory.findUnique).toHaveBeenCalledWith({
+        where: { userId: "user-1" },
+        select: { summary: true },
+      });
+
+      expect(result).toEqual({
+        profile: mockUserDetails,
+        extensionUsage: {
+          messageCount: 15,
+          resetAt: mockExtensionUsage.resetAt,
+        },
+        ventingSummary: {
+          totalSessions: 5,
+          lastActiveAt: mockLastActiveSession.lastActiveAt,
+          reflectionSummary: "John has been feeling stressed recently.",
+        },
+      });
+    });
+
+    it("should fetch dashboard details with default usage/venting values when they do not exist", async () => {
+      const mockUserDetails = {
+        id: "user-1",
+        firstName: "John",
+        lastName: "Doe",
+        email: "user@test.com",
+        role: "CLIENT",
+        profilePhoto: null,
+        accountType: "PLATFORM",
+      };
+
+      (prisma.user.findUnique as any).mockResolvedValue(mockUserDetails);
+      (prisma.extensionUsage.findUnique as any).mockResolvedValue(null);
+      (prisma.ventSession.count as any).mockResolvedValue(0);
+      (prisma.ventSession.findFirst as any).mockResolvedValue(null);
+      (prisma.userVentMemory.findUnique as any).mockResolvedValue(null);
+
+      const result = await userService.extensionDashboardService(mockUser);
+
+      expect(result).toEqual({
+        profile: mockUserDetails,
+        extensionUsage: {
+          messageCount: 0,
+          resetAt: null,
+        },
+        ventingSummary: {
+          totalSessions: 0,
+          lastActiveAt: null,
+          reflectionSummary: null,
+        },
+      });
+    });
+
+    it("should throw a 404 ApiError if the user is not found in database", async () => {
+      (prisma.user.findUnique as any).mockResolvedValue(null);
+
+      await expect(userService.extensionDashboardService(mockUser)).rejects.toThrow(
+        new ApiError(404, "User not found")
+      );
     });
   });
 });

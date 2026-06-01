@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { Request, Response } from "express";
-import { userProfile, updateUserProfile } from "./user.controller";
+import { userProfile, updateUserProfile, extensionDashboard } from "./user.controller";
 import ApiResponse from "../../../shared/utils/ApiResponse";
 import ApiError from "../../../shared/utils/ApiError";
 
@@ -173,6 +173,78 @@ describe("User Controller", () => {
         false,
         500,
         "Something went wrong while fetching user profile"
+      );
+    });
+  });
+
+  describe("extensionDashboard", () => {
+    it("should fetch extension dashboard data successfully and return 200", async () => {
+      const { userService } = await import("./user.service");
+      const mockResult = {
+        profile: { id: "user-1", email: "test@example.com", accountType: "EXTENSION_ONLY" },
+        extensionUsage: { messageCount: 5, resetAt: null },
+        ventingSummary: { totalSessions: 2, lastActiveAt: null, reflectionSummary: "Summary text" },
+      };
+      (userService.extensionDashboardService as any).mockResolvedValue(mockResult);
+
+      mockReq.user = {
+        id: "user-1",
+        email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+        role: "CLIENT",
+      };
+
+      await extensionDashboard(mockReq as Request, mockRes as Response);
+
+      expect(userService.extensionDashboardService).toHaveBeenCalledWith(mockReq.user);
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(ApiResponse).toHaveBeenCalledWith(
+        true,
+        200,
+        "Extension dashboard data fetched successfully",
+        mockResult
+      );
+    });
+
+    it("should handle ApiError from service", async () => {
+      const { userService } = await import("./user.service");
+      const apiError = new ApiError(404, "User not found");
+      (userService.extensionDashboardService as any).mockRejectedValue(apiError);
+
+      mockReq.user = {
+        id: "user-1",
+        email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+        role: "CLIENT",
+      };
+
+      await extensionDashboard(mockReq as Request, mockRes as Response);
+
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+      expect(ApiResponse).toHaveBeenCalledWith(false, 404, "User not found");
+    });
+
+    it("should handle generic errors", async () => {
+      const { userService } = await import("./user.service");
+      (userService.extensionDashboardService as any).mockRejectedValue(new Error("Database error"));
+
+      mockReq.user = {
+        id: "user-1",
+        email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+        role: "CLIENT",
+      };
+
+      await extensionDashboard(mockReq as Request, mockRes as Response);
+
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(ApiResponse).toHaveBeenCalledWith(
+        false,
+        500,
+        "Something went wrong while fetching extension dashboard"
       );
     });
   });

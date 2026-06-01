@@ -172,6 +172,13 @@ export class VentPersistenceService {
       ],
     });
 
+    // Increment extension message usage count
+    await this.prisma.extensionUsage.upsert({
+      where: { userId },
+      create: { userId, messageCount: 1 },
+      update: { messageCount: { increment: 1 } },
+    });
+
     const memory = await this.prisma.userVentMemory.upsert({
       where: { userId },
       create: { userId, summary: "", messagesSinceLastSummary: 2 },
@@ -228,17 +235,44 @@ export class VentPersistenceService {
 
     if (!recentMessages.length) return;
 
+    console.log("[VentPersistenceService] ---- START SUMMARY REGENERATION ----");
+    console.log("[VentPersistenceService] Raw first message from DB:", recentMessages[0].content);
+
     const currentMemory = await this.prisma.userVentMemory.findUnique({
       where: { userId },
     });
 
     const conversationText = recentMessages
       .reverse()
-      .map((m) => `${m.role === "user" ? "User" : "Manasi"}: ${m.content}`)
+      .map((m, idx) => {
+        let decryptedContent = "";
+        try {
+          decryptedContent = decryptContent(String(m.content));
+        } catch {
+          decryptedContent = String(m.content);
+        }
+        if (idx === 0) {
+          console.log("[VentPersistenceService] Decrypted first message:", decryptedContent);
+        }
+        return `${m.role === "user" ? "User" : "Manasi"}: ${decryptedContent}`;
+      })
       .join("\n");
 
-    const userPrompt = currentMemory?.summary
-      ? `Existing summary:\n${currentMemory.summary}\n\nNew conversation to incorporate:\n${conversationText}`
+    let decryptedSummary = "";
+    if (currentMemory?.summary) {
+      console.log("[VentPersistenceService] Raw summary from DB:", currentMemory.summary);
+      try {
+        decryptedSummary = decryptContent(currentMemory.summary);
+      } catch {
+        decryptedSummary = currentMemory.summary;
+      }
+      console.log("[VentPersistenceService] Decrypted summary:", decryptedSummary);
+    }
+
+    console.log("[VentPersistenceService] ---- END SUMMARY REGENERATION PROMPT PREPARATION ----");
+
+    const userPrompt = decryptedSummary
+      ? `Existing summary:\n${decryptedSummary}\n\nNew conversation to incorporate:\n${conversationText}`
       : `Conversation:\n${conversationText}`;
 
     const newSummary = await callGroq({

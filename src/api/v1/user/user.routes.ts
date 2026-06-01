@@ -1,11 +1,13 @@
-import express from 'express';
-import { updateUserProfile, userProfile } from './user.controller';
-import { authenticate } from '../../../shared/middlewares/authenticatation';
+import express from "express";
+import { updateUserProfile, userProfile, extensionDashboard } from "./user.controller";
+import { authenticate } from "../../../shared/middlewares/authenticatation";
 
 const router = express.Router();
 
-router.get('/profile',authenticate,userProfile);
+router.get("/profile", authenticate, userProfile);
 
-router.put('/update-profile',authenticate,updateUserProfile);
+router.get("/extension-dashboard", authenticate, extensionDashboard);
+
+router.put("/update-profile", authenticate, updateUserProfile);
 
 export default router;

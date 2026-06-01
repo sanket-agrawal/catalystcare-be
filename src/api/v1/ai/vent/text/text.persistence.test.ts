@@ -45,6 +45,9 @@ describe("VentPersistenceService", () => {
         findUnique: vi.fn(),
         update: vi.fn(),
       },
+      extensionUsage: {
+        upsert: vi.fn(),
+      },
     };
 
     service = new VentPersistenceService(mockPrisma as unknown as PrismaClient);
@@ -252,6 +255,12 @@ describe("VentPersistenceService", () => {
         update: { messagesSinceLastSummary: { increment: 2 } },
       });
 
+      expect(mockPrisma.extensionUsage.upsert).toHaveBeenCalledWith({
+        where: { userId: "user-123" },
+        create: { userId: "user-123", messageCount: 1 },
+        update: { messageCount: { increment: 1 } },
+      });
+
       expect(callGroq).not.toHaveBeenCalled();
     });
 
@@ -300,6 +309,12 @@ describe("VentPersistenceService", () => {
           summary: "encrypted:new summary details",
           messagesSinceLastSummary: 0,
         },
+      });
+
+      expect(mockPrisma.extensionUsage.upsert).toHaveBeenCalledWith({
+        where: { userId: "user-123" },
+        create: { userId: "user-123", messageCount: 1 },
+        update: { messageCount: { increment: 1 } },
       });
     });
   });

@@ -19,9 +19,10 @@ type userResponseObj = {
   id: string;
   isClientProfileFilled?: boolean;
   isTherapistProfileFilled?: boolean;
+  isExtensionUser: boolean;
 };
 
-export const googleSignInService = async (idToken: string) => {
+export const googleSignInService = async (idToken: string, source: string = "PLATFORM") => {
   // 1. Verify Google ID token
 
   console.log(idToken);
@@ -79,7 +80,15 @@ export const googleSignInService = async (idToken: string) => {
 
     user = await prisma.user.update({
       where: { id: user.id },
-      data: { lastLogin: new Date() },
+      data: {
+        lastLogin: new Date(),
+        ...(source === "EXTENSION" && !user.isExtensionUser
+          ? { isExtensionUser: true, accountType: "FULL" }
+          : {}),
+        ...(source === "PLATFORM" && user.isExtensionUser
+          ? { isExtensionUser: true, accountType: "FULL" }
+          : {}),
+      },
       include: {
         clientProfile: true,
         therapistProfile: true,
@@ -109,6 +118,7 @@ export const googleSignInService = async (idToken: string) => {
       role: user.role,
       isClientProfileFilled,
       isTherapistProfileFilled,
+      isExtensionUser: user.isExtensionUser,
     };
 
     const token = jwt.sign(
@@ -122,6 +132,7 @@ export const googleSignInService = async (idToken: string) => {
         profilePhoto: user.profilePhoto,
         therapistProfileId,
         clientProfileId,
+        isExtensionUser: user.isExtensionUser,
       },
       process.env.JWT_SECRET as string,
       { expiresIn: "7d" }
@@ -141,6 +152,9 @@ export const googleSignInService = async (idToken: string) => {
         authProvider: "GOOGLE",
         isEmailVerified: true,
         role: "CLIENT",
+        ...(source === "EXTENSION"
+          ? { isExtensionUser: true, accountType: "EXTENSION_ONLY" }
+          : { isExtensionUser: false, accountType: "PLATFORM" }),
       },
     });
 
@@ -165,6 +179,7 @@ export const googleSignInService = async (idToken: string) => {
         phone: newUser.mobileNumber,
         role: newUser.role,
         clientProfileId: clientProfile ? clientProfile.id : null,
+        isExtensionUser: newUser.isExtensionUser,
       },
       process.env.JWT_SECRET as string,
       { expiresIn: "7d" }
@@ -185,6 +200,7 @@ export const googleSignInService = async (idToken: string) => {
       role: newUser.role,
       isClientProfileFilled: false,
       isTherapistProfileFilled: false,
+      isExtensionUser: newUser.isExtensionUser,
     };
 
     const refreshTokenStr = await generateRefreshToken(newUser.id);

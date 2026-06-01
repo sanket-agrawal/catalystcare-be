@@ -40,7 +40,7 @@ describe("Slot Service", () => {
     });
 
     it("should generate slots and insert them via createMany", async () => {
-      // Mock availability for a Monday (June 1st, 2026 is a Monday)
+      // Mock availability for a Monday
       const mockAvailabilities = [
         {
           id: "avail-1",
@@ -58,9 +58,16 @@ describe("Slot Service", () => {
       (prisma.therapistAvailability.findMany as any).mockResolvedValue(mockAvailabilities);
       (prisma.availabilitySlot.createMany as any).mockResolvedValue({ count: 2 });
 
-      // Use a date range in the future to ensure slots are not filtered out as past slots
-      const dateFrom = "2026-06-01T00:00:00Z";
-      const dateTo = "2026-06-01T23:59:59Z";
+      // Dynamically get a future Monday to ensure slots are not filtered out as past slots
+      const today = new Date();
+      const nextMonday = new Date();
+      nextMonday.setDate(today.getDate() + ((1 + 7 - today.getDay()) % 7 || 7));
+      const year = nextMonday.getFullYear();
+      const month = String(nextMonday.getMonth() + 1).padStart(2, "0");
+      const day = String(nextMonday.getDate()).padStart(2, "0");
+
+      const dateFrom = `${year}-${month}-${day}T00:00:00Z`;
+      const dateTo = `${year}-${month}-${day}T23:59:59Z`;
 
       const result = await slotService.generateSlots({
         therapistId: "therapist-1",
@@ -84,6 +91,21 @@ describe("Slot Service", () => {
     });
 
     it("should respect effectiveFrom and effectiveTo availability date filters", async () => {
+      // Dynamically get a future Monday
+      const today = new Date();
+      const nextMonday = new Date();
+      nextMonday.setDate(today.getDate() + ((1 + 7 - today.getDay()) % 7 || 7));
+      const year = nextMonday.getFullYear();
+      const month = String(nextMonday.getMonth() + 1).padStart(2, "0");
+      const day = String(nextMonday.getDate()).padStart(2, "0");
+
+      const dateFrom = `${year}-${month}-${day}T00:00:00Z`;
+      const dateTo = `${year}-${month}-${day}T23:59:59Z`;
+
+      // Set effectiveFrom to 4 days after the dynamic Monday (which would be Friday)
+      const effectiveFromDate = new Date(nextMonday);
+      effectiveFromDate.setDate(nextMonday.getDate() + 4);
+
       const mockAvailabilities = [
         {
           id: "avail-1",
@@ -92,7 +114,7 @@ describe("Slot Service", () => {
           startTime: "09:00",
           endTime: "10:00",
           slotDuration: 60,
-          effectiveFrom: new Date("2026-06-05T00:00:00Z"), // after June 1st
+          effectiveFrom: effectiveFromDate,
           effectiveTo: null,
           isActive: true,
         },
@@ -102,11 +124,11 @@ describe("Slot Service", () => {
 
       const result = await slotService.generateSlots({
         therapistId: "therapist-1",
-        dateFrom: "2026-06-01T00:00:00Z",
-        dateTo: "2026-06-01T23:59:59Z",
+        dateFrom,
+        dateTo,
       });
 
-      // No slots should be created because the current date (June 1st) is before effectiveFrom (June 5th)
+      // No slots should be created because the selected Monday is before effectiveFrom (Friday)
       expect(result).toEqual({ created: 0 });
       expect(prisma.availabilitySlot.createMany).not.toHaveBeenCalled();
     });

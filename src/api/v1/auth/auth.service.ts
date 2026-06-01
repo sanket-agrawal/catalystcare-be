@@ -30,10 +30,13 @@ export const registerUserService = async (data: RegisterUserInput) => {
     });
 
     if (existingUser) {
+      if (data.source === "EXTENSION") {
+        return { alreadyRegistered: true };
+      }
+      // Keep existing behavior for PLATFORM
       if (existingUser.email === email.toLowerCase()) {
         throw new ApiError(409, "Email already registered");
       }
-
       if (existingUser.mobileNumber === mobileNumber) {
         throw new ApiError(409, "Mobile number already registered");
       }
@@ -46,6 +49,8 @@ export const registerUserService = async (data: RegisterUserInput) => {
       html: otpVerificationTemplate(firstName, otp),
       sender: emailFromAddress().otpSending,
     });
+
+    return { alreadyRegistered: false };
   } catch (error) {
     if (error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
     throw new ApiError(500, "Failed to register user");
@@ -55,7 +60,7 @@ export const registerUserService = async (data: RegisterUserInput) => {
 export const verifyOTPService = async (data: verifyOTPInput) => {
   try {
     // Step 1: Verify OTP
-    const { email, otp, firstName, lastName, password, mobileNumber, role } = data;
+    const { email, otp, firstName, lastName, password, mobileNumber, role, source } = data;
     const isValid = await OTPService.verifyOTP(email, otp);
     if (!isValid) {
       throw new ApiError(400, "Invalid or expired OTP");
@@ -72,6 +77,9 @@ export const verifyOTPService = async (data: verifyOTPInput) => {
         mobileNumber,
         role: role || "CLIENT",
         isEmailVerified: true,
+        ...(source === "EXTENSION"
+          ? { isExtensionUser: true, accountType: "EXTENSION_ONLY" }
+          : { isExtensionUser: false, accountType: "PLATFORM" }),
       },
     });
 
@@ -107,6 +115,7 @@ export const verifyOTPService = async (data: verifyOTPInput) => {
           phone: user.mobileNumber,
           role: user.role,
           clientProfileId: clientProfile ? clientProfile.id : null,
+          isExtensionUser: user.isExtensionUser,
         },
         process.env.JWT_SECRET as string,
         { expiresIn: tokenConfig.accessTokenExpiry }
@@ -132,6 +141,7 @@ export const verifyOTPService = async (data: verifyOTPInput) => {
           role: user.role,
           isClientProfileFilled,
           isTherapistProfileFilled,
+          isExtensionUser: user.isExtensionUser,
         },
       };
     }
@@ -151,6 +161,7 @@ export const verifyOTPService = async (data: verifyOTPInput) => {
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isExtensionUser: user.isExtensionUser,
         },
         process.env.JWT_SECRET as string,
         { expiresIn: tokenConfig.accessTokenExpiry }
@@ -170,6 +181,7 @@ export const verifyOTPService = async (data: verifyOTPInput) => {
           role: user.role,
           isClientProfileFilled,
           isTherapistProfileFilled,
+          isExtensionUser: user.isExtensionUser,
         },
       };
     }

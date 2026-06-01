@@ -19,7 +19,15 @@ import {
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
-    const user = await registerUserService(req.body);
+    const result = await registerUserService(req.body);
+
+    if (result.alreadyRegistered) {
+      return res.status(200).json(
+        new ApiResponse(true, 200, "User already registered. Please login.", {
+          alreadyRegistered: true,
+        })
+      );
+    }
 
     res.status(201).json(new ApiResponse(true, 201, "OTP Sent Sucessfully"));
   } catch (error) {
@@ -131,8 +139,8 @@ export const verifyForgotPasswordOTP = async (req: Request, res: Response) => {
 
 export const googleSignin = async (req: Request, res: Response) => {
   try {
-    const { idToken } = req.body;
-    const result = await googleSignInService(idToken);
+    const { idToken, source } = req.body;
+    const result = await googleSignInService(idToken, source);
 
     if (result.refreshToken) {
       setRefreshTokenCookie(res, result.refreshToken);

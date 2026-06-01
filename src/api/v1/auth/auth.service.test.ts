@@ -201,10 +201,64 @@ describe("Auth Service", () => {
           mobileNumber: "1234567890",
           role: "CLIENT",
           isEmailVerified: true,
+          isExtensionUser: false,
+          accountType: "PLATFORM",
         },
       });
       expect(result).toHaveProperty("token", "signed-token");
       expect(result).toHaveProperty("user");
+    });
+
+    it("should verify OTP and create user successfully for extension source", async () => {
+      const verifyData = {
+        email: "test@example.com",
+        otp: "123456",
+        password: "password123",
+        firstName: "John",
+        lastName: "Doe",
+        mobileNumber: "1234567890",
+        source: "EXTENSION" as const,
+      };
+
+      (OTPService.verifyOTP as any).mockResolvedValue(true);
+      (prisma.user.findFirst as any).mockResolvedValue(null);
+      const { hashPassword } = await import("../../../shared/utils/hashPassword");
+      (hashPassword as any).mockResolvedValue("hashed-password");
+      (prisma.user.create as any).mockResolvedValue({
+        id: 1,
+        email: "test@example.com",
+        firstName: "John",
+        lastName: "Doe",
+        role: "CLIENT",
+        isExtensionUser: true,
+      });
+      (prisma.clientProfile.findUnique as any).mockResolvedValue(null);
+      (prisma.clientProfile.create as any).mockResolvedValue({
+        id: 10,
+        userId: 1,
+      });
+      authCryptoMocks.jwtSign.mockReturnValue("signed-token" as never);
+
+      const result = await verifyOTPService(verifyData);
+
+      expect(OTPService.verifyOTP).toHaveBeenCalledWith("test@example.com", "123456");
+      expect(hashPassword).toHaveBeenCalledWith("password123");
+      expect(prisma.user.create).toHaveBeenCalledWith({
+        data: {
+          email: "test@example.com",
+          password: "hashed-password",
+          firstName: "John",
+          lastName: "Doe",
+          mobileNumber: "1234567890",
+          role: "CLIENT",
+          isEmailVerified: true,
+          isExtensionUser: true,
+          accountType: "EXTENSION_ONLY",
+        },
+      });
+      expect(result).toHaveProperty("token", "signed-token");
+      expect(result).toHaveProperty("user");
+      expect(result.user).toHaveProperty("isExtensionUser", true);
     });
 
     it("should throw ApiError if OTP verification fails", async () => {

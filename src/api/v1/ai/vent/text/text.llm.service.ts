@@ -1,5 +1,5 @@
-import { groqConfig } from "../../../../../shared/config/ai.config";
-import { callGroq, safeParseJSON, GroqMessage } from "../../../../../infrastructure/groq";
+import { llmConfig } from "../../../../../shared/config/ai.config";
+import { callLLM, safeParseJSON, LLMMessage } from "../../../../../infrastructure/llm";
 import { LLMResponse } from "./text.types";
 import { frontendConfig } from "../../../../../shared/config/frontend.config";
 
@@ -113,8 +113,8 @@ ${userSummary}
 
 export class VentLLMService {
   private async isMessageOnTopic(message: string): Promise<boolean> {
-    const raw = await callGroq({
-      model: "llama-3.1-8b-instant",
+    const raw = await callLLM({
+      model: llmConfig.textModel,
       messages: [
         {
           role: "system",
@@ -154,7 +154,7 @@ If there is ANY doubt, return {"onTopic": true}.`,
   }
   async processVentMessage(
     userMessage: string,
-    conversationHistory: Pick<GroqMessage, "role" | "content">[],
+    conversationHistory: Pick<LLMMessage, "role" | "content">[],
     userSummary: string | null = null,
     userName: string | null = null // new
   ): Promise<LLMResponse> {
@@ -167,15 +167,15 @@ If there is ANY doubt, return {"onTopic": true}.`,
     //   };
     // }
 
-    const messages: GroqMessage[] = [
+    const messages: LLMMessage[] = [
       { role: "system", content: buildSystemPrompt(userSummary, userName) },
-      ...(conversationHistory as GroqMessage[]),
+      ...(conversationHistory as LLMMessage[]),
       { role: "user", content: userMessage },
     ];
 
     try {
-      const raw = await callGroq({
-        model: groqConfig.textModel,
+      const raw = await callLLM({
+        model: llmConfig.textModel,
         messages,
         temperature: 0.7,
         max_tokens: 512,

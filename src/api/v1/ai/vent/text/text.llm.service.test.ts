@@ -1,10 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { VentLLMService } from "./text.llm.service";
-import { callGroq, safeParseJSON } from "../../../../../infrastructure/groq";
+import { callLLM, safeParseJSON } from "../../../../../infrastructure/llm";
 
-vi.mock("../../../../../infrastructure/groq", () => {
+vi.mock("../../../../../infrastructure/llm", () => {
   return {
-    callGroq: vi.fn(),
+    callLLM: vi.fn(),
     safeParseJSON: vi.fn((raw: string) => JSON.parse(raw)),
   };
 });
@@ -26,7 +26,7 @@ describe("VentLLMService", () => {
         suggestTherapy: false,
       };
 
-      vi.mocked(callGroq).mockResolvedValue(JSON.stringify(mockLLMResponse));
+      vi.mocked(callLLM).mockResolvedValue(JSON.stringify(mockLLMResponse));
 
       const response = await llmService.processVentMessage(
         "I am feeling stressed today.",
@@ -35,9 +35,9 @@ describe("VentLLMService", () => {
         "Sanket"
       );
 
-      expect(callGroq).toHaveBeenCalledTimes(1);
+      expect(callLLM).toHaveBeenCalledTimes(1);
 
-      const callArgs = vi.mocked(callGroq).mock.calls[0][0];
+      const callArgs = vi.mocked(callLLM).mock.calls[0][0];
       expect(callArgs.messages).toBeDefined();
       expect(callArgs.messages.length).toBe(3); // system, history, user message
       expect(callArgs.messages[0].role).toBe("system");
@@ -52,8 +52,8 @@ describe("VentLLMService", () => {
       expect(response).toEqual(mockLLMResponse);
     });
 
-    it("should handle error in callGroq and return a safe fallback response", async () => {
-      vi.mocked(callGroq).mockRejectedValue(new Error("Groq API rate limit or outage"));
+    it("should handle error in callLLM and return a safe fallback response", async () => {
+      vi.mocked(callLLM).mockRejectedValue(new Error("LLM API rate limit or outage"));
 
       const response = await llmService.processVentMessage("I am feeling stressed today.", []);
 
@@ -65,7 +65,7 @@ describe("VentLLMService", () => {
     });
 
     it("should handle invalid JSON from LLM and return fallback response", async () => {
-      vi.mocked(callGroq).mockResolvedValue("invalid json string");
+      vi.mocked(callLLM).mockResolvedValue("invalid json string");
       vi.mocked(safeParseJSON).mockImplementationOnce(() => {
         throw new Error("Parsing failed");
       });
@@ -80,7 +80,7 @@ describe("VentLLMService", () => {
     });
 
     it("should fallback if returned JSON does not have 'valid' property as boolean", async () => {
-      vi.mocked(callGroq).mockResolvedValue(JSON.stringify({ reply: "Missing valid field" }));
+      vi.mocked(callLLM).mockResolvedValue(JSON.stringify({ reply: "Missing valid field" }));
       vi.mocked(safeParseJSON).mockReturnValue({ reply: "Missing valid field" } as any);
 
       const response = await llmService.processVentMessage("Hello", []);

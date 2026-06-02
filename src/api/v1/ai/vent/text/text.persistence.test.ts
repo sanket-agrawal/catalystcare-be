@@ -1,12 +1,12 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import { VentPersistenceService } from "./text.persistence";
-import { callGroq } from "../../../../../infrastructure/groq/index";
+import { callLLM } from "../../../../../infrastructure/llm";
 import { encryptContent, decryptContent } from "../../../../../infrastructure/crypto/vent.crypto";
 import { emailQueue } from "../../../../../infrastructure/queues";
 
-vi.mock("../../../../../infrastructure/groq/index", () => ({
-  callGroq: vi.fn(),
+vi.mock("../../../../../infrastructure/llm", () => ({
+  callLLM: vi.fn(),
 }));
 
 vi.mock("../../../../../infrastructure/queues", () => ({
@@ -276,7 +276,7 @@ describe("VentPersistenceService", () => {
         update: { messageCount: { increment: 1 } },
       });
 
-      expect(callGroq).not.toHaveBeenCalled();
+      expect(callLLM).not.toHaveBeenCalled();
     });
 
     it("should trigger summary regeneration when threshold is reached", async () => {
@@ -297,7 +297,7 @@ describe("VentPersistenceService", () => {
         if (args.select?.summary) return { summary: "encrypted:old summary" };
         return { currentEma: 0.0, therapyEmailSentAt: null };
       });
-      vi.mocked(callGroq).mockResolvedValue("new summary details");
+      vi.mocked(callLLM).mockResolvedValue("new summary details");
 
       await service.persistMessages("user-123", "session-123", "hi", "hello", true);
 
@@ -323,7 +323,7 @@ describe("VentPersistenceService", () => {
         select: { role: true, content: true },
       });
 
-      expect(callGroq).toHaveBeenCalledWith({
+      expect(callLLM).toHaveBeenCalledWith({
         messages: expect.any(Array),
         temperature: 0.3,
         max_tokens: 300,

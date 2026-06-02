@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { callGroq } from "../../../../../infrastructure/groq/index";
+import { callLLM } from "../../../../../infrastructure/llm";
 import { VentSessionPreview } from "./text.types";
 import { encryptContent, decryptContent } from "../../../../../infrastructure/crypto/vent.crypto";
 import { emailQueue } from "../../../../../infrastructure/queues";
@@ -365,7 +365,7 @@ export class VentPersistenceService {
       ? `Existing summary:\n${decryptedSummary}\n\nNew conversation to incorporate:\n${conversationText}`
       : `Conversation:\n${conversationText}`;
 
-    const newSummary = await callGroq({
+    const newSummary = await callLLM({
       messages: [
         { role: "system", content: SUMMARY_SYSTEM_PROMPT },
         { role: "user", content: userPrompt },

@@ -4,7 +4,10 @@ import { VentSessionPreview } from "./text.types";
 import { encryptContent, decryptContent } from "../../../../../infrastructure/crypto/vent.crypto";
 import { emailQueue } from "../../../../../infrastructure/queues";
 import { emailFromAddress } from "../../../../../shared/config/email.config";
-import { therapyRecommendationTemplate } from "../../../../../shared/email-templates/wellness";
+import {
+  therapyRecommendationTemplate,
+  professionalWellbeingTemplate,
+} from "../../../../../shared/email-templates/wellness";
 import { differenceInDays } from "date-fns";
 
 const SUMMARY_TRIGGER_EVERY_N = 10;
@@ -234,15 +237,23 @@ export class VentPersistenceService {
       if (shouldSend) {
         const user = await this.prisma.user.findUnique({
           where: { id: userId },
-          select: { email: true, firstName: true },
+          select: { email: true, firstName: true, role: true },
         });
 
         if (user && user.email) {
           try {
+            const isConsumer = ["CLIENT", "EMPLOYEE", "STUDENT"].includes(user.role);
+            const htmlContent = isConsumer
+              ? therapyRecommendationTemplate(user.firstName || "there")
+              : professionalWellbeingTemplate(user.firstName || "there");
+            const emailSubject = isConsumer
+              ? "We're Here for You - CatalystCare Support"
+              : "Taking Care of Yourself - CatalystCare Support";
+
             await emailQueue.add("sendTherapyRecommendationEmail", {
               to: user.email,
-              subject: "We're Here for You - CatalystCare Support",
-              html: therapyRecommendationTemplate(user.firstName || "there"),
+              subject: emailSubject,
+              html: htmlContent,
               sender: emailFromAddress().infoEmail,
             });
 

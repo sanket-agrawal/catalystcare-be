@@ -388,6 +388,7 @@ describe("VentPersistenceService", () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         email: "user@example.com",
         firstName: "Yash",
+        role: "CLIENT",
       });
 
       await service.persistMessages("user-123", "session-123", "sad", "comfort", false, "SAD");
@@ -397,8 +398,44 @@ describe("VentPersistenceService", () => {
         "sendTherapyRecommendationEmail",
         expect.objectContaining({
           to: "user@example.com",
-          subject: expect.stringContaining("Support"),
-          html: expect.stringContaining("Yash"),
+          subject: "We're Here for You - CatalystCare Support",
+          html: expect.stringContaining("Connect with a Therapist"),
+        })
+      );
+
+      // Verify timestamp updated
+      expect(mockPrisma.userVentMemory.update).toHaveBeenCalledWith({
+        where: { userId: "user-123" },
+        data: { therapyEmailSentAt: expect.any(Date) },
+      });
+    });
+
+    it("should queue professional wellbeing email when a therapist is in distress", async () => {
+      mockPrisma.userVentMemory.findUnique.mockResolvedValue({
+        currentEma: -0.3,
+        therapyEmailSentAt: null,
+      });
+      mockPrisma.userVentMemory.upsert.mockResolvedValue({
+        messagesSinceLastSummary: 2,
+        currentEma: -0.51,
+        therapyEmailSentAt: null,
+      });
+
+      mockPrisma.user.findUnique.mockResolvedValue({
+        email: "therapist@example.com",
+        firstName: "Dr. Yash",
+        role: "THERAPIST",
+      });
+
+      await service.persistMessages("user-123", "session-123", "sad", "comfort", false, "SAD");
+
+      // Verify email queued
+      expect(emailQueue.add).toHaveBeenCalledWith(
+        "sendTherapyRecommendationEmail",
+        expect.objectContaining({
+          to: "therapist@example.com",
+          subject: "Taking Care of Yourself - CatalystCare Support",
+          html: expect.stringContaining("Explore Wellness Tools"),
         })
       );
 

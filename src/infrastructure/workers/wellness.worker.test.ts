@@ -57,7 +57,7 @@ describe("wellnessWorker", () => {
     vi.clearAllMocks();
   });
 
-  it("should queue email and update sent date for inactive user with low EMA", async () => {
+  it("should queue email and update sent date for inactive CLIENT with low EMA", async () => {
     const mockMemories = [
       { id: "mem-1", userId: "user-1", currentEma: -0.5, therapyEmailSentAt: null },
     ];
@@ -72,6 +72,7 @@ describe("wellnessWorker", () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       email: "user@example.com",
       firstName: "Test",
+      role: "CLIENT",
     } as any);
 
     const mockJob = { name: "check_inactive_distress", data: {} } as any;
@@ -83,6 +84,44 @@ describe("wellnessWorker", () => {
       expect.objectContaining({
         to: "user@example.com",
         subject: "Checking In on You - CatalystCare Support",
+        html: expect.stringContaining("Connect with a Therapist"),
+        sender: "info@catalystcare.com",
+      })
+    );
+    expect(prisma.userVentMemory.update).toHaveBeenCalledWith({
+      where: { id: "mem-1" },
+      data: { therapyEmailSentAt: expect.any(Date) },
+    });
+  });
+
+  it("should queue professional email and update sent date for inactive THERAPIST with low EMA", async () => {
+    const mockMemories = [
+      { id: "mem-1", userId: "user-1", currentEma: -0.5, therapyEmailSentAt: null },
+    ];
+    vi.mocked(prisma.userVentMemory.findMany).mockResolvedValue(mockMemories as any);
+
+    // Latest session 15 days ago (inactive)
+    const fifteenDaysAgo = subDays(new Date(), 15);
+    vi.mocked(prisma.ventSession.findFirst).mockResolvedValue({
+      lastActiveAt: fifteenDaysAgo,
+    } as any);
+
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      email: "therapist@example.com",
+      firstName: "Dr. Test",
+      role: "THERAPIST",
+    } as any);
+
+    const mockJob = { name: "check_inactive_distress", data: {} } as any;
+    const result = await checkInactiveDistress(mockJob);
+
+    expect(result).toEqual({ emailsQueued: 1 });
+    expect(emailQueue.add).toHaveBeenCalledWith(
+      "sendProactiveCheckInEmail",
+      expect.objectContaining({
+        to: "therapist@example.com",
+        subject: "Checking In on You - CatalystCare Wellness",
+        html: expect.stringContaining("Explore Wellness Tools"),
         sender: "info@catalystcare.com",
       })
     );

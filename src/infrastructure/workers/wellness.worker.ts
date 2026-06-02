@@ -3,7 +3,10 @@ import { redisConnection } from "../redis/index";
 import { prisma } from "../prisma/client";
 import { emailQueue } from "../queues/index";
 import { emailFromAddress } from "../../shared/config/email.config";
-import { proactiveCheckInTemplate } from "../../shared/email-templates/wellness";
+import {
+  proactiveCheckInTemplate,
+  professionalProactiveCheckInTemplate,
+} from "../../shared/email-templates/wellness";
 import { subDays } from "date-fns";
 
 export async function checkInactiveDistress(job: any) {
@@ -45,18 +48,26 @@ export async function checkInactiveDistress(job: any) {
         continue;
       }
 
-      // 3. Retrieve user email and name
+      // 3. Retrieve user email, name, and role
       const user = await prisma.user.findUnique({
         where: { id: memory.userId },
-        select: { email: true, firstName: true },
+        select: { email: true, firstName: true, role: true },
       });
 
       if (user && user.email) {
+        const isConsumer = ["CLIENT", "EMPLOYEE", "STUDENT"].includes(user.role);
+        const htmlContent = isConsumer
+          ? proactiveCheckInTemplate(user.firstName || "there")
+          : professionalProactiveCheckInTemplate(user.firstName || "there");
+        const emailSubject = isConsumer
+          ? "Checking In on You - CatalystCare Support"
+          : "Checking In on You - CatalystCare Wellness";
+
         // 4. Queue the check-in email to emailQueue
         await emailQueue.add("sendProactiveCheckInEmail", {
           to: user.email,
-          subject: "Checking In on You - CatalystCare Support",
-          html: proactiveCheckInTemplate(user.firstName || "there"),
+          subject: emailSubject,
+          html: htmlContent,
           sender: emailFromAddress().infoEmail,
         });
 

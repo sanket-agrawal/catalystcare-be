@@ -19,11 +19,18 @@ export interface LLMResponse {
   message?: string;
   isCrisis?: boolean;
   suggestTherapy?: boolean;
+  sentiment?: string;
 }
 
 export interface VentTextRequest {
   message: string;
   sessionId: string; // required now — client must create session first
+}
+
+export interface SuggestedExercise {
+  type: "breathing" | "grounding" | "mindfulness";
+  title: string;
+  instructions: string;
 }
 
 export interface VentTextResponse {
@@ -34,6 +41,8 @@ export interface VentTextResponse {
   helplines?: Helpline[]; // only present when isCrisis true
   suggestTherapy: boolean; // true when AI thinks user should consider professional therapy
   platformUrl?: string; // CatalystCare URL — included when therapy is suggested
+  sentiment?: string;
+  suggestedExercise?: SuggestedExercise;
 }
 
 export interface VentSessionPreview {

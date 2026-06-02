@@ -2,6 +2,10 @@ import { PrismaClient } from "@prisma/client";
 import { callGroq } from "../../../../../infrastructure/groq/index";
 import { VentSessionPreview } from "./text.types";
 import { encryptContent, decryptContent } from "../../../../../infrastructure/crypto/vent.crypto";
+import { emailQueue } from "../../../../../infrastructure/queues";
+import { emailFromAddress } from "../../../../../shared/config/email.config";
+import { therapyRecommendationTemplate } from "../../../../../shared/email-templates/wellness";
+import { differenceInDays } from "date-fns";
 
 const SUMMARY_TRIGGER_EVERY_N = 10;
 
@@ -16,6 +20,25 @@ Rules:
 - If an existing summary is provided, MERGE new insights with it — don't discard old context
 - Only include emotionally meaningful information, not small talk
 - Output plain text, no bullet points, no headers`;
+
+function getSentimentScore(sentiment?: string): number {
+  if (!sentiment) return 0.0;
+  switch (sentiment.toUpperCase()) {
+    case "POSITIVE":
+      return 1.0;
+    case "NEUTRAL":
+      return 0.0;
+    case "ANXIOUS":
+    case "LONELY":
+      return -0.5;
+    case "SAD":
+    case "OVERWHELMED":
+    case "ANGRY":
+      return -1.0;
+    default:
+      return 0.0;
+  }
+}
 
 export class VentPersistenceService {
   constructor(private prisma: PrismaClient) {}
@@ -158,7 +181,8 @@ export class VentPersistenceService {
     sessionId: string,
     userMessage: string,
     assistantReply: string,
-    isCrisis: boolean = false
+    isCrisis: boolean = false,
+    sentiment?: string
   ): Promise<void> {
     await this.prisma.ventSession.update({
       where: { id: sessionId },
@@ -179,11 +203,59 @@ export class VentPersistenceService {
       update: { messageCount: { increment: 1 } },
     });
 
+    const existingMemory = await this.prisma.userVentMemory.findUnique({
+      where: { userId },
+      select: { currentEma: true, therapyEmailSentAt: true },
+    });
+
+    const previousEma = existingMemory?.currentEma ?? 0.0;
+    const score = getSentimentScore(sentiment);
+    const alpha = 0.3;
+    const nextEma = score * alpha + previousEma * (1.0 - alpha);
+
     const memory = await this.prisma.userVentMemory.upsert({
       where: { userId },
-      create: { userId, summary: "", messagesSinceLastSummary: 2 },
-      update: { messagesSinceLastSummary: { increment: 2 } },
+      create: {
+        userId,
+        summary: "",
+        messagesSinceLastSummary: 2,
+        currentEma: nextEma,
+      },
+      update: {
+        messagesSinceLastSummary: { increment: 2 },
+        currentEma: nextEma,
+      },
     });
+
+    if (nextEma <= -0.4) {
+      const lastSent = memory.therapyEmailSentAt;
+      const shouldSend = !lastSent || differenceInDays(new Date(), lastSent) >= 7;
+
+      if (shouldSend) {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { email: true, firstName: true },
+        });
+
+        if (user && user.email) {
+          try {
+            await emailQueue.add("sendTherapyRecommendationEmail", {
+              to: user.email,
+              subject: "We're Here for You - CatalystCare Support",
+              html: therapyRecommendationTemplate(user.firstName || "there"),
+              sender: emailFromAddress().infoEmail,
+            });
+
+            await this.prisma.userVentMemory.update({
+              where: { userId },
+              data: { therapyEmailSentAt: new Date() },
+            });
+          } catch (err) {
+            console.error("[VentPersistenceService] Failed to queue therapy email:", err);
+          }
+        }
+      }
+    }
 
     if (memory.messagesSinceLastSummary >= SUMMARY_TRIGGER_EVERY_N) {
       this.regenerateSummary(userId).catch((err) =>
@@ -204,6 +276,13 @@ export class VentPersistenceService {
       // handles existing unencrypted rows during transition
       return memory.summary;
     }
+  }
+
+  async getUserVentMemory(userId: string) {
+    return this.prisma.userVentMemory.findUnique({
+      where: { userId },
+      select: { currentEma: true, therapyEmailSentAt: true },
+    });
   }
 
   async getRecentMessages(

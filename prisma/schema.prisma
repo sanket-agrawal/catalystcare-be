@@ -1286,6 +1286,8 @@ model UserVentMemory {
   summary                  String   @db.Text
   updatedAt                DateTime @updatedAt @map("updated_at")
   messagesSinceLastSummary Int      @default(0) @map("messages_since_last_summary")
+  currentEma               Float    @default(0.0) @map("current_ema")
+  therapyEmailSentAt       DateTime? @map("therapy_email_sent_at")
 
   @@map("user_vent_memories")
 }

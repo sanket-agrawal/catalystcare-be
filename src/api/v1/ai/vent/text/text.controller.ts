@@ -8,6 +8,7 @@ import ApiResponse from "../../../../../shared/utils/ApiResponse";
 import ApiError from "../../../../../shared/utils/ApiError";
 import { INDIAN_HELPLINES } from "./text.helplines";
 import { frontendConfig } from "../../../../../shared/config/frontend.config";
+import { getSuggestedExercise } from "./text.exercises";
 
 export class VentController {
   constructor(
@@ -95,7 +96,7 @@ export class VentController {
       );
 
       const isCrisis = llmResponse.isCrisis ?? false;
-      const suggestTherapy = isCrisis ? false : (llmResponse.suggestTherapy ?? false);
+      let finalSuggestTherapy = isCrisis ? false : (llmResponse.suggestTherapy ?? false);
 
       const shouldStore = llmResponse.valid;
 
@@ -112,9 +113,18 @@ export class VentController {
             sessionId,
             message,
             llmResponse.reply,
-            isCrisis
+            isCrisis,
+            llmResponse.sentiment
           ),
         ]);
+
+        // Check if user's emotional trend (EMA) indicates sustained distress
+        if (!isCrisis) {
+          const memory = await this.persistenceService.getUserVentMemory(userId);
+          if (memory && memory.currentEma <= -0.4) {
+            finalSuggestTherapy = true;
+          }
+        }
       }
 
       const platformUrl =
@@ -128,8 +138,10 @@ export class VentController {
         isValid: llmResponse.valid,
         isCrisis,
         helplines: isCrisis ? INDIAN_HELPLINES : undefined,
-        suggestTherapy,
-        platformUrl: suggestTherapy ? platformUrl : undefined,
+        suggestTherapy: finalSuggestTherapy,
+        platformUrl: finalSuggestTherapy ? platformUrl : undefined,
+        sentiment: llmResponse.sentiment,
+        suggestedExercise: getSuggestedExercise(llmResponse.sentiment),
       };
       res.status(200).json(new ApiResponse(true, 200, "Vent Reply Successfully", response));
     } catch (error) {

@@ -40,6 +40,7 @@ describe("VentController", () => {
       getUserSummary: vi.fn(),
       getUserFirstName: vi.fn(),
       persistMessages: vi.fn(),
+      getUserVentMemory: vi.fn(),
     };
 
     controller = new VentController(
@@ -60,6 +61,7 @@ describe("VentController", () => {
     };
 
     mockNext = vi.fn();
+    mockPersistenceService.getUserVentMemory.mockResolvedValue({ currentEma: 0.0 });
   });
 
   describe("createSession", () => {
@@ -259,7 +261,8 @@ describe("VentController", () => {
         validSessionId,
         "I feel anxious",
         mockLLMResponse.reply,
-        false
+        false,
+        undefined
       );
 
       expect(mockRes.status).toHaveBeenCalledWith(200);
@@ -271,6 +274,8 @@ describe("VentController", () => {
           isCrisis: false,
           suggestTherapy: false,
           platformUrl: undefined,
+          sentiment: undefined,
+          suggestedExercise: undefined,
         })
       );
     });
@@ -328,7 +333,8 @@ describe("VentController", () => {
         validSessionId,
         "I want to end it all",
         mockLLMResponse.reply,
-        true
+        true,
+        undefined
       );
 
       expect(mockRes.status).toHaveBeenCalledWith(200);
@@ -341,6 +347,8 @@ describe("VentController", () => {
           helplines: INDIAN_HELPLINES,
           suggestTherapy: false, // overridden to false by controller if isCrisis is true
           platformUrl: undefined,
+          sentiment: undefined,
+          suggestedExercise: undefined,
         })
       );
     });
@@ -372,7 +380,75 @@ describe("VentController", () => {
           isCrisis: false,
           suggestTherapy: false,
           platformUrl: undefined,
+          sentiment: undefined,
+          suggestedExercise: undefined,
         })
+      );
+    });
+
+    it("should include sentiment and suggestedExercise when sentiment is detected", async () => {
+      mockReq.body = { message: "I feel very anxious and overwhelmed", sessionId: validSessionId };
+      mockPersistenceService.verifySessionOwner.mockResolvedValue(true);
+      mockContextService.getContextMessages.mockResolvedValue([]);
+
+      const mockLLMResponse = {
+        valid: true,
+        reply: "I hear you. Let's take a deep breath.",
+        isCrisis: false,
+        suggestTherapy: false,
+        sentiment: "ANXIOUS",
+      };
+      mockLLMService.processVentMessage.mockResolvedValue(mockLLMResponse);
+
+      await controller.ventText(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(mockRes.json).toHaveBeenCalledWith(
+        new ApiResponse(true, 200, "Vent Reply Successfully", {
+          sessionId: validSessionId,
+          reply: mockLLMResponse.reply,
+          isValid: true,
+          isCrisis: false,
+          suggestTherapy: false,
+          platformUrl: undefined,
+          sentiment: "ANXIOUS",
+          suggestedExercise: {
+            type: "breathing",
+            title: "Box Breathing",
+            instructions:
+              "Inhale for 4 seconds, hold your breath for 4 seconds, exhale for 4 seconds, and hold empty for 4 seconds. Repeat this cycle 4 times to calm your nervous system.",
+          },
+        })
+      );
+    });
+
+    it("should override suggestTherapy to true if user's EMA is <= -0.4", async () => {
+      mockReq.body = { message: "I feel stressed", sessionId: validSessionId };
+      mockPersistenceService.verifySessionOwner.mockResolvedValue(true);
+      mockContextService.getContextMessages.mockResolvedValue([]);
+
+      const mockLLMResponse = {
+        valid: true,
+        reply: "I understand.",
+        isCrisis: false,
+        suggestTherapy: false,
+        sentiment: "ANXIOUS",
+      };
+      mockLLMService.processVentMessage.mockResolvedValue(mockLLMResponse);
+      mockPersistenceService.getUserVentMemory.mockResolvedValue({ currentEma: -0.45 });
+
+      await controller.ventText(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(mockRes.json).toHaveBeenCalledWith(
+        new ApiResponse(
+          true,
+          200,
+          "Vent Reply Successfully",
+          expect.objectContaining({
+            suggestTherapy: true,
+          })
+        )
       );
     });
 

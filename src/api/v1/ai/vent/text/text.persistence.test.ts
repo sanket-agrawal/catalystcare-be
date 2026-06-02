@@ -3,9 +3,16 @@ import { PrismaClient } from "@prisma/client";
 import { VentPersistenceService } from "./text.persistence";
 import { callGroq } from "../../../../../infrastructure/groq/index";
 import { encryptContent, decryptContent } from "../../../../../infrastructure/crypto/vent.crypto";
+import { emailQueue } from "../../../../../infrastructure/queues";
 
 vi.mock("../../../../../infrastructure/groq/index", () => ({
   callGroq: vi.fn(),
+}));
+
+vi.mock("../../../../../infrastructure/queues", () => ({
+  emailQueue: {
+    add: vi.fn().mockResolvedValue({ id: "job-123" }),
+  },
 }));
 
 vi.mock("../../../../../infrastructure/crypto/vent.crypto", () => ({
@@ -228,7 +235,15 @@ describe("VentPersistenceService", () => {
 
   describe("persistMessages", () => {
     it("should save messages and increment summary counter without triggering summary if below threshold", async () => {
-      mockPrisma.userVentMemory.upsert.mockResolvedValue({ messagesSinceLastSummary: 2 });
+      mockPrisma.userVentMemory.findUnique.mockResolvedValue({
+        currentEma: 0.0,
+        therapyEmailSentAt: null,
+      });
+      mockPrisma.userVentMemory.upsert.mockResolvedValue({
+        messagesSinceLastSummary: 2,
+        currentEma: 0.0,
+        therapyEmailSentAt: null,
+      });
 
       await service.persistMessages("user-123", "session-123", "hi", "hello", false);
 
@@ -251,8 +266,8 @@ describe("VentPersistenceService", () => {
 
       expect(mockPrisma.userVentMemory.upsert).toHaveBeenCalledWith({
         where: { userId: "user-123" },
-        create: { userId: "user-123", summary: "", messagesSinceLastSummary: 2 },
-        update: { messagesSinceLastSummary: { increment: 2 } },
+        create: { userId: "user-123", summary: "", messagesSinceLastSummary: 2, currentEma: 0.0 },
+        update: { messagesSinceLastSummary: { increment: 2 }, currentEma: 0.0 },
       });
 
       expect(mockPrisma.extensionUsage.upsert).toHaveBeenCalledWith({
@@ -265,12 +280,23 @@ describe("VentPersistenceService", () => {
     });
 
     it("should trigger summary regeneration when threshold is reached", async () => {
-      mockPrisma.userVentMemory.upsert.mockResolvedValue({ messagesSinceLastSummary: 10 });
+      mockPrisma.userVentMemory.findUnique.mockResolvedValue({
+        currentEma: 0.0,
+        therapyEmailSentAt: null,
+      });
+      mockPrisma.userVentMemory.upsert.mockResolvedValue({
+        messagesSinceLastSummary: 10,
+        currentEma: 0.0,
+        therapyEmailSentAt: null,
+      });
       mockPrisma.ventMessage.findMany.mockResolvedValue([
         { role: "user", content: "encrypted:stressed" },
         { role: "assistant", content: "encrypted:talk to me" },
       ]);
-      mockPrisma.userVentMemory.findUnique.mockResolvedValue({ summary: "encrypted:old summary" });
+      mockPrisma.userVentMemory.findUnique.mockImplementation(async (args: any) => {
+        if (args.select?.summary) return { summary: "encrypted:old summary" };
+        return { currentEma: 0.0, therapyEmailSentAt: null };
+      });
       vi.mocked(callGroq).mockResolvedValue("new summary details");
 
       await service.persistMessages("user-123", "session-123", "hi", "hello", true);
@@ -316,6 +342,89 @@ describe("VentPersistenceService", () => {
         create: { userId: "user-123", messageCount: 1 },
         update: { messageCount: { increment: 1 } },
       });
+    });
+
+    it("should calculate and update EMA correctly based on sentiment scores", async () => {
+      mockPrisma.userVentMemory.findUnique.mockResolvedValue({
+        currentEma: -0.2,
+        therapyEmailSentAt: null,
+      });
+      mockPrisma.userVentMemory.upsert.mockResolvedValue({
+        messagesSinceLastSummary: 2,
+        currentEma: -0.29,
+        therapyEmailSentAt: null,
+      });
+
+      // Sentiment: ANXIOUS (-0.5). Alpha: 0.3. Previous EMA: -0.2.
+      // Next EMA: (-0.5 * 0.3) + (-0.2 * 0.7) = -0.15 + -0.14 = -0.29
+      await service.persistMessages(
+        "user-123",
+        "session-123",
+        "stressed",
+        "relax",
+        false,
+        "ANXIOUS"
+      );
+
+      expect(mockPrisma.userVentMemory.upsert).toHaveBeenCalledWith({
+        where: { userId: "user-123" },
+        create: { userId: "user-123", summary: "", messagesSinceLastSummary: 2, currentEma: -0.29 },
+        update: { messagesSinceLastSummary: { increment: 2 }, currentEma: -0.29 },
+      });
+    });
+
+    it("should queue therapy email and update therapyEmailSentAt when EMA threshold is crossed", async () => {
+      mockPrisma.userVentMemory.findUnique.mockResolvedValue({
+        currentEma: -0.3,
+        therapyEmailSentAt: null,
+      });
+      // Next EMA: (-1.0 * 0.3) + (-0.3 * 0.7) = -0.3 + -0.21 = -0.51 (which is <= -0.4)
+      mockPrisma.userVentMemory.upsert.mockResolvedValue({
+        messagesSinceLastSummary: 2,
+        currentEma: -0.51,
+        therapyEmailSentAt: null,
+      });
+
+      mockPrisma.user.findUnique.mockResolvedValue({
+        email: "user@example.com",
+        firstName: "Yash",
+      });
+
+      await service.persistMessages("user-123", "session-123", "sad", "comfort", false, "SAD");
+
+      // Verify email queued
+      expect(emailQueue.add).toHaveBeenCalledWith(
+        "sendTherapyRecommendationEmail",
+        expect.objectContaining({
+          to: "user@example.com",
+          subject: expect.stringContaining("Support"),
+          html: expect.stringContaining("Yash"),
+        })
+      );
+
+      // Verify timestamp updated
+      expect(mockPrisma.userVentMemory.update).toHaveBeenCalledWith({
+        where: { userId: "user-123" },
+        data: { therapyEmailSentAt: expect.any(Date) },
+      });
+    });
+
+    it("should not queue therapy email if it was sent recently (cooldown)", async () => {
+      const recentDate = new Date();
+      mockPrisma.userVentMemory.findUnique.mockResolvedValue({
+        currentEma: -0.3,
+        therapyEmailSentAt: recentDate,
+      });
+      mockPrisma.userVentMemory.upsert.mockResolvedValue({
+        messagesSinceLastSummary: 2,
+        currentEma: -0.51,
+        therapyEmailSentAt: recentDate,
+      });
+
+      await service.persistMessages("user-123", "session-123", "sad", "comfort", false, "SAD");
+
+      // Verify email NOT queued
+      expect(emailQueue.add).not.toHaveBeenCalled();
     });
   });
 

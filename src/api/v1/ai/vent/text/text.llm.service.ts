@@ -3,7 +3,6 @@ import { callGroq, safeParseJSON, GroqMessage } from "../../../../../infrastruct
 import { LLMResponse } from "./text.types";
 import { frontendConfig } from "../../../../../shared/config/frontend.config";
 
-
 function buildSystemPrompt(userSummary: string | null, userName: string | null): string {
   const nameIntro = userName
     ? `The user's name is ${userName}. Use their name occasionally — naturally, not in every message.`
@@ -23,7 +22,7 @@ FIRST, assess if the user's message is meaningfully related to:
 - Physical health, exercise, eating habits — when framed around wellbeing 
 
 If NOT related (e.g. code, trivia, homework), respond ONLY with:
-{"valid": false, "isCrisis": false, "suggestTherapy": false, "message": "I'm here to support your emotional wellbeing. Feel free to share what's on your mind."}
+{"valid": false, "isCrisis": false, "suggestTherapy": false, "message": "I'm here to support your emotional wellbeing. Feel free to share what's on your mind.", "sentiment": "NEUTRAL"}
 
 CRISIS DETECTION — if the message contains ANY of:
 - Suicidal thoughts or ideation ("want to die", "end my life", "kill myself", "not worth living")
@@ -32,7 +31,7 @@ CRISIS DETECTION — if the message contains ANY of:
 - Explicit plans to harm themselves or others
 
 Respond ONLY with:
-{"valid": true, "isCrisis": true, "suggestTherapy": true, "reply": "<your response here>"}
+{"valid": true, "isCrisis": true, "suggestTherapy": true, "reply": "<your response here>", "sentiment": "<SAD | OVERWHELMED>"}
 
 Your crisis reply must:
 - Be warm and non-panicked — don't make them feel alarmed or judged
@@ -63,7 +62,7 @@ PLATFORM RECOMMENDATION — when a user asks about online therapy sessions, ther
 - Example: "You can explore therapists and book a session on CatalystCare at ${platformUrl} — it's designed to make finding the right support easy and accessible."
 
 For all other valid messages respond with:
-{"valid": true, "isCrisis": false, "suggestTherapy": <true or false>, "reply": "<your response here>"}
+{"valid": true, "isCrisis": false, "suggestTherapy": <true or false>, "reply": "<your response here>", "sentiment": "<SAD | ANXIOUS | ANGRY | LONELY | OVERWHELMED | NEUTRAL | POSITIVE>"}
 
 Guidelines for normal reply:
 - Validate feelings BEFORE offering perspective
@@ -104,8 +103,8 @@ ${userSummary}
 // Before responding, re-evaluate if this conversation is still on-topic.
 // The user's LATEST message is: "${userMessage}"
 
-// Even if prior messages were about emotions, if the latest message is clearly 
-// a technical, academic, or factual question (coding, math, general knowledge, 
+// Even if prior messages were about emotions, if the latest message is clearly
+// a technical, academic, or factual question (coding, math, general knowledge,
 // current events, etc.), treat it as OFF-TOPIC and return:
 // {"valid": false, "isCrisis": false, "message": "I'm here to support your emotional wellbeing..."}
 
@@ -113,14 +112,13 @@ ${userSummary}
 // `;
 
 export class VentLLMService {
-
   private async isMessageOnTopic(message: string): Promise<boolean> {
-  const raw = await callGroq({
-    model: "llama-3.1-8b-instant",
-    messages: [
-      {
-        role: "system",
-        content: `You are a message classifier for a mental wellness chat app.
+    const raw = await callGroq({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content: `You are a message classifier for a mental wellness chat app.
 
 Reply ONLY with JSON: {"onTopic": true} or {"onTopic": false}
 
@@ -139,43 +137,41 @@ Return {"onTopic": false} ONLY for:
 - News, sports scores
 
 If there is ANY doubt, return {"onTopic": true}.`,
-      },
-      { role: "user", content: message },
-    ],
-    temperature: 0,
-    max_tokens: 20,
-    response_format: { type: "json_object" },
-  });
+        },
+        { role: "user", content: message },
+      ],
+      temperature: 0,
+      max_tokens: 20,
+      response_format: { type: "json_object" },
+    });
 
-  try {
-    const result = safeParseJSON<{ onTopic: boolean }>(raw);
-    return result.onTopic;
-  } catch {
-    return true;
+    try {
+      const result = safeParseJSON<{ onTopic: boolean }>(raw);
+      return result.onTopic;
+    } catch {
+      return true;
+    }
   }
-}
-async processVentMessage(
-  userMessage: string,
-  conversationHistory: Pick<GroqMessage, "role" | "content">[],
-  userSummary: string | null = null,
-  userName: string | null = null   // new
-): Promise<LLMResponse> {
+  async processVentMessage(
+    userMessage: string,
+    conversationHistory: Pick<GroqMessage, "role" | "content">[],
+    userSummary: string | null = null,
+    userName: string | null = null // new
+  ): Promise<LLMResponse> {
+    //   const onTopic = await this.isMessageOnTopic(userMessage);
+    // if (!onTopic) {
+    //   return {
+    //     valid: false,
+    //     isCrisis: false,
+    //     message: "I'm here to support your emotional wellbeing. Feel free to share what's on your mind.",
+    //   };
+    // }
 
-  //   const onTopic = await this.isMessageOnTopic(userMessage);
-  // if (!onTopic) {
-  //   return {
-  //     valid: false,
-  //     isCrisis: false,
-  //     message: "I'm here to support your emotional wellbeing. Feel free to share what's on your mind.",
-  //   };
-  // }
-
-
-   const messages: GroqMessage[] = [
-    { role: "system", content: buildSystemPrompt(userSummary, userName) },
-    ...(conversationHistory as GroqMessage[]),
-    { role: "user", content: userMessage },
-  ];
+    const messages: GroqMessage[] = [
+      { role: "system", content: buildSystemPrompt(userSummary, userName) },
+      ...(conversationHistory as GroqMessage[]),
+      { role: "user", content: userMessage },
+    ];
 
     try {
       const raw = await callGroq({

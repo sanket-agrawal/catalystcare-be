@@ -42,11 +42,11 @@ if (
 // Format: type(scope)?: description
 // Examples: feat : add user validation, fix(auth):correct password, chore: install husky
 const conventionalPattern =
-  /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\([a-zA-Z0-9_\-\/]+\))?(!)?\s*:\s*.+/;
+  /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|config)(?:\([a-zA-Z0-9_\-\/]+\))?(!)?\s*:\s*.+/;
 
 // Square bracket prefix style (e.g. [feat] add user, [fix](auth): correct description, [docs] - update README)
 const bracketPattern =
-  /^\[(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)\](?:\([a-zA-Z0-9_\-\/]+\))?(!)?\s*[:\-]?\s*.+/;
+  /^\[(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|config)\](?:\([a-zA-Z0-9_\-\/]+\))?(!)?\s*[:\-]?\s*.+/;
 
 const firstLine = lines[0] || "";
 

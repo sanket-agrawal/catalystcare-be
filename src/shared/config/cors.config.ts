@@ -13,4 +13,5 @@ export const allowedOrigins = [
   // Chrome Extension
   "chrome-extension://djmbpghjklgflffhckdibmiinhidifbh",
   "chrome-extension://pihgnjemppejkiefjkbmpkmhphapnbnj",
+  "chrome-extension://kbnmlbcjnbngpbhapicbgjcjnbfpjfje",
 ];

@@ -16,6 +16,9 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
+    "test:load:health": "k6 run tests/load/health.load.js",
+    "test:load:auth": "k6 run tests/load/auth.load.js",
+    "test:load:ai": "k6 run tests/load/ai-chat.load.js",
     "prepare": "husky"
   },
   "repository": {

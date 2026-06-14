@@ -25,16 +25,18 @@ type userResponseObj = {
 export const googleSignInService = async (idToken: string, source: string = "PLATFORM") => {
   // 1. Verify Google ID token
 
-  console.log(idToken);
-
   let isClientProfileFilled = false;
   let isTherapistProfileFilled = false;
   let therapistProfileId = null;
   let clientProfileId = null;
 
+  const allowedClientIds = process.env.ALLOWED_GOOGLE_CLIENT_IDS
+    ? process.env.ALLOWED_GOOGLE_CLIENT_IDS.split(",").map((id) => id.trim())
+    : ([process.env.GOOGLE_CLIENT_ID].filter(Boolean) as string[]);
+
   const ticket = await googleAuthClient.verifyIdToken({
     idToken,
-    audience: process.env.GOOGLE_CLIENT_ID,
+    audience: allowedClientIds,
   });
 
   const payload = ticket.getPayload();

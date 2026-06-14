@@ -14,4 +14,5 @@ export const allowedOrigins = [
   "chrome-extension://djmbpghjklgflffhckdibmiinhidifbh",
   "chrome-extension://pihgnjemppejkiefjkbmpkmhphapnbnj",
   "chrome-extension://kbnmlbcjnbngpbhapicbgjcjnbfpjfje",
+  "chrome-extension://mjliokdilojdobfhhinhmmhholbjbfoi",
 ];

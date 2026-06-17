@@ -95,7 +95,7 @@ async function fetchFromProvider(
     const content = data.choices?.[0]?.message?.content;
     const elapsed = Date.now() - startTime;
 
-    console.log(`[LLM] ${provider.name}/${model} → ${elapsed}ms`);
+    // console.log(`[LLM] ${provider.name}/${model} → ${elapsed}ms`);
 
     if (!content) throw new Error("Empty response from LLM");
 

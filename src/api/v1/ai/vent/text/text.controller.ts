@@ -119,9 +119,29 @@ export class VentController {
         ]);
 
         // Check if user's emotional trend (EMA) indicates sustained distress
-        if (!isCrisis) {
-          const memory = await this.persistenceService.getUserVentMemory(userId);
-          if (memory && memory.currentEma <= -0.4) {
+        // but only if therapy hasn't already been suggested recently in this session
+        // and only after enough conversation depth (at least 3 exchanges = 6 messages)
+        if (!isCrisis && !finalSuggestTherapy) {
+          const [memory, recentMessages] = await Promise.all([
+            this.persistenceService.getUserVentMemory(userId),
+            this.persistenceService.getRecentMessages(userId, sessionId, 10),
+          ]);
+
+          // Don't override on shallow conversations — need at least 3 user-AI exchanges
+          const hasEnoughDepth = recentMessages.length >= 6;
+
+          // Check if therapy was already suggested within the last 5 assistant messages
+          const recentAssistantMsgs = recentMessages
+            .filter((m) => m.role === "assistant")
+            .slice(-5);
+          const therapyAlreadySuggested = recentAssistantMsgs.some(
+            (m) =>
+              m.content.toLowerCase().includes("therapist") ||
+              m.content.toLowerCase().includes("professional") ||
+              m.content.toLowerCase().includes("counsell")
+          );
+
+          if (memory && memory.currentEma <= -0.4 && hasEnoughDepth && !therapyAlreadySuggested) {
             finalSuggestTherapy = true;
           }
         }

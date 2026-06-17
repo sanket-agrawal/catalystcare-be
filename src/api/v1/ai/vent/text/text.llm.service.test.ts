@@ -59,8 +59,7 @@ describe("VentLLMService", () => {
 
       expect(response).toEqual({
         valid: true,
-        reply:
-          "I'm here with you. Sometimes putting feelings into words is the hardest part. Would you like to share a little more about what's going on?",
+        reply: "Hmm, something didn't quite go through on my end. Want to try saying that again?",
       });
     });
 
@@ -74,8 +73,7 @@ describe("VentLLMService", () => {
 
       expect(response).toEqual({
         valid: true,
-        reply:
-          "I'm here with you. Sometimes putting feelings into words is the hardest part. Would you like to share a little more about what's going on?",
+        reply: "Hmm, something didn't quite go through on my end. Want to try saying that again?",
       });
     });
 
@@ -87,8 +85,7 @@ describe("VentLLMService", () => {
 
       expect(response).toEqual({
         valid: true,
-        reply:
-          "I'm here with you. Sometimes putting feelings into words is the hardest part. Would you like to share a little more about what's going on?",
+        reply: "Hmm, something didn't quite go through on my end. Want to try saying that again?",
       });
     });
   });

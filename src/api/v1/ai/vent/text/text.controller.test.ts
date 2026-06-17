@@ -41,6 +41,7 @@ describe("VentController", () => {
       getUserFirstName: vi.fn(),
       persistMessages: vi.fn(),
       getUserVentMemory: vi.fn(),
+      getRecentMessages: vi.fn().mockResolvedValue([]),
     };
 
     controller = new VentController(
@@ -422,7 +423,7 @@ describe("VentController", () => {
       );
     });
 
-    it("should override suggestTherapy to true if user's EMA is <= -0.4", async () => {
+    it("should override suggestTherapy to true if user's EMA is <= -0.4 and session has enough depth", async () => {
       mockReq.body = { message: "I feel stressed", sessionId: validSessionId };
       mockPersistenceService.verifySessionOwner.mockResolvedValue(true);
       mockContextService.getContextMessages.mockResolvedValue([]);
@@ -436,6 +437,15 @@ describe("VentController", () => {
       };
       mockLLMService.processVentMessage.mockResolvedValue(mockLLMResponse);
       mockPersistenceService.getUserVentMemory.mockResolvedValue({ currentEma: -0.45 });
+      // Provide enough messages (6+) so the depth check passes
+      mockPersistenceService.getRecentMessages.mockResolvedValue([
+        { role: "user", content: "I feel bad" },
+        { role: "assistant", content: "What happened?" },
+        { role: "user", content: "Work is awful" },
+        { role: "assistant", content: "Tell me more." },
+        { role: "user", content: "I feel stressed" },
+        { role: "assistant", content: "I understand." },
+      ]);
 
       await controller.ventText(mockReq as Request, mockRes as Response, mockNext);
 
@@ -447,6 +457,114 @@ describe("VentController", () => {
           "Vent Reply Successfully",
           expect.objectContaining({
             suggestTherapy: true,
+          })
+        )
+      );
+    });
+
+    it("should NOT override suggestTherapy via EMA on shallow sessions (fewer than 6 messages)", async () => {
+      mockReq.body = { message: "I feel stressed", sessionId: validSessionId };
+      mockPersistenceService.verifySessionOwner.mockResolvedValue(true);
+      mockContextService.getContextMessages.mockResolvedValue([]);
+
+      const mockLLMResponse = {
+        valid: true,
+        reply: "What's going on?",
+        isCrisis: false,
+        suggestTherapy: false,
+        sentiment: "ANXIOUS",
+      };
+      mockLLMService.processVentMessage.mockResolvedValue(mockLLMResponse);
+      mockPersistenceService.getUserVentMemory.mockResolvedValue({ currentEma: -0.6 });
+      // Only 2 messages — not enough depth
+      mockPersistenceService.getRecentMessages.mockResolvedValue([
+        { role: "user", content: "I feel stressed" },
+        { role: "assistant", content: "What's going on?" },
+      ]);
+
+      await controller.ventText(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(mockRes.json).toHaveBeenCalledWith(
+        new ApiResponse(
+          true,
+          200,
+          "Vent Reply Successfully",
+          expect.objectContaining({
+            suggestTherapy: false,
+          })
+        )
+      );
+    });
+
+    it("should NOT override suggestTherapy via EMA if therapy was already suggested recently", async () => {
+      mockReq.body = { message: "Yeah still feeling low", sessionId: validSessionId };
+      mockPersistenceService.verifySessionOwner.mockResolvedValue(true);
+      mockContextService.getContextMessages.mockResolvedValue([]);
+
+      const mockLLMResponse = {
+        valid: true,
+        reply: "That makes sense.",
+        isCrisis: false,
+        suggestTherapy: false,
+        sentiment: "SAD",
+      };
+      mockLLMService.processVentMessage.mockResolvedValue(mockLLMResponse);
+      mockPersistenceService.getUserVentMemory.mockResolvedValue({ currentEma: -0.5 });
+      // Enough depth, but therapy was already mentioned
+      mockPersistenceService.getRecentMessages.mockResolvedValue([
+        { role: "user", content: "I've been feeling terrible for weeks" },
+        { role: "assistant", content: "Have you considered talking to a therapist about this?" },
+        { role: "user", content: "Maybe" },
+        { role: "assistant", content: "Take your time." },
+        { role: "user", content: "Yeah still feeling low" },
+        { role: "assistant", content: "That makes sense." },
+      ]);
+
+      await controller.ventText(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(mockRes.json).toHaveBeenCalledWith(
+        new ApiResponse(
+          true,
+          200,
+          "Vent Reply Successfully",
+          expect.objectContaining({
+            suggestTherapy: false,
+          })
+        )
+      );
+    });
+
+    it("should skip EMA check entirely when LLM already set suggestTherapy to true", async () => {
+      mockReq.body = {
+        message: "I've been unable to sleep for months",
+        sessionId: validSessionId,
+      };
+      mockPersistenceService.verifySessionOwner.mockResolvedValue(true);
+      mockContextService.getContextMessages.mockResolvedValue([]);
+
+      const mockLLMResponse = {
+        valid: true,
+        reply: "That sounds exhausting. This might be worth exploring with a professional.",
+        isCrisis: false,
+        suggestTherapy: true,
+        sentiment: "SAD",
+      };
+      mockLLMService.processVentMessage.mockResolvedValue(mockLLMResponse);
+
+      await controller.ventText(mockReq as Request, mockRes as Response, mockNext);
+
+      // getRecentMessages should NOT be called since suggestTherapy is already true
+      expect(mockPersistenceService.getRecentMessages).not.toHaveBeenCalled();
+      expect(mockRes.json).toHaveBeenCalledWith(
+        new ApiResponse(
+          true,
+          200,
+          "Vent Reply Successfully",
+          expect.objectContaining({
+            suggestTherapy: true,
+            platformUrl: expect.stringContaining("catalystcare"),
           })
         )
       );

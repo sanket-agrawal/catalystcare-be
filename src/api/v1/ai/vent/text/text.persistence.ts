@@ -384,4 +384,45 @@ export class VentPersistenceService {
       },
     });
   }
+
+  async getMessagesInTimeWindow(
+    userId: string,
+    hoursBack: number = 72
+  ): Promise<{ role: string; content: string; createdAt: Date }[]> {
+    const since = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
+    const messages = await this.prisma.ventMessage.findMany({
+      where: {
+        session: { userId, isActive: true },
+        createdAt: { gte: since },
+      },
+      orderBy: { createdAt: "asc" },
+      select: { role: true, content: true, createdAt: true },
+    });
+
+    return messages.map((m) => ({
+      role: String(m.role),
+      content: decryptContent(String(m.content)),
+      createdAt: m.createdAt,
+    }));
+  }
+
+  async getRecentMessagesCrossSession(
+    userId: string,
+    limit: number = 20
+  ): Promise<{ role: string; content: string; createdAt: Date }[]> {
+    const messages = await this.prisma.ventMessage.findMany({
+      where: {
+        session: { userId, isActive: true },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: { role: true, content: true, createdAt: true },
+    });
+
+    return messages.reverse().map((m) => ({
+      role: String(m.role),
+      content: decryptContent(String(m.content)),
+      createdAt: m.createdAt,
+    }));
+  }
 }

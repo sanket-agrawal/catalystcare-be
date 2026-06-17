@@ -60,3 +60,11 @@ export interface Helpline {
   number: string;
   available: string;
 }
+
+export interface EmotionalInsight {
+  insight: string;
+  type: "pattern" | "trigger_effect" | "trend" | "coping_style" | "lifestyle_link";
+  confidence: number;
+  evidence: string[];
+  tone: "supportive" | "neutral" | "reflective";
+}

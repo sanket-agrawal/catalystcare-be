@@ -1,6 +1,6 @@
 import { llmConfig } from "../../../../../shared/config/ai.config";
 import { callLLM, safeParseJSON, LLMMessage } from "../../../../../infrastructure/llm";
-import { LLMResponse } from "./text.types";
+import { LLMResponse, EmotionalInsight } from "./text.types";
 import { frontendConfig } from "../../../../../shared/config/frontend.config";
 
 function buildSystemPrompt(userSummary: string | null, userName: string | null): string {
@@ -122,20 +122,37 @@ ${userSummary}
 --- Use this for continuity. Don't reference it directly unless natural. ---`;
 }
 
-// in text.llm.service.ts
-// Change the validation approach — give the model the last message AND recent context
+const INSIGHT_SYSTEM_PROMPT = `You are an emotional pattern analyst for a mental wellness platform.
+Your task is to analyze the user's recent messages and generate EXACTLY ONE meaningful, non-diagnostic insight.
 
-// const VALIDATION_CONTEXT_MSG = `
-// Before responding, re-evaluate if this conversation is still on-topic.
-// The user's LATEST message is: "${userMessage}"
+Generate ONE insight that identifies:
+- a recurring emotional pattern, OR
+- a trigger -> emotion -> behavior pattern, OR
+- a change in emotional trend over time, OR
+- a consistent coping mechanism, OR
+- a link between lifestyle and emotional state
 
-// Even if prior messages were about emotions, if the latest message is clearly
-// a technical, academic, or factual question (coding, math, general knowledge,
-// current events, etc.), treat it as OFF-TOPIC and return:
-// {"valid": false, "isCrisis": false, "message": "I'm here to support your emotional wellbeing..."}
+Return ONLY this JSON schema (no explanation, no markdown formatting):
+{
+  "insight": "...",
+  "type": "pattern" | "trigger_effect" | "trend" | "coping_style" | "lifestyle_link",
+  "confidence": number,
+  "evidence": [
+    "short quote or paraphrased evidence 1",
+    "short quote or paraphrased evidence 2"
+  ],
+  "tone": "supportive" | "neutral" | "reflective"
+}
 
-// Do NOT answer technical questions even if the user built up to them through emotional framing.
-// `;
+HARD CONSTRAINTS:
+1. Output ONLY ONE insight (no lists).
+2. Do NOT diagnose or use clinical language.
+3. Do NOT be overly certain — always include confidence.
+4. Do NOT invent facts not present in messages.
+5. Keep insight concise (max 2 sentences).
+6. Must be understandable by a non-technical user.
+7. Tone should match one of: supportive, neutral, reflective.
+8. Type should match one of: pattern, trigger_effect, trend, coping_style, lifestyle_link.`;
 
 export class VentLLMService {
   private async isMessageOnTopic(message: string): Promise<boolean> {
@@ -223,5 +240,42 @@ If there is ANY doubt, return {"onTopic": true}.`,
         reply: "Hmm, something didn't quite go through on my end. Want to try saying that again?",
       };
     }
+  }
+
+  async generateInsight(
+    messages: { content: string; createdAt: Date }[]
+  ): Promise<EmotionalInsight> {
+    const formattedInput = messages.map((m) => ({
+      timestamp: m.createdAt.toISOString(),
+      message: m.content,
+    }));
+
+    const raw = await callLLM({
+      model: llmConfig.textModel,
+      messages: [
+        { role: "system", content: INSIGHT_SYSTEM_PROMPT },
+        { role: "user", content: JSON.stringify(formattedInput, null, 2) },
+      ],
+      temperature: 0.4,
+      max_tokens: 300,
+      response_format: { type: "json_object" },
+    });
+
+    const parsed = safeParseJSON<EmotionalInsight>(raw);
+
+    // Validate structure
+    if (
+      typeof parsed.insight !== "string" ||
+      !["pattern", "trigger_effect", "trend", "coping_style", "lifestyle_link"].includes(
+        parsed.type
+      ) ||
+      typeof parsed.confidence !== "number" ||
+      !Array.isArray(parsed.evidence) ||
+      !["supportive", "neutral", "reflective"].includes(parsed.tone)
+    ) {
+      throw new Error("Invalid insight response format from LLM");
+    }
+
+    return parsed;
   }
 }

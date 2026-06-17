@@ -175,4 +175,55 @@ export class VentController {
       }
     }
   };
+
+  getInsight = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.id;
+
+      // Fetch recent messages within last 72 hours
+      const messages = await this.persistenceService.getMessagesInTimeWindow(userId, 72);
+
+      // Filter to user messages only
+      let userMessages = messages.filter((m) => m.role === "user");
+
+      // Fallback: If no messages in the last 72 hours, retrieve the most recent cross-session messages
+      if (userMessages.length === 0) {
+        const fallbackMessages = await this.persistenceService.getRecentMessagesCrossSession(
+          userId,
+          20
+        );
+        userMessages = fallbackMessages.filter((m) => m.role === "user");
+      }
+
+      // Require at least one user message overall to run the analysis
+      if (userMessages.length === 0) {
+        res
+          .status(400)
+          .json(
+            new ApiResponse(
+              false,
+              400,
+              "No conversation history found. Share what's on your mind first to generate insights."
+            )
+          );
+        return;
+      }
+
+      // Generate the insight using LLM service
+      const insight = await this.llmService.generateInsight(userMessages);
+
+      res.status(200).json(new ApiResponse(true, 200, "Insight generated successfully", insight));
+    } catch (error) {
+      console.error("Generating emotional insight failed", error);
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
+      } else {
+        res
+          .status(500)
+          .json(
+            new ApiResponse(false, 500, "Something went wrong while generating emotional insight")
+          );
+      }
+    }
+  };
 }

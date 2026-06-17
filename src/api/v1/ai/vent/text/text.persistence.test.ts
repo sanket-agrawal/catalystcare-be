@@ -511,4 +511,58 @@ describe("VentPersistenceService", () => {
       ]);
     });
   });
+
+  describe("getMessagesInTimeWindow", () => {
+    it("should fetch decrypted messages within the specified time window", async () => {
+      const mockMessages = [
+        { role: "user", content: "encrypted:feeling stressed", createdAt: new Date() },
+        { role: "assistant", content: "encrypted:tell me more", createdAt: new Date() },
+      ];
+
+      mockPrisma.ventMessage.findMany.mockResolvedValue(mockMessages);
+
+      const messages = await service.getMessagesInTimeWindow("user-123", 72);
+
+      expect(mockPrisma.ventMessage.findMany).toHaveBeenCalledWith({
+        where: {
+          session: { userId: "user-123", isActive: true },
+          createdAt: { gte: expect.any(Date) },
+        },
+        orderBy: { createdAt: "asc" },
+        select: { role: true, content: true, createdAt: true },
+      });
+
+      expect(messages).toEqual([
+        { role: "user", content: "feeling stressed", createdAt: expect.any(Date) },
+        { role: "assistant", content: "tell me more", createdAt: expect.any(Date) },
+      ]);
+    });
+  });
+
+  describe("getRecentMessagesCrossSession", () => {
+    it("should fetch recent decrypted messages across all sessions sorted chronologically (reversed)", async () => {
+      const mockMessages = [
+        { role: "assistant", content: "encrypted:tell me more", createdAt: new Date() },
+        { role: "user", content: "encrypted:feeling stressed", createdAt: new Date() },
+      ];
+
+      mockPrisma.ventMessage.findMany.mockResolvedValue(mockMessages);
+
+      const messages = await service.getRecentMessagesCrossSession("user-123", 2);
+
+      expect(mockPrisma.ventMessage.findMany).toHaveBeenCalledWith({
+        where: {
+          session: { userId: "user-123", isActive: true },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 2,
+        select: { role: true, content: true, createdAt: true },
+      });
+
+      expect(messages).toEqual([
+        { role: "user", content: "feeling stressed", createdAt: expect.any(Date) },
+        { role: "assistant", content: "tell me more", createdAt: expect.any(Date) },
+      ]);
+    });
+  });
 });

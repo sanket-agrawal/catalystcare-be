@@ -89,4 +89,47 @@ describe("VentLLMService", () => {
       });
     });
   });
+
+  describe("generateInsight", () => {
+    const sampleMessages = [
+      { content: "Message 1", createdAt: new Date("2026-06-17T10:00:00Z") },
+      { content: "Message 2", createdAt: new Date("2026-06-17T11:00:00Z") },
+    ];
+
+    it("should generate and return a valid emotional insight", async () => {
+      const mockInsight = {
+        insight: "You seem to experience anxiety after work.",
+        type: "pattern",
+        confidence: 0.85,
+        evidence: ["User mentioned stress post work"],
+        tone: "reflective",
+      };
+
+      vi.mocked(callLLM).mockResolvedValue(JSON.stringify(mockInsight));
+      vi.mocked(safeParseJSON).mockReturnValue(mockInsight as any);
+
+      const response = await llmService.generateInsight(sampleMessages);
+
+      expect(callLLM).toHaveBeenCalledTimes(1);
+      const callArgs = vi.mocked(callLLM).mock.calls[0][0];
+      expect(callArgs.messages[0].content).toContain("You are an emotional pattern analyst");
+      expect(callArgs.messages[1].content).toContain("Message 1");
+      expect(response).toEqual(mockInsight);
+    });
+
+    it("should throw an error if the LLM output is malformed or invalid", async () => {
+      const malformedInsight = {
+        insight: 123, // should be string
+        type: "invalid_type",
+        confidence: "high",
+      };
+
+      vi.mocked(callLLM).mockResolvedValue(JSON.stringify(malformedInsight));
+      vi.mocked(safeParseJSON).mockReturnValue(malformedInsight as any);
+
+      await expect(llmService.generateInsight(sampleMessages)).rejects.toThrow(
+        "Invalid insight response format from LLM"
+      );
+    });
+  });
 });

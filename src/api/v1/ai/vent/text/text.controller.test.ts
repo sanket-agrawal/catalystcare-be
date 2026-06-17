@@ -29,6 +29,7 @@ describe("VentController", () => {
 
     mockLLMService = {
       processVentMessage: vi.fn(),
+      generateInsight: vi.fn(),
     };
 
     mockPersistenceService = {
@@ -42,6 +43,8 @@ describe("VentController", () => {
       persistMessages: vi.fn(),
       getUserVentMemory: vi.fn(),
       getRecentMessages: vi.fn().mockResolvedValue([]),
+      getMessagesInTimeWindow: vi.fn(),
+      getRecentMessagesCrossSession: vi.fn(),
     };
 
     controller = new VentController(
@@ -595,6 +598,110 @@ describe("VentController", () => {
       expect(mockRes.status).toHaveBeenCalledWith(500);
       expect(mockRes.json).toHaveBeenCalledWith(
         new ApiResponse(false, 500, "Something went wrong while fetching vent response")
+      );
+    });
+  });
+
+  describe("getInsight", () => {
+    it("should generate and return an insight successfully if there is at least one user message", async () => {
+      const mockUserMessages = [
+        { role: "user", content: "Msg 1", createdAt: new Date() },
+        { role: "assistant", content: "AI Msg 1", createdAt: new Date() },
+      ];
+
+      const mockInsight = {
+        insight: "Mock insight details",
+        type: "pattern",
+        confidence: 0.9,
+        evidence: ["Msg 1"],
+        tone: "supportive",
+      };
+
+      mockPersistenceService.getMessagesInTimeWindow.mockResolvedValue(mockUserMessages);
+      mockLLMService.generateInsight.mockResolvedValue(mockInsight);
+
+      await controller.getInsight(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockPersistenceService.getMessagesInTimeWindow).toHaveBeenCalledWith("user-123", 72);
+      expect(mockLLMService.generateInsight).toHaveBeenCalledWith([
+        { role: "user", content: "Msg 1", createdAt: expect.any(Date) },
+      ]);
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(mockRes.json).toHaveBeenCalledWith(
+        new ApiResponse(true, 200, "Insight generated successfully", mockInsight)
+      );
+    });
+
+    it("should return 400 if user messages count is zero even after fallback", async () => {
+      mockPersistenceService.getMessagesInTimeWindow.mockResolvedValue([]);
+      mockPersistenceService.getRecentMessagesCrossSession.mockResolvedValue([]);
+
+      await controller.getInsight(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          statusCode: 400,
+          message: expect.stringContaining("No conversation history found"),
+        })
+      );
+      expect(mockLLMService.generateInsight).not.toHaveBeenCalled();
+    });
+
+    it("should successfully fall back to recent cross-session messages if none in the last 72 hours", async () => {
+      const mockInsight = {
+        insight: "Insight based on older messages",
+        type: "trend",
+        confidence: 0.75,
+        evidence: ["Older message"],
+        tone: "reflective",
+      };
+
+      mockPersistenceService.getMessagesInTimeWindow.mockResolvedValue([]);
+      mockPersistenceService.getRecentMessagesCrossSession.mockResolvedValue([
+        { role: "user", content: "Older message", createdAt: new Date() },
+        { role: "assistant", content: "Older reply", createdAt: new Date() },
+      ]);
+      mockLLMService.generateInsight.mockResolvedValue(mockInsight);
+
+      await controller.getInsight(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockPersistenceService.getMessagesInTimeWindow).toHaveBeenCalledWith("user-123", 72);
+      expect(mockPersistenceService.getRecentMessagesCrossSession).toHaveBeenCalledWith(
+        "user-123",
+        20
+      );
+      expect(mockLLMService.generateInsight).toHaveBeenCalledWith([
+        { role: "user", content: "Older message", createdAt: expect.any(Date) },
+      ]);
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(mockRes.json).toHaveBeenCalledWith(
+        new ApiResponse(true, 200, "Insight generated successfully", mockInsight)
+      );
+    });
+
+    it("should handle ApiError properly", async () => {
+      mockPersistenceService.getMessagesInTimeWindow.mockRejectedValue(
+        new ApiError(403, "Forbidden resource")
+      );
+
+      await controller.getInsight(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockRes.status).toHaveBeenCalledWith(403);
+      expect(mockRes.json).toHaveBeenCalledWith(new ApiResponse(false, 403, "Forbidden resource"));
+    });
+
+    it("should handle generic errors by returning 500 status", async () => {
+      mockPersistenceService.getMessagesInTimeWindow.mockRejectedValue(
+        new Error("Database connection lost")
+      );
+
+      await controller.getInsight(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.json).toHaveBeenCalledWith(
+        new ApiResponse(false, 500, "Something went wrong while generating emotional insight")
       );
     });
   });

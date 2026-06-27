@@ -5,8 +5,8 @@ const prismaOption: { log: ('query' | 'info' | 'warn' | 'error')[] } = {
   log: []
 }
 
-if(serverConfig.nodeEnv !== 'production') {
-  prismaOption.log = ['query','info','warn','error']
+if (serverConfig.nodeEnv !== 'production' && serverConfig.nodeEnv !== 'development') {
+  prismaOption.log = ['query', 'info', 'warn', 'error']
 }
 
 const prisma = new PrismaClient(prismaOption);

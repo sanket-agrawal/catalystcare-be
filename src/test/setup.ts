@@ -12,3 +12,14 @@ vi.mock("../infrastructure/redis/index", () => ({
     status: "ready",
   },
 }));
+
+vi.mock("../infrastructure/razorpay/index", () => ({
+  razorpayInstance: {
+    orders: {
+      create: vi.fn(),
+    },
+    payments: {
+      fetch: vi.fn(),
+    },
+  },
+}));

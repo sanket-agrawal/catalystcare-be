@@ -1,0 +1,229 @@
+import { Request, Response, NextFunction } from "express";
+import { VentTextSchema, VentSessionSchema } from "./text.validator";
+import { VentContextService } from "./text.service";
+import { VentLLMService } from "./text.llm.service";
+import { VentPersistenceService } from "./text.persistence";
+import { VentMessage, VentTextResponse } from "./text.types";
+import ApiResponse from "../../../../../shared/utils/ApiResponse";
+import ApiError from "../../../../../shared/utils/ApiError";
+import { INDIAN_HELPLINES } from "./text.helplines";
+import { frontendConfig } from "../../../../../shared/config/frontend.config";
+import { getSuggestedExercise } from "./text.exercises";
+
+export class VentController {
+  constructor(
+    private contextService: VentContextService,
+    private llmService: VentLLMService,
+    private persistenceService: VentPersistenceService
+  ) {}
+
+  // ─── Session endpoints ─────────────────────────────────────────
+
+  createSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await this.persistenceService.createSession(req.user!.id);
+      res.status(201).json(new ApiResponse(true, 201, "Session created", result));
+    } catch (error) {
+      res.status(404).json(new ApiResponse(false, 400, "Error Creating Session"));
+    }
+  };
+
+  getSessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const sessions = await this.persistenceService.getUserSessions(req.user!.id);
+      res.status(200).json(new ApiResponse(true, 200, "Sessions fetched", sessions));
+    } catch (error) {
+      res.status(404).json(new ApiResponse(false, 400, "Error Getting Session"));
+    }
+  };
+
+  getSessionMessages = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { sessionId } = req.params;
+      const messages = await this.persistenceService.getSessionMessages(req.user!.id, sessionId);
+      res.status(200).json(new ApiResponse(true, 200, "Messages fetched", messages));
+    } catch (error) {
+      res.status(404).json(new ApiResponse(false, 400, "Error Getting Messages"));
+    }
+  };
+
+  deleteSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { sessionId } = req.params;
+      await this.persistenceService.deleteSession(req.user!.id, sessionId);
+      await this.contextService.deleteSession(req.user!.id, sessionId); // clear Redis too
+      res.status(200).json(new ApiResponse(true, 200, "Session deleted"));
+    } catch (error) {
+      res.status(404).json(new ApiResponse(false, 400, "Error Deleting Session"));
+    }
+  };
+
+  // ─── Messaging ─────────────────────────────────────────────────
+
+  ventText = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const parsed = VentTextSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res
+          .status(400)
+          .json(
+            new ApiResponse(false, 400, "Validation failed", parsed.error.flatten().fieldErrors)
+          );
+        return;
+      }
+
+      const { message, sessionId } = parsed.data;
+      const userId = req.user!.id;
+
+      // Verify this session belongs to the user
+      const isOwner = await this.persistenceService.verifySessionOwner(userId, sessionId);
+      if (!isOwner) {
+        res.status(404).json(new ApiResponse(false, 404, "Session not found"));
+        return;
+      }
+
+      const [history, userSummary, userName] = await Promise.all([
+        this.contextService.getContextMessages(userId, sessionId),
+        this.persistenceService.getUserSummary(userId),
+        this.persistenceService.getUserFirstName(userId),
+      ]);
+
+      const llmResponse = await this.llmService.processVentMessage(
+        message,
+        history,
+        userSummary,
+        userName
+      );
+
+      const isCrisis = llmResponse.isCrisis ?? false;
+      let finalSuggestTherapy = isCrisis ? false : (llmResponse.suggestTherapy ?? false);
+
+      const shouldStore = llmResponse.valid;
+
+      if (shouldStore && llmResponse.reply) {
+        const newMessages: VentMessage[] = [
+          { role: "user", content: message, timestamp: Date.now() },
+          { role: "assistant", content: llmResponse.reply, timestamp: Date.now() },
+        ];
+
+        await Promise.all([
+          this.contextService.appendMessages(userId, sessionId, newMessages),
+          this.persistenceService.persistMessages(
+            userId,
+            sessionId,
+            message,
+            llmResponse.reply,
+            isCrisis,
+            llmResponse.sentiment
+          ),
+        ]);
+
+        // Check if user's emotional trend (EMA) indicates sustained distress
+        // but only if therapy hasn't already been suggested recently in this session
+        // and only after enough conversation depth (at least 3 exchanges = 6 messages)
+        if (!isCrisis && !finalSuggestTherapy) {
+          const [memory, recentMessages] = await Promise.all([
+            this.persistenceService.getUserVentMemory(userId),
+            this.persistenceService.getRecentMessages(userId, sessionId, 10),
+          ]);
+
+          // Don't override on shallow conversations — need at least 3 user-AI exchanges
+          const hasEnoughDepth = recentMessages.length >= 6;
+
+          // Check if therapy was already suggested within the last 5 assistant messages
+          const recentAssistantMsgs = recentMessages
+            .filter((m) => m.role === "assistant")
+            .slice(-5);
+          const therapyAlreadySuggested = recentAssistantMsgs.some(
+            (m) =>
+              m.content.toLowerCase().includes("therapist") ||
+              m.content.toLowerCase().includes("professional") ||
+              m.content.toLowerCase().includes("counsell")
+          );
+
+          if (memory && memory.currentEma <= -0.4 && hasEnoughDepth && !therapyAlreadySuggested) {
+            finalSuggestTherapy = true;
+          }
+        }
+      }
+
+      const platformUrl =
+        frontendConfig.therapistListingPage || "https://catalystcare.com/therapists";
+
+      const response: VentTextResponse = {
+        sessionId,
+        reply: llmResponse.valid
+          ? llmResponse.reply!
+          : (llmResponse.message ?? "I'm here for your emotional wellbeing."),
+        isValid: llmResponse.valid,
+        isCrisis,
+        helplines: isCrisis ? INDIAN_HELPLINES : undefined,
+        suggestTherapy: finalSuggestTherapy,
+        platformUrl: finalSuggestTherapy ? platformUrl : undefined,
+        sentiment: llmResponse.sentiment,
+        suggestedExercise: getSuggestedExercise(llmResponse.sentiment),
+      };
+      res.status(200).json(new ApiResponse(true, 200, "Vent Reply Successfully", response));
+    } catch (error) {
+      console.error("Fetching vent response failed", error);
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
+      } else {
+        res
+          .status(500)
+          .json(new ApiResponse(false, 500, "Something went wrong while fetching vent response"));
+      }
+    }
+  };
+
+  getInsight = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.id;
+
+      // Fetch recent messages within last 72 hours
+      const messages = await this.persistenceService.getMessagesInTimeWindow(userId, 72);
+
+      // Filter to user messages only
+      let userMessages = messages.filter((m) => m.role === "user");
+
+      // Fallback: If no messages in the last 72 hours, retrieve the most recent cross-session messages
+      if (userMessages.length === 0) {
+        const fallbackMessages = await this.persistenceService.getRecentMessagesCrossSession(
+          userId,
+          20
+        );
+        userMessages = fallbackMessages.filter((m) => m.role === "user");
+      }
+
+      // Require at least one user message overall to run the analysis
+      if (userMessages.length === 0) {
+        res
+          .status(400)
+          .json(
+            new ApiResponse(
+              false,
+              400,
+              "No conversation history found. Share what's on your mind first to generate insights."
+            )
+          );
+        return;
+      }
+
+      // Generate the insight using LLM service
+      const insight = await this.llmService.generateInsight(userMessages);
+
+      res.status(200).json(new ApiResponse(true, 200, "Insight generated successfully", insight));
+    } catch (error) {
+      console.error("Generating emotional insight failed", error);
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
+      } else {
+        res
+          .status(500)
+          .json(
+            new ApiResponse(false, 500, "Something went wrong while generating emotional insight")
+          );
+      }
+    }
+  };
+}

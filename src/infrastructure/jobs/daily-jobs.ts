@@ -1,14 +1,13 @@
-import { slotQueue } from "../queues/index";
+import { slotQueue, wellnessQueue } from "../queues/index";
 import { Job } from "bullmq";
 
-// Run daily at midnight IST (Asia/Kolkata)
+// Run daily repeatable jobs
 export async function registerRepeatableJobs() {
+  console.log("⏳ Registering repeatable BullMQ jobs...");
 
-    console.log("⏳ Registering repeatable BullMQ jobs...");
-
-  // Remove old repeatable job definitions (optional safety)
-  const existing = await slotQueue.getJobSchedulers();
-  for (const job of existing) {
+  // 1. Slot Regeneration repeatable job (midnight IST)
+  const existingSlots = await slotQueue.getJobSchedulers();
+  for (const job of existingSlots) {
     await slotQueue.removeJobScheduler(job.key);
   }
 
@@ -18,12 +17,31 @@ export async function registerRepeatableJobs() {
     {
       repeat: {
         pattern: "0 0 * * *",
-        tz: "Asia/Kolkata"
-    },
+        tz: "Asia/Kolkata",
+      },
       removeOnComplete: false,
       removeOnFail: false,
     }
   );
-
   console.log("Registered repeatable job: regenerate_future_slots");
+
+  // 2. Wellness Proactive Distress check repeatable job (10:00 AM IST daily)
+  const existingWellness = await wellnessQueue.getJobSchedulers();
+  for (const job of existingWellness) {
+    await wellnessQueue.removeJobScheduler(job.key);
+  }
+
+  await wellnessQueue.add(
+    "check_inactive_distress",
+    {},
+    {
+      repeat: {
+        pattern: "0 10 * * *",
+        tz: "Asia/Kolkata",
+      },
+      removeOnComplete: false,
+      removeOnFail: false,
+    }
+  );
+  console.log("Registered repeatable job: check_inactive_distress (10:00 AM IST)");
 }

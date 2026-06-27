@@ -3,27 +3,32 @@ import { z } from "zod";
 export enum UserRole {
   CLIENT = "CLIENT",
   THERAPIST = "THERAPIST",
-  ADMIN = "ADMIN"
+  ADMIN = "ADMIN",
 }
- 
+
 export const registerUserSchema = z.object({
-  firstName: z
-    .string()
-    .max(50, "First name is too long"),
+  firstName: z.string().max(50, "First name is too long"),
   email: z.string().email("Invalid email address"),
-  mobileNumber : z.string().min(10, "Mobile number must be at least 10 digits long").max(10, "Mobile number is too long"),
-    role: z
-    .enum([UserRole.CLIENT, UserRole.THERAPIST, UserRole.ADMIN])
-    .optional(),
+  mobileNumber: z
+    .string()
+    .min(10, "Mobile number must be at least 10 digits long")
+    .max(10, "Mobile number is too long"),
+  role: z.enum([UserRole.CLIENT, UserRole.THERAPIST, UserRole.ADMIN]).optional(),
+  source: z.enum(["PLATFORM", "EXTENSION"]).default("PLATFORM"),
+});
+
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .email("Invalid email format")
+    .transform((s) => s.trim()),
+  password: z.string().max(100),
+  source: z.enum(["PLATFORM", "EXTENSION"]).default("PLATFORM"),
 });
 
 export const verifyOTPSchema = z.object({
-    firstName: z
-    .string()
-    .max(50, "First name is too long"),
-  lastName: z
-    .string()
-    .max(50, "Last name is too long"),
+  firstName: z.string().max(50, "First name is too long"),
+  lastName: z.string().max(50, "Last name is too long"),
   email: z.string().email("Invalid email address"),
   password: z
     .string()
@@ -32,27 +37,31 @@ export const verifyOTPSchema = z.object({
     .regex(/[a-z]/, "Must contain at least one lowercase letter")
     .regex(/[0-9]/, "Must contain at least one number")
     .regex(/[@$!%*?&#]/, "Must contain at least one special character"),
-  mobileNumber : z.string().min(10, "Mobile number must be at least 10 digits long").max(10, "Mobile number is too long"),
-    role: z
-    .enum([UserRole.CLIENT, UserRole.THERAPIST, UserRole.ADMIN])
-    .optional(),
+  mobileNumber: z
+    .string()
+    .min(10, "Mobile number must be at least 10 digits long")
+    .max(10, "Mobile number is too long"),
+  role: z.enum([UserRole.CLIENT, UserRole.THERAPIST, UserRole.ADMIN]).optional(),
   otp: z.string().length(6, "OTP must be 6 digits long"),
+  source: z.enum(["PLATFORM", "EXTENSION"]).default("PLATFORM"),
 });
 
 export type RegisterUserInput = {
-  firstName : string;
+  firstName: string;
   email: string;
   password: string;
-  mobileNumber : string;
-  role? : UserRole
-}
+  mobileNumber: string;
+  role?: UserRole;
+  source: "PLATFORM" | "EXTENSION";
+};
 
 export type verifyOTPInput = {
-  otp : string,
-  firstName : string;
-  lastName : string;
+  otp: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
-  mobileNumber : string;
-  role? : UserRole
-}
+  mobileNumber: string;
+  role?: UserRole;
+  source: "PLATFORM" | "EXTENSION";
+};

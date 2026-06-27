@@ -3,19 +3,19 @@ import bcrypt from "bcryptjs";
 /**
  * Hash a plain text password
  */
-export const hashPassword = async (password : string) => {
-  const saltRounds = 12; // higher = more secure but slower
+export const hashPassword = async (password: string) => {
+  const saltRounds = process.env.NODE_ENV === "test" ? 1 : 12; // higher = more secure but slower
   return await bcrypt.hash(password, saltRounds);
 };
 
-export const hashOtp = async (otp : string) => {
-  const saltRounds = 10;
-  return await bcrypt.hash(otp,saltRounds);
-}
+export const hashOtp = async (otp: string) => {
+  const saltRounds = process.env.NODE_ENV === "test" ? 1 : 10;
+  return await bcrypt.hash(otp, saltRounds);
+};
 
 /**
  * Compare a plain text password with a hash
  */
-export const comparePassword = async (password : string, hashed: string) => {
+export const comparePassword = async (password: string, hashed: string) => {
   return await bcrypt.compare(password, hashed);
 };

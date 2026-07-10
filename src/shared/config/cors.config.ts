@@ -15,6 +15,7 @@ export const allowedOrigins = [
   "chrome-extension://pihgnjemppejkiefjkbmpkmhphapnbnj",
   "chrome-extension://kbnmlbcjnbngpbhapicbgjcjnbfpjfje",
   "chrome-extension://mjliokdilojdobfhhinhmmhholbjbfoi",
+  "chrome-extension://okjjfgioblnncmclkaampoiaeekjebjk",
 
   // admin dashboards
   "https://core.catalystcare.in",

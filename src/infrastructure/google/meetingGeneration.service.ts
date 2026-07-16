@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import { prisma } from "../prisma/client";
-import { createOAuth2Client } from "./index";
+import { getOrgAuthClient } from "./orgAuth";
 import { v4 as uuid } from "uuid";
 import {
   emailFromAddress,
@@ -59,32 +59,7 @@ export async function createGoogleMeetForBooking(payload: CreateMeetPayload): Pr
     where: { id: booking.therapistId },
   });
 
-  if (!therapistIntegration) {
-    console.warn(
-      `[createGoogleMeetForBooking] No Google Calendar integration for therapist ${booking.therapistId}`
-    );
-    return;
-  }
-
-  const authClient = createOAuth2Client();
-  authClient.setCredentials({
-    access_token: therapistIntegration.accessToken,
-    refresh_token: therapistIntegration.refreshToken,
-  });
-
-  // Debug: log token scopes to diagnose insufficient scope errors
-  try {
-    const tokenInfo = await authClient.getTokenInfo(therapistIntegration.accessToken!);
-    console.log(
-      `[createGoogleMeetForBooking] Token scopes for therapist ${booking.therapistId}:`,
-      tokenInfo.scopes
-    );
-  } catch (e: any) {
-    console.warn(
-      `[createGoogleMeetForBooking] Could not fetch token info (token likely expired, will auto-refresh):`,
-      e.message
-    );
-  }
+  const authClient = getOrgAuthClient();
 
   // googleapis will auto-refresh using refresh_token if needed
   const calendar = google.calendar({ version: "v3", auth: authClient });
@@ -98,7 +73,7 @@ export async function createGoogleMeetForBooking(payload: CreateMeetPayload): Pr
   const summary = `Catalystcare Therapy session with ${booking.client.user.firstName} ${booking.client.user.lastName}`;
   const description = `Therapy session with ${booking.client.user.firstName} ${booking.client.user.lastName}`;
 
-  const calendarId = therapistIntegration.calendarId ?? "primary";
+  const calendarId = "primary";
 
   const event = await calendar.events.insert({
     calendarId,
@@ -117,7 +92,10 @@ export async function createGoogleMeetForBooking(payload: CreateMeetPayload): Pr
         {
           email: booking.client.user.email,
         },
-      ],
+        {
+          email: booking.therapist.user.email ?? therapistIntegration?.googleEmail ?? "",
+        },
+      ].filter((a) => a.email),
       guestsCanModify: false,
       guestsCanInviteOthers: false,
       guestsCanSeeOtherGuests: false,
@@ -186,7 +164,7 @@ export async function createGoogleMeetForBooking(payload: CreateMeetPayload): Pr
     });
 
     await emailQueue.add("rescheduleSessionConfirmationTherapist", {
-      to: booking.therapist.user.email ?? therapistIntegration.googleEmail ?? "",
+      to: booking.therapist.user.email ?? therapistIntegration?.googleEmail ?? "",
       subject: emailSubjects(therapistFullName, clientFullName)
         .rescheduleSessionConfirmationTherapist,
       html: therapistBookingRescheduledTemplate(
@@ -213,7 +191,7 @@ export async function createGoogleMeetForBooking(payload: CreateMeetPayload): Pr
     });
 
     await emailQueue.add("bookingConfirmationTherapist", {
-      to: booking.therapist.user.email ?? therapistIntegration.googleEmail ?? "",
+      to: booking.therapist.user.email ?? therapistIntegration?.googleEmail ?? "",
       subject: emailSubjects().therapistBookingConfirmation,
       html: therapistBookingConfirmationTemplate(
         booking.therapist.user.firstName,
@@ -252,28 +230,30 @@ export async function updateGoogleCalendarEvent(payload: CreateMeetPayload) {
     where: { id: booking.therapistId },
   });
 
-  if (!therapistIntegration) return;
-
-  const authClient = createOAuth2Client();
-  authClient.setCredentials({
-    access_token: therapistIntegration.accessToken,
-    refresh_token: therapistIntegration.refreshToken,
-  });
-
+  const authClient = getOrgAuthClient();
   const calendar = google.calendar({ version: "v3", auth: authClient });
 
-  const calendarId = therapistIntegration.calendarId ?? "primary";
+  const calendarId = "primary";
 
-  await calendar.events.patch({
-    calendarId,
-    eventId: booking.calendarEventId,
-    sendUpdates: "none", // notify both
-    requestBody: {
-      start: { dateTime: booking.startDateTime.toISOString() },
-      end: { dateTime: booking.endDateTime.toISOString() },
-      summary: `Catalystcare Therapy session with ${booking.client.user.firstName} ${booking.client.user.lastName}`,
-    },
-  });
+  try {
+    await calendar.events.patch({
+      calendarId,
+      eventId: booking.calendarEventId,
+      sendUpdates: "none", // notify both
+      requestBody: {
+        start: { dateTime: booking.startDateTime.toISOString() },
+        end: { dateTime: booking.endDateTime.toISOString() },
+        summary: `Catalystcare Therapy session with ${booking.client.user.firstName} ${booking.client.user.lastName}`,
+      },
+    });
+  } catch (error: any) {
+    if (error?.code === 404 || error?.code === 410) {
+      // Fallback: create a brand new event under the org calendar if it doesn't exist or is not found
+      await createGoogleMeetForBooking({ bookingId: payload.bookingId });
+      return;
+    }
+    throw error;
+  }
 
   const therapistFullName = `${booking.therapist.user.firstName} ${booking.therapist.user.lastName}`;
   const clientFullName = `${booking.client.user.firstName} ${booking.client.user.lastName}`;
@@ -307,7 +287,7 @@ export async function updateGoogleCalendarEvent(payload: CreateMeetPayload) {
 
   // Enqueue email to therapist
   await emailQueue.add("rescheduleSessionConfirmationTherapist", {
-    to: booking.therapist.user.email ?? therapistIntegration.googleEmail ?? "",
+    to: booking.therapist.user.email ?? therapistIntegration?.googleEmail ?? "",
     subject: emailSubjects(therapistFullName, clientFullName)
       .rescheduleSessionConfirmationTherapist,
     html: therapistBookingRescheduledTemplate(
@@ -335,17 +315,10 @@ export async function deleteGoogleCalendarEvent(payload: CreateMeetPayload): Pro
     where: { id: booking.therapistId },
   });
 
-  if (!therapistIntegration) return;
-
-  const authClient = createOAuth2Client();
-  authClient.setCredentials({
-    access_token: therapistIntegration.accessToken,
-    refresh_token: therapistIntegration.refreshToken,
-  });
-
+  const authClient = getOrgAuthClient();
   const calendar = google.calendar({ version: "v3", auth: authClient });
 
-  const calendarId = therapistIntegration.calendarId || "primary";
+  const calendarId = "primary";
 
   try {
     await calendar.events.delete({
@@ -414,18 +387,7 @@ export async function createProgramSlotGoogleMeet(
     where: { id: booking.therapistId },
   });
 
-  if (!therapistIntegration) {
-    console.warn(
-      `[createGoogleMeetForBooking] No Google Calendar integration for therapist ${booking.therapistId}`
-    );
-    return;
-  }
-
-  const authClient = createOAuth2Client();
-  authClient.setCredentials({
-    access_token: therapistIntegration.accessToken,
-    refresh_token: therapistIntegration.refreshToken,
-  });
+  const authClient = getOrgAuthClient();
 
   // googleapis will auto-refresh using refresh_token if needed
   const calendar = google.calendar({ version: "v3", auth: authClient });
@@ -439,7 +401,7 @@ export async function createProgramSlotGoogleMeet(
   const summary = `Catalystcare ${payload.programTitle} session number ${payload.sessionNumber} with ${booking.client.user.firstName} ${booking.client.user.lastName}`;
   const description = `Therapy session with ${booking.client.user.firstName} ${booking.client.user.lastName}`;
 
-  const calendarId = therapistIntegration.calendarId ?? "primary";
+  const calendarId = "primary";
 
   const event = await calendar.events.insert({
     calendarId,
@@ -458,7 +420,10 @@ export async function createProgramSlotGoogleMeet(
         {
           email: booking.client.user.email,
         },
-      ],
+        {
+          email: booking.therapist.user.email ?? therapistIntegration?.googleEmail ?? "",
+        },
+      ].filter((a) => a.email),
       guestsCanModify: false,
       guestsCanInviteOthers: false,
       guestsCanSeeOtherGuests: false,
@@ -534,7 +499,7 @@ export async function createProgramSlotGoogleMeet(
 
   // Enqueue email to therapist
   await emailQueue.add("programSlotBookingConfirmationTherapist", {
-    to: booking.therapist.user.email ?? therapistIntegration.googleEmail ?? "",
+    to: booking.therapist.user.email ?? therapistIntegration?.googleEmail ?? "",
     subject: programSlotBookingSubjects(
       payload.planName,
       payload.sessionNumber,

@@ -400,6 +400,7 @@ model Booking {
   meetingLink      String?                @map("meeting_link")
   calendarEventId  String?                @map("calendar_event_id")
   meetingProvider  String?                @map("meeting_provider") // e.g. 'GOOGLE_MEET'
+  reminderSent     Boolean                @default(false) @map("reminder_sent")
 
   conversation   Conversation?
   

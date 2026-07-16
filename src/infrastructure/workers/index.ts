@@ -4,3 +4,4 @@ import "./slot.worker";
 import "./googleMeeting.worker";
 import "./emailBlast.worker";
 import "./wellness.worker";
+import "./sessionReminder.worker";

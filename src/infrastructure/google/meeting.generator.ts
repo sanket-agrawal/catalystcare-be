@@ -2,7 +2,7 @@ import ApiError from "../../shared/utils/ApiError";
 import { prisma } from "../prisma/client";
 
 import { google } from "googleapis";
-import { createOAuth2Client } from "./index";
+import { getOrgAuthClient } from "./orgAuth";
 import { v4 as uuid } from "uuid";
 
 interface CreateMeetPayload {
@@ -16,23 +16,19 @@ interface CreateMeetPayload {
 export async function createGoogleMeet(
   payload: CreateMeetPayload
 ): Promise<{ meetLink: string; provider: string }> {
-  const therapistIntegration = await prisma.therapistProfile.findUnique({
+  const therapist = await prisma.therapistProfile.findUnique({
     where: { id: payload.therapistId },
+    include: { user: true },
   });
 
-  if (!therapistIntegration) {
+  if (!therapist) {
     throw new ApiError(
       404,
-      `[createGoogleMeetForBooking] No Google Calendar integration for therapist ${payload.therapistId}`
+      `[createGoogleMeet] Therapist profile not found: ${payload.therapistId}`
     );
   }
 
-  const authClient = createOAuth2Client();
-  authClient.setCredentials({
-    access_token: therapistIntegration.accessToken,
-    refresh_token: therapistIntegration.refreshToken,
-  });
-
+  const authClient = getOrgAuthClient();
   // googleapis will auto-refresh using refresh_token if needed
   const calendar = google.calendar({ version: "v3", auth: authClient });
 
@@ -45,7 +41,7 @@ export async function createGoogleMeet(
   const summary = `Webinar: ${payload.webinarTitle}`;
   const description = payload.webinarDescription ?? "";
 
-  const calendarId = therapistIntegration.calendarId ?? "primary";
+  const calendarId = "primary";
 
   const event = await calendar.events.insert({
     calendarId,
@@ -67,6 +63,11 @@ export async function createGoogleMeet(
       guestsCanModify: false,
       guestsCanInviteOthers: false,
       guestsCanSeeOtherGuests: false,
+      attendees: [
+        {
+          email: therapist.user.email ?? therapist.googleEmail ?? "",
+        },
+      ].filter((a) => a.email),
 
       conferenceData: {
         createRequest: {
@@ -87,7 +88,7 @@ export async function createGoogleMeet(
   const calendarEventId = event.data.id ?? null;
 
   if (!meetLink || !calendarEventId) {
-    throw new ApiError(500, "[createGoogleMeetForBooking] Failed to get meet link or eventId");
+    throw new ApiError(500, "[createGoogleMeet] Failed to get meet link or eventId");
   }
 
   return {

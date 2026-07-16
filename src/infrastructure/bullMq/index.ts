@@ -8,6 +8,7 @@ import {
   meetingQueue,
   slotQueue,
   wellnessQueue,
+  reminderQueue,
 } from "../../infrastructure/queues";
 import express, { NextFunction, Request, Response } from "express";
 import dotenv from "dotenv";
@@ -25,6 +26,7 @@ createBullBoard({
     new BullMQAdapter(meetingQueue),
     new BullMQAdapter(emailBlastQueue),
     new BullMQAdapter(wellnessQueue),
+    new BullMQAdapter(reminderQueue),
   ],
   serverAdapter,
 });

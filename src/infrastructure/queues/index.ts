@@ -35,3 +35,7 @@ export const programSlotBookingMeetingQueue = new Queue("program-slot-google-mee
 export const wellnessQueue = new Queue("wellness-queue", {
   connection: redisConnection,
 });
+
+export const reminderQueue = new Queue("reminder-queue", {
+  connection: redisConnection,
+});

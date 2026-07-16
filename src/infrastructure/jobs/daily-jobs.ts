@@ -1,4 +1,4 @@
-import { slotQueue, wellnessQueue } from "../queues/index";
+import { slotQueue, wellnessQueue, reminderQueue } from "../queues/index";
 import { Job } from "bullmq";
 
 // Run daily repeatable jobs
@@ -44,4 +44,24 @@ export async function registerRepeatableJobs() {
     }
   );
   console.log("Registered repeatable job: check_inactive_distress (10:00 AM IST)");
+
+  // 3. Session 15-min reminder repeatable job (every minute)
+  const existingReminders = await reminderQueue.getJobSchedulers();
+  for (const job of existingReminders) {
+    await reminderQueue.removeJobScheduler(job.key);
+  }
+
+  await reminderQueue.add(
+    "send_session_reminders",
+    {},
+    {
+      repeat: {
+        pattern: "* * * * *", // every minute
+        tz: "Asia/Kolkata",
+      },
+      removeOnComplete: true,
+      removeOnFail: true,
+    }
+  );
+  console.log("Registered repeatable job: send_session_reminders (every minute)");
 }

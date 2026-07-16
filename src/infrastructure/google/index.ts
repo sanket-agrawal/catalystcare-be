@@ -8,11 +8,16 @@ if (!clientId || !clientSecret || !redirectUri) {
   throw new Error("Google OAuth env vars are missing");
 }
 
-export const oauth2Client = new google.auth.OAuth2(
-  clientId,
-  clientSecret,
-  redirectUri
-);
+export const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+
+/**
+ * Creates a fresh OAuth2Client instance per-request to avoid
+ * cross-contamination of credentials between different therapists'
+ * concurrent/sequential jobs sharing the singleton.
+ */
+export function createOAuth2Client() {
+  return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+}
 
 export const CALENDAR_SCOPES = [
   "openid",

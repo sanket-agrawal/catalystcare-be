@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import { prisma } from "../prisma/client";
-import { oauth2Client } from "./index";
+import { createOAuth2Client } from "./index";
 import { v4 as uuid } from "uuid";
 import {
   emailFromAddress,
@@ -66,13 +66,14 @@ export async function createGoogleMeetForBooking(payload: CreateMeetPayload): Pr
     return;
   }
 
-  oauth2Client.setCredentials({
+  const authClient = createOAuth2Client();
+  authClient.setCredentials({
     access_token: therapistIntegration.accessToken,
     refresh_token: therapistIntegration.refreshToken,
   });
 
   // googleapis will auto-refresh using refresh_token if needed
-  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  const calendar = google.calendar({ version: "v3", auth: authClient });
 
   const startDateTime = booking.startDateTime;
   const endDateTime = booking.endDateTime;
@@ -239,12 +240,13 @@ export async function updateGoogleCalendarEvent(payload: CreateMeetPayload) {
 
   if (!therapistIntegration) return;
 
-  oauth2Client.setCredentials({
+  const authClient = createOAuth2Client();
+  authClient.setCredentials({
     access_token: therapistIntegration.accessToken,
     refresh_token: therapistIntegration.refreshToken,
   });
 
-  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  const calendar = google.calendar({ version: "v3", auth: authClient });
 
   const calendarId = therapistIntegration.calendarId ?? "primary";
 
@@ -321,12 +323,13 @@ export async function deleteGoogleCalendarEvent(payload: CreateMeetPayload): Pro
 
   if (!therapistIntegration) return;
 
-  oauth2Client.setCredentials({
+  const authClient = createOAuth2Client();
+  authClient.setCredentials({
     access_token: therapistIntegration.accessToken,
     refresh_token: therapistIntegration.refreshToken,
   });
 
-  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  const calendar = google.calendar({ version: "v3", auth: authClient });
 
   const calendarId = therapistIntegration.calendarId || "primary";
 
@@ -404,13 +407,14 @@ export async function createProgramSlotGoogleMeet(
     return;
   }
 
-  oauth2Client.setCredentials({
+  const authClient = createOAuth2Client();
+  authClient.setCredentials({
     access_token: therapistIntegration.accessToken,
     refresh_token: therapistIntegration.refreshToken,
   });
 
   // googleapis will auto-refresh using refresh_token if needed
-  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  const calendar = google.calendar({ version: "v3", auth: authClient });
 
   const startDateTime = booking.startDateTime;
   const endDateTime = booking.endDateTime;

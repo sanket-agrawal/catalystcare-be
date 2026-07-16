@@ -72,6 +72,20 @@ export async function createGoogleMeetForBooking(payload: CreateMeetPayload): Pr
     refresh_token: therapistIntegration.refreshToken,
   });
 
+  // Debug: log token scopes to diagnose insufficient scope errors
+  try {
+    const tokenInfo = await authClient.getTokenInfo(therapistIntegration.accessToken!);
+    console.log(
+      `[createGoogleMeetForBooking] Token scopes for therapist ${booking.therapistId}:`,
+      tokenInfo.scopes
+    );
+  } catch (e: any) {
+    console.warn(
+      `[createGoogleMeetForBooking] Could not fetch token info (token likely expired, will auto-refresh):`,
+      e.message
+    );
+  }
+
   // googleapis will auto-refresh using refresh_token if needed
   const calendar = google.calendar({ version: "v3", auth: authClient });
 

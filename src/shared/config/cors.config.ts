@@ -20,4 +20,8 @@ export const allowedOrigins = [
   // admin dashboards
   "https://core.catalystcare.in",
   "https://dev-core.catalystcare.in",
+
+  // API self-origins for queues/admin dashboard
+  "https://api.catalystcare.in",
+  "https://dev-api.catalystcare.in",
 ];

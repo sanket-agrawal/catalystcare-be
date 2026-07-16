@@ -1,28 +1,24 @@
-import ApiError from '../../shared/utils/ApiError';
-import {prisma} from '../prisma/client';
+import ApiError from "../../shared/utils/ApiError";
+import { prisma } from "../prisma/client";
 
 import { google } from "googleapis";
-import { oauth2Client } from "./index";
+import { createOAuth2Client } from "./index";
 import { v4 as uuid } from "uuid";
 
 interface CreateMeetPayload {
   therapistId: string;
-  startTime : Date;
-  endTime : Date;
-  webinarTitle : string;
-  webinarDescription? : string;
+  startTime: Date;
+  endTime: Date;
+  webinarTitle: string;
+  webinarDescription?: string;
 }
-
 
 export async function createGoogleMeet(
   payload: CreateMeetPayload
 ): Promise<{ meetLink: string; provider: string }> {
-
-
-  const therapistIntegration =
-    await prisma.therapistProfile.findUnique({
-      where: { id: payload.therapistId },
-    });
+  const therapistIntegration = await prisma.therapistProfile.findUnique({
+    where: { id: payload.therapistId },
+  });
 
   if (!therapistIntegration) {
     throw new ApiError(
@@ -31,15 +27,16 @@ export async function createGoogleMeet(
     );
   }
 
-  oauth2Client.setCredentials({
+  const authClient = createOAuth2Client();
+  authClient.setCredentials({
     access_token: therapistIntegration.accessToken,
     refresh_token: therapistIntegration.refreshToken,
   });
 
   // googleapis will auto-refresh using refresh_token if needed
-  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  const calendar = google.calendar({ version: "v3", auth: authClient });
 
-    const startDateTime = new Date(payload.startTime);
+  const startDateTime = new Date(payload.startTime);
   const endDateTime = new Date(payload.endTime);
 
   const startIso = startDateTime.toISOString();
@@ -64,14 +61,12 @@ export async function createGoogleMeet(
         dateTime: endIso,
       },
       reminders: {
-  useDefault: false,
-  overrides: [
-    { method: "popup", minutes: 10 },
-  ],
-},
-  guestsCanModify: false,
-  guestsCanInviteOthers: false,
-  guestsCanSeeOtherGuests: false,
+        useDefault: false,
+        overrides: [{ method: "popup", minutes: 10 }],
+      },
+      guestsCanModify: false,
+      guestsCanInviteOthers: false,
+      guestsCanSeeOtherGuests: false,
 
       conferenceData: {
         createRequest: {
@@ -86,24 +81,17 @@ export async function createGoogleMeet(
 
   const conferenceData = event.data.conferenceData;
   const entryPoints = conferenceData?.entryPoints ?? [];
-  const videoEntry = entryPoints.find(
-    (e) => e.entryPointType === "video"
-  );
+  const videoEntry = entryPoints.find((e) => e.entryPointType === "video");
 
   const meetLink = videoEntry?.uri ?? null;
   const calendarEventId = event.data.id ?? null;
 
   if (!meetLink || !calendarEventId) {
-    throw new ApiError(
-      500,
-      "[createGoogleMeetForBooking] Failed to get meet link or eventId"
-    );
+    throw new ApiError(500, "[createGoogleMeetForBooking] Failed to get meet link or eventId");
   }
-
 
   return {
     meetLink,
-    provider : "GOOGLE_MEET"
-  }
-
+    provider: "GOOGLE_MEET",
+  };
 }

@@ -32,9 +32,23 @@ export async function sendIncompleteBookingEmail(bookingId: string) {
     const clientFirstName = booking.client.user.firstName;
     const therapistFullName = `${booking.therapist.user.firstName} ${booking.therapist.user.lastName}`;
     const therapistProfileUrl = booking.therapist.slug
-      ? `${serverConfig.baseFrontendUrl}/therapist/${booking.therapist.slug}`
-      : `${serverConfig.baseFrontendUrl}/therapist/${booking.therapist.id}`;
+      ? `${serverConfig.baseFrontendUrl}/therapists/${booking.therapist.slug}`
+      : `${serverConfig.baseFrontendUrl}/therapists/${booking.therapist.id}`;
     const therapistsUrl = `${serverConfig.baseFrontendUrl}/therapists`;
+
+    const sessionDate = booking.startDateTime.toLocaleDateString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
+    const sessionTime = booking.startDateTime.toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
     await emailQueue.add("clientBookingIncomplete", {
       to: booking.client.user.email,
@@ -42,6 +56,8 @@ export async function sendIncompleteBookingEmail(bookingId: string) {
       html: clientBookingIncompleteTemplate(
         clientFirstName,
         therapistFullName,
+        sessionDate,
+        sessionTime,
         therapistProfileUrl,
         therapistsUrl
       ),

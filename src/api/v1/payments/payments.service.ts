@@ -301,7 +301,7 @@ export const paymentService = {
       where: { payment: { id: payment.id } },
     });
 
-    if (booking) {
+    if (booking && booking.status === "PENDING_PAYMENT") {
       await prisma.booking.update({
         where: { id: booking.id },
         data: { paymentStatus: "FAILED", status: "CANCELLED" },
@@ -318,5 +318,51 @@ export const paymentService = {
     }
 
     console.log(`❌ Webhook: Payment ${razorpayPaymentId} failed`);
+  },
+
+  cancelOrderService: async function (bookingId: string, clientId: string) {
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { payment: true },
+    });
+
+    if (!booking) {
+      throw new ApiError(404, "Booking not found");
+    }
+
+    if (booking.clientId !== clientId) {
+      throw new ApiError(403, "Unauthorized to cancel this booking");
+    }
+
+    if (booking.status !== "PENDING_PAYMENT") {
+      throw new ApiError(400, "Only pending bookings can be cancelled");
+    }
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: "CANCELLED",
+          paymentStatus: "FAILED",
+          isActive: false,
+          cancelledAt: new Date(),
+          cancellationReason: "Cancelled by user during checkout",
+        },
+      });
+
+      if (booking.payment) {
+        await tx.payment.update({
+          where: { id: booking.payment.id },
+          data: { status: "FAILED" },
+        });
+      }
+
+      await tx.availabilitySlot.update({
+        where: { id: booking.slotId },
+        data: { status: "AVAILABLE" },
+      });
+    });
+
+    await sendIncompleteBookingEmail(bookingId);
   },
 };

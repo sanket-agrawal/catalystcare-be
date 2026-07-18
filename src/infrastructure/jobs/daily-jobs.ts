@@ -45,6 +45,36 @@ export async function registerRepeatableJobs() {
   );
   console.log("Registered repeatable job: check_inactive_distress (10:00 AM IST)");
 
+  // 2b. Weekly Booking Retention check repeatable job (Sunday 10:00 AM IST)
+  await wellnessQueue.add(
+    "check_weekly_retention",
+    {},
+    {
+      repeat: {
+        pattern: "0 10 * * 0", // Every Sunday at 10:00 AM IST
+        tz: "Asia/Kolkata",
+      },
+      removeOnComplete: false,
+      removeOnFail: false,
+    }
+  );
+  console.log("Registered repeatable job: check_weekly_retention (Sunday 10:00 AM IST)");
+
+  // 2c. Daily Inactive & Non-Repeat check repeatable job (10:00 AM IST daily)
+  await wellnessQueue.add(
+    "check_daily_inactive_and_non_repeat",
+    {},
+    {
+      repeat: {
+        pattern: "0 10 * * *", // Daily at 10:00 AM IST
+        tz: "Asia/Kolkata",
+      },
+      removeOnComplete: false,
+      removeOnFail: false,
+    }
+  );
+  console.log("Registered repeatable job: check_daily_inactive_and_non_repeat (10:00 AM IST)");
+
   // 3. Session 15-min reminder repeatable job (every minute)
   const existingReminders = await reminderQueue.getJobSchedulers();
   for (const job of existingReminders) {

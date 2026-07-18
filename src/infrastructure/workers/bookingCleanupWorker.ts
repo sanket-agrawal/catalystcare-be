@@ -3,6 +3,7 @@ import { redisConnection } from "../redis/index";
 import { prisma } from "../prisma/client";
 import { slotConfig } from "../../shared/config/slot.config";
 import { Prisma } from "@prisma/client";
+import { sendIncompleteBookingEmail } from "../../shared/utils/booking-email";
 
 export const bookingCleanupWorker = new Worker(
   "bookingCleanupQueue",
@@ -11,17 +12,17 @@ export const bookingCleanupWorker = new Worker(
 
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
-       include: { payment: true }
+      include: { payment: true },
     });
 
-if (!booking || booking.status !== "PENDING_PAYMENT") {
+    if (!booking || booking.status !== "PENDING_PAYMENT") {
       console.log(`⏭️  Skipping cleanup for booking ${bookingId} - status: ${booking?.status}`);
       return;
     }
 
     console.log(`⏰ Cancelling unpaid booking ${bookingId}`);
 
-        await prisma.$transaction(async (tx : Prisma.TransactionClient) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // ✅ Set isActive = false to release the unique constraint
       await tx.booking.update({
         where: { id: bookingId },
@@ -48,6 +49,9 @@ if (!booking || booking.status !== "PENDING_PAYMENT") {
     });
 
     console.log(`✅ Slot ${slotId} unblocked`);
+
+    // Send incomplete booking email
+    await sendIncompleteBookingEmail(bookingId);
   },
   { connection: redisConnection }
 );

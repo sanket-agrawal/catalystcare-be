@@ -2,11 +2,12 @@ import ApiError from "../../../shared/utils/ApiError";
 import { razorpayInstance } from "../../../infrastructure/razorpay";
 import { prisma } from "../../../infrastructure/prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
-import crypto from "crypto"
+import crypto from "crypto";
 import { bookingCleanupQueue, meetingQueue } from "../../../infrastructure/queues";
 import { rupeesToPaise } from "../../../shared/lib/money";
 import { Prisma } from "@prisma/client";
 import { slotConfig } from "../../../shared/config/slot.config";
+import { sendIncompleteBookingEmail } from "../../../shared/utils/booking-email";
 
 export const paymentService = {
   createOrderService: async function (clientId: string, slotId: string) {
@@ -35,37 +36,30 @@ export const paymentService = {
       }
 
       const therapist = slot.availability.therapist;
-    if (!therapist) throw new ApiError(404, "Therapist not found for this slot");
+      if (!therapist) throw new ApiError(404, "Therapist not found for this slot");
 
-          const sessionFeeRupees = Number(therapist.sessionFee || 0);
-          const sessionFeeDecimal = therapist.sessionFee || new Decimal(0);
+      const sessionFeeRupees = Number(therapist.sessionFee || 0);
+      const sessionFeeDecimal = therapist.sessionFee || new Decimal(0);
       const amountPaise = rupeesToPaise(sessionFeeRupees);
       const currency = therapist.currency || "INR";
 
-     const now = new Date();
-    const commissionRate = await prisma.commissionRate.findFirst({
-      where: {
-        purchaseType : "SINGLE",
-        effectiveFrom: { lte: now },
-        OR: [
-          { effectiveTo: null },
-          { effectiveTo: { gt: now } }
-        ]
-      },
-      orderBy: { effectiveFrom: 'desc' },
-    });
+      const now = new Date();
+      const commissionRate = await prisma.commissionRate.findFirst({
+        where: {
+          purchaseType: "SINGLE",
+          effectiveFrom: { lte: now },
+          OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+        },
+        orderBy: { effectiveFrom: "desc" },
+      });
 
-    const platformPercent = Number(commissionRate?.platformPercent || 0);
+      const platformPercent = Number(commissionRate?.platformPercent || 0);
       const gatewayPercent = Number(commissionRate?.gatewayPercent || 0);
 
-      const platformFeePaise = Math.round(
-        (amountPaise * platformPercent) / 100
-      );
-      const gatewayFeePaise = Math.round(
-        (amountPaise * gatewayPercent) / 100
-      );
+      const platformFeePaise = Math.round((amountPaise * platformPercent) / 100);
+      const gatewayFeePaise = Math.round((amountPaise * gatewayPercent) / 100);
 
-            const payoutAmountPaise = amountPaise - platformFeePaise - gatewayFeePaise;
+      const payoutAmountPaise = amountPaise - platformFeePaise - gatewayFeePaise;
 
       const shortReceipt = `slot_${slotId.substring(0, 8)}_${Date.now()}`;
 
@@ -78,7 +72,7 @@ export const paymentService = {
 
       if (!order) throw new ApiError(400, "Unable to create Razorpay order");
 
-      const { bookingId } = await prisma.$transaction(async (tx : Prisma.TransactionClient) => {
+      const { bookingId } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // set slot to HELD
         await tx.availabilitySlot.update({
           where: { id: slotId },
@@ -89,7 +83,7 @@ export const paymentService = {
         const payment = await tx.payment.create({
           data: {
             razorpayOrderId: order.id,
-            amount : sessionFeeDecimal,
+            amount: sessionFeeDecimal,
             amountPaise,
             currency,
             status: "PENDING",
@@ -120,7 +114,7 @@ export const paymentService = {
             endDateTime: slot.endDateTime,
             status: "PENDING_PAYMENT",
             paymentStatus: "PENDING",
-            isActive : true,
+            isActive: true,
             payment: { connect: { id: payment.id } },
           },
         });
@@ -174,7 +168,7 @@ export const paymentService = {
 
       if (!payment) throw new ApiError(404, "Payment not found for this order");
 
-      const updated = await prisma.$transaction(async (tx : Prisma.TransactionClient) => {
+      const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const updatedPayment = await tx.payment.update({
           where: { id: payment.id },
           data: {
@@ -198,23 +192,23 @@ export const paymentService = {
       });
 
       await meetingQueue.add(
-    "create-google-meet",
-    { bookingId },
-    {
-      attempts: 5,
-      backoff: {
-        type: "exponential",
-        delay: 10_000,
-      },
-      removeOnComplete: false,
-      removeOnFail: false,
-    }
-  );
+        "create-google-meet",
+        { bookingId },
+        {
+          attempts: 5,
+          backoff: {
+            type: "exponential",
+            delay: 10_000,
+          },
+          removeOnComplete: false,
+          removeOnFail: false,
+        }
+      );
 
       return {
         success: true,
         message: "Payment verified and booking confirmed",
-        ...updated
+        ...updated,
       };
     } catch (error) {
       console.error("verifyPaymentService error:", error);
@@ -307,7 +301,7 @@ export const paymentService = {
       where: { payment: { id: payment.id } },
     });
 
-    if (booking) {
+    if (booking && booking.status === "PENDING_PAYMENT") {
       await prisma.booking.update({
         where: { id: booking.id },
         data: { paymentStatus: "FAILED", status: "CANCELLED" },
@@ -319,9 +313,56 @@ export const paymentService = {
           data: { status: "AVAILABLE" },
         });
       }
+
+      await sendIncompleteBookingEmail(booking.id);
     }
 
     console.log(`❌ Webhook: Payment ${razorpayPaymentId} failed`);
   },
 
+  cancelOrderService: async function (bookingId: string, clientId: string) {
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { payment: true },
+    });
+
+    if (!booking) {
+      throw new ApiError(404, "Booking not found");
+    }
+
+    if (booking.clientId !== clientId) {
+      throw new ApiError(403, "Unauthorized to cancel this booking");
+    }
+
+    if (booking.status !== "PENDING_PAYMENT") {
+      throw new ApiError(400, "Only pending bookings can be cancelled");
+    }
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: "CANCELLED",
+          paymentStatus: "FAILED",
+          isActive: false,
+          cancelledAt: new Date(),
+          cancellationReason: "Cancelled by user during checkout",
+        },
+      });
+
+      if (booking.payment) {
+        await tx.payment.update({
+          where: { id: booking.payment.id },
+          data: { status: "FAILED" },
+        });
+      }
+
+      await tx.availabilitySlot.update({
+        where: { id: booking.slotId },
+        data: { status: "AVAILABLE" },
+      });
+    });
+
+    await sendIncompleteBookingEmail(bookingId);
+  },
 };

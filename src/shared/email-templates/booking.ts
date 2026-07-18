@@ -421,3 +421,120 @@ export const therapistSessionReminderTemplate = (
   </html>
   `;
 };
+
+export const clientBookingIncompleteTemplate = (
+  clientFirstName: string,
+  therapistName: string,
+  sessionDate: string,
+  sessionTime: string,
+  therapistProfileUrl: string,
+  therapistsUrl: string
+) => {
+  return `
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Complete Your Booking - Catalyst Care</title>
+    </head>
+    <body style="font-family: Roboto, Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" 
+             style="background-color: #f9f9f9; padding: 30px 0;">
+        <tr>
+          <td align="center">
+            
+            <table width="500" cellpadding="0" cellspacing="0" border="0" 
+              style="background-color: #ffffff; border-radius: 10px; overflow: hidden; 
+              box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+
+              <!-- Header -->
+              <tr>
+                <td align="center" style="padding: 20px;">
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" 
+                       alt="Catalyst Care" width="120" style="display:block;">
+                </td>
+              </tr>
+
+              <!-- Body -->
+              <tr>
+                <td style="padding: 25px; text-align: center;">
+                  <h2 style="color: #333; margin-bottom: 10px;">Hi ${clientFirstName},</h2>
+                  <h3 style="color: #ffc107; margin-bottom: 15px;">Your Booking is Incomplete</h3>
+
+                  <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 15px 0;">
+                    We noticed that you started booking a session with <strong>${therapistName}</strong> but couldn't complete the payment at the last step.
+                  </p>
+
+                  <table align="center" style="margin-top: 15px; margin-bottom: 20px; font-size: 15px; color: #555;">
+                    <tr><td><strong>Date:</strong></td><td>&nbsp;${sessionDate}</td></tr>
+                    <tr><td><strong>Time:</strong></td><td>&nbsp;${sessionTime}</td></tr>
+                  </table>
+
+                  <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+                    If you still wish to book a session with them, you can directly visit their profile page:
+                  </p>
+
+                  <a href="${therapistProfileUrl}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style="display:inline-block; margin-bottom: 20px; padding:10px 20px; 
+                    background-color:#007bff; color:#fff; border-radius:6px; 
+                    text-decoration:none; font-size:14px; font-weight: bold;">
+                    Book with ${therapistName}
+                  </a>
+
+                  <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+                    Or, if you would like to explore other therapists, you can view all profiles here:
+                  </p>
+
+                  <a href="${therapistsUrl}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style="display:inline-block; padding:10px 20px; 
+                    background-color:#6c757d; color:#fff; border-radius:6px; 
+                    text-decoration:none; font-size:14px; font-weight: bold;">
+                    Explore Other Therapists
+                  </a>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td align="center" style="background-color: #f3f4f6; padding: 12px; 
+                    font-size: 13px; color: #555;">
+                  © Catalyst Care |
+                  <a href="${serverConfig.baseFrontendUrl}" 
+                  target="_blank"
+                   rel="noopener noreferrer"
+                     style="color: #007bff; text-decoration: none;">${serverConfig.baseFrontendUrl}</a>
+
+                  <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     style="margin-left:10px;">
+                    <img src="https://cdn-icons-png.flaticon.com/24/733/733585.png" 
+                         width="20" height="20" 
+                         alt="WhatsApp" style="vertical-align:middle;">
+                  </a>
+
+                  <a href="mailto:${emailFromAddress().infoEmail.email}"
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     style="margin-left:10px;">
+                    <img src="https://cdn-icons-png.flaticon.com/24/732/732200.png" 
+                         width="20" height="20" 
+                         alt="Email" style="vertical-align:middle;">
+                  </a>
+                </td>
+              </tr>
+
+            </table>
+
+          </td>
+        </tr>
+      </table>
+    </body>
+  </html>
+  `;
+};

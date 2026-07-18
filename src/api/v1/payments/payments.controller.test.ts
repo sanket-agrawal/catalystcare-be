@@ -223,4 +223,46 @@ describe("Payments Controller", () => {
       expect(ApiResponse).toHaveBeenCalledWith(false, 400, "Webhook verification failed");
     });
   });
+
+  describe("cancelOrder", () => {
+    it("should cancel order successfully", async () => {
+      (paymentService.cancelOrderService as any).mockResolvedValue(true);
+
+      mockReq.user = { clientProfileId: "client-profile-1", role: "CLIENT" };
+      mockReq.body = { bookingId: "booking-1" };
+
+      await paymentController.cancelOrder(mockReq as Request, mockRes as Response);
+
+      expect(paymentService.cancelOrderService).toHaveBeenCalledWith(
+        "booking-1",
+        "client-profile-1"
+      );
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(ApiResponse).toHaveBeenCalledWith(true, 200, "Booking cancelled successfully");
+    });
+
+    it("should return 403 if user role is not CLIENT", async () => {
+      mockReq.user = { clientProfileId: "client-profile-1", role: "THERAPIST" };
+      mockReq.body = { bookingId: "booking-1" };
+
+      await paymentController.cancelOrder(mockReq as Request, mockRes as Response);
+
+      expect(mockRes.status).toHaveBeenCalledWith(403);
+      expect(ApiResponse).toHaveBeenCalledWith(
+        false,
+        403,
+        "Only clients can cancel their bookings"
+      );
+    });
+
+    it("should return 400 if bookingId is missing", async () => {
+      mockReq.user = { clientProfileId: "client-profile-1", role: "CLIENT" };
+      mockReq.body = {};
+
+      await paymentController.cancelOrder(mockReq as Request, mockRes as Response);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(ApiResponse).toHaveBeenCalledWith(false, 400, "Booking ID is required");
+    });
+  });
 });

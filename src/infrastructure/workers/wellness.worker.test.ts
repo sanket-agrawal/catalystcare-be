@@ -20,7 +20,11 @@ vi.mock("bullmq", () => {
 import { prisma } from "../prisma/client";
 import { emailQueue } from "../queues/index";
 import { subDays } from "date-fns";
-import { checkInactiveDistress } from "./wellness.worker";
+import {
+  checkInactiveDistress,
+  checkWeeklyRetention,
+  checkDailyInactiveAndNonRepeat,
+} from "./wellness.worker";
 
 vi.mock("../prisma/client", () => ({
   prisma: {
@@ -32,6 +36,14 @@ vi.mock("../prisma/client", () => ({
       findFirst: vi.fn(),
     },
     user: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+    },
+    booking: {
+      findMany: vi.fn(),
+      count: vi.fn(),
+    },
+    clientProfile: {
       findUnique: vi.fn(),
     },
   },
@@ -162,6 +174,112 @@ describe("wellnessWorker", () => {
         currentEma: { lte: -0.4 },
         OR: [{ therapyEmailSentAt: null }, { therapyEmailSentAt: { lt: expect.any(Date) } }],
       },
+    });
+  });
+
+  describe("checkWeeklyRetention", () => {
+    it("should queue weekly retention email for client who booked last week but has no upcoming booking", async () => {
+      vi.mocked(prisma.booking.findMany)
+        .mockResolvedValueOnce([{ clientId: "client-1" }] as any)
+        .mockResolvedValueOnce([] as any);
+
+      vi.mocked(prisma.clientProfile.findUnique).mockResolvedValue({
+        id: "client-1",
+        user: {
+          email: "client@example.com",
+          firstName: "Alice",
+        },
+      } as any);
+
+      const mockJob = { name: "check_weekly_retention", data: {} } as any;
+      const result = await checkWeeklyRetention(mockJob);
+
+      expect(result).toEqual({ emailsQueued: 1 });
+      expect(emailQueue.add).toHaveBeenCalledWith(
+        "sendWeeklyRetentionEmail",
+        expect.objectContaining({
+          to: "client@example.com",
+          subject: "Checking In on Your Well-being - CatalystCare",
+          html: expect.stringContaining("Alice"),
+          sender: "info@catalystcare.com",
+        })
+      );
+    });
+
+    it("should skip client if they have an upcoming booking", async () => {
+      vi.mocked(prisma.booking.findMany)
+        .mockResolvedValueOnce([{ clientId: "client-1" }] as any)
+        .mockResolvedValueOnce([{ clientId: "client-1" }] as any);
+
+      const mockJob = { name: "check_weekly_retention", data: {} } as any;
+      const result = await checkWeeklyRetention(mockJob);
+
+      expect(result).toEqual({ emailsQueued: 0 });
+      expect(emailQueue.add).not.toHaveBeenCalled();
+    });
+
+    it("should do nothing if no clients had a session in the last 7 days", async () => {
+      vi.mocked(prisma.booking.findMany).mockResolvedValueOnce([]);
+
+      const mockJob = { name: "check_weekly_retention", data: {} } as any;
+      const result = await checkWeeklyRetention(mockJob);
+
+      expect(result).toEqual({ emailsQueued: 0 });
+      expect(emailQueue.add).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("checkDailyInactiveAndNonRepeat", () => {
+    it("should queue email for one-time booking clients who didn't repeat after 14 days", async () => {
+      vi.mocked(prisma.booking.findMany).mockResolvedValueOnce([{ clientId: "client-1" }] as any);
+
+      vi.mocked(prisma.booking.count).mockResolvedValueOnce(1).mockResolvedValueOnce(0);
+
+      vi.mocked(prisma.clientProfile.findUnique).mockResolvedValue({
+        id: "client-1",
+        user: {
+          email: "client1@example.com",
+          firstName: "Alice",
+        },
+      } as any);
+
+      vi.mocked(prisma.user.findMany).mockResolvedValueOnce([]);
+
+      const mockJob = { name: "check_daily_inactive_and_non_repeat", data: {} } as any;
+      const result = await checkDailyInactiveAndNonRepeat(mockJob);
+
+      expect(result).toEqual({ emailsQueued: 1 });
+      expect(emailQueue.add).toHaveBeenCalledWith(
+        "sendNonRepeatClientEmail",
+        expect.objectContaining({
+          to: "client1@example.com",
+          subject: "Continue Your Wellness Journey - CatalystCare",
+          html: expect.stringContaining("Alice"),
+        })
+      );
+    });
+
+    it("should queue email for inactive clients after 30 days", async () => {
+      vi.mocked(prisma.booking.findMany).mockResolvedValueOnce([]);
+      vi.mocked(prisma.user.findMany).mockResolvedValueOnce([
+        {
+          email: "inactive@example.com",
+          firstName: "Bob",
+        },
+      ] as any);
+
+      const mockJob = { name: "check_daily_inactive_and_non_repeat", data: {} } as any;
+      const result = await checkDailyInactiveAndNonRepeat(mockJob);
+
+      expect(result).toEqual({ emailsQueued: 1 });
+      expect(emailQueue.add).toHaveBeenCalledWith(
+        "sendInactiveClientEmail",
+        expect.objectContaining({
+          to: "inactive@example.com",
+          subject: "We'd Love to Help You Get Started - CatalystCare",
+          html: expect.stringContaining("Bob"),
+        })
+      );
     });
   });
 });

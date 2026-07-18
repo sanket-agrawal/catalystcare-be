@@ -29,6 +29,7 @@ describe("booking-email utility", () => {
   it("should send incomplete booking email successfully with therapist slug", async () => {
     const mockBooking = {
       id: "booking-1",
+      startDateTime: new Date("2026-07-20T10:00:00.000Z"),
       client: {
         user: {
           firstName: "John",
@@ -77,11 +78,14 @@ describe("booking-email utility", () => {
     expect(addCalls.html).toContain("Jane Doe");
     expect(addCalls.html).toContain("/therapist/dr-jane-doe");
     expect(addCalls.html).toContain("/therapists");
+    expect(addCalls.html).toContain("Mon, 20 Jul, 2026");
+    expect(addCalls.html).toContain("03:30 pm");
   });
 
   it("should fallback to therapist id if slug is missing", async () => {
     const mockBooking = {
       id: "booking-2",
+      startDateTime: new Date("2026-07-20T10:00:00.000Z"),
       client: {
         user: {
           firstName: "John",

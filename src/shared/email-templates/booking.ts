@@ -425,6 +425,8 @@ export const therapistSessionReminderTemplate = (
 export const clientBookingIncompleteTemplate = (
   clientFirstName: string,
   therapistName: string,
+  sessionDate: string,
+  sessionTime: string,
   therapistProfileUrl: string,
   therapistsUrl: string
 ) => {
@@ -463,6 +465,11 @@ export const clientBookingIncompleteTemplate = (
                   <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 15px 0;">
                     We noticed that you started booking a session with <strong>${therapistName}</strong> but couldn't complete the payment at the last step.
                   </p>
+
+                  <table align="center" style="margin-top: 15px; margin-bottom: 20px; font-size: 15px; color: #555;">
+                    <tr><td><strong>Date:</strong></td><td>&nbsp;${sessionDate}</td></tr>
+                    <tr><td><strong>Time:</strong></td><td>&nbsp;${sessionTime}</td></tr>
+                  </table>
 
                   <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
                     If you still wish to book a session with them, you can directly visit their profile page:

@@ -40,6 +40,8 @@ export const emailSubjects = (
   therapistProgramBookingConfirmaton: `New Client Enrolled in Your ${programName} - ${programTitle}`,
   rescheduleSessionRejectionClient:
     "Reschedule Request Rejected – Session Remains Scheduled - CatalystCare",
+  clientBookingCancelled: "Your Therapy Session Has Been Cancelled - CatalystCare",
+  therapistBookingCancelled: "Therapy Session Cancelled - CatalystCare 🗓",
 });
 
 export const programSlotBookingSubjects = (

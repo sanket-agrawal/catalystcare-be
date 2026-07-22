@@ -1,11 +1,11 @@
-import ApiError from "../../../shared/utils/ApiError"
-import { authenticatedUser } from "../user/user.types"
-import {prisma} from '../../../infrastructure/prisma/client'
-import { ClientProfileUpdateData, CreateAssessmentInput } from "./client.dto"
-import { Prisma } from "@prisma/client"
-import { getClientBookingPermissions } from "./client.helper"
-import { meetingQueue } from "../../../infrastructure/queues"
-import { canRateSession } from "../../../shared/lib/ratings"
+import ApiError from "../../../shared/utils/ApiError";
+import { authenticatedUser } from "../user/user.types";
+import { prisma } from "../../../infrastructure/prisma/client";
+import { ClientProfileUpdateData, CreateAssessmentInput } from "./client.dto";
+import { Prisma } from "@prisma/client";
+import { getClientBookingPermissions } from "./client.helper";
+import { meetingQueue } from "../../../infrastructure/queues";
+import { canRateSession } from "../../../shared/lib/ratings";
 
 type BookingForClientList = {
   id: string;
@@ -16,54 +16,50 @@ type BookingForClientList = {
   } | null;
 };
 
-                                 
 export const clientService = {
-
-    async profileUpdate(user : authenticatedUser, data : ClientProfileUpdateData){
-        try {
-
-            const existingProfile = await prisma.clientProfile.findUnique({
-                where : {
-                    userId : user.id
-                }
-            });
-
-            let updatedProfile
-
-            if(existingProfile){
-                updatedProfile = await prisma.clientProfile.update({
-        where: { id: existingProfile.id },
-        data: {
-          ageGroup: data.ageGroup,
-          genderIdentity: data.genderIdentity,
-          occupation: data.occupation,
-          seekingSupportFor: data.seekingSupportFor,
-          relationShipStatus: data.relationShipStatus,
+  async profileUpdate(user: authenticatedUser, data: ClientProfileUpdateData) {
+    try {
+      const existingProfile = await prisma.clientProfile.findUnique({
+        where: {
+          userId: user.id,
         },
       });
-            }else{
-               updatedProfile  = await prisma.clientProfile.create({
-                    data : {
-                        userId : user.id,
-                        ageGroup : data.ageGroup,
-                        genderIdentity : data.genderIdentity,
-                        occupation : data.occupation,
-                        seekingSupportFor : data.seekingSupportFor,
-                        relationShipStatus : data.relationShipStatus
-                    }
-                })
-            }
 
-            return updatedProfile;
+      let updatedProfile;
 
-        } catch (error) {
-            if(error instanceof ApiError){
-                throw new ApiError(error.statusCode,error.message)
-            }
-            throw error;
-        }
-    },
-   async assessmentSubmit(userId: string, input: any) {
+      if (existingProfile) {
+        updatedProfile = await prisma.clientProfile.update({
+          where: { id: existingProfile.id },
+          data: {
+            ageGroup: data.ageGroup,
+            genderIdentity: data.genderIdentity,
+            occupation: data.occupation,
+            seekingSupportFor: data.seekingSupportFor,
+            relationShipStatus: data.relationShipStatus,
+          },
+        });
+      } else {
+        updatedProfile = await prisma.clientProfile.create({
+          data: {
+            userId: user.id,
+            ageGroup: data.ageGroup,
+            genderIdentity: data.genderIdentity,
+            occupation: data.occupation,
+            seekingSupportFor: data.seekingSupportFor,
+            relationShipStatus: data.relationShipStatus,
+          },
+        });
+      }
+
+      return updatedProfile;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new ApiError(error.statusCode, error.message);
+      }
+      throw error;
+    }
+  },
+  async assessmentSubmit(userId: string, input: any) {
     try {
       // 1️⃣ Create the assessment
       const newAssessment = await prisma.clientAssesment.create({
@@ -74,10 +70,7 @@ export const clientService = {
       });
 
       // 2️⃣ Map field names → categories/subcategories
-      const fieldCategoryMap: Record<
-        string,
-        { category: string; subCategory: string }
-      > = {
+      const fieldCategoryMap: Record<string, { category: string; subCategory: string }> = {
         recentFeeling: {
           category: "Mood Disorders",
           subCategory: "Depression / Bipolar",
@@ -161,12 +154,8 @@ export const clientService = {
         .filter((key) => fieldCategoryMap[key])
         .map((key) => fieldCategoryMap[key]);
 
-      const categoryNames = [
-        ...new Set(activeMappings.map((m) => m.category)),
-      ];
-      const subCategoryNames = [
-        ...new Set(activeMappings.map((m) => m.subCategory)),
-      ];
+      const categoryNames = [...new Set(activeMappings.map((m) => m.category))];
+      const subCategoryNames = [...new Set(activeMappings.map((m) => m.subCategory))];
 
       // 4️⃣ Fetch matching therapists
       const recommendedTherapists = await prisma.therapistProfile.findMany({
@@ -216,251 +205,248 @@ export const clientService = {
       throw new ApiError(400, "Failed to fetch assessments");
     }
   },
-  async getTherapistByUserNeeds(user : authenticatedUser, assessmentId : string){
-        try{
-
-        }catch(error){
-            if(error instanceof ApiError){
-                throw new ApiError(error.statusCode,error.message)
-            }
-            throw error;
-        }
-    },
-    async fetchBookings(clientId : string){
-     try{
-        const bookings = await prisma.booking.findMany({
-          where : {
-            clientId : clientId,
-             paymentStatus: "CAPTURED",
-             status: "CONFIRMED",
+  async getTherapistByUserNeeds(user: authenticatedUser, assessmentId: string) {
+    try {
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new ApiError(error.statusCode, error.message);
+      }
+      throw error;
+    }
+  },
+  async fetchBookings(clientId: string) {
+    try {
+      const bookings = await prisma.booking.findMany({
+        where: {
+          clientId: clientId,
+          paymentStatus: "CAPTURED",
+          status: { in: ["CONFIRMED", "CANCELLED"] },
+        },
+        include: {
+          therapist: {
+            select: {
+              id: true,
+              slug: true,
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  profilePhoto: true,
+                },
+              },
+            },
           },
-          include : {
-            therapist: {
-               select : {
-                id : true,
-                slug : true,
-                user : {
-                  select : {
-                    firstName : true,
-                    lastName : true,
-                    profilePhoto : true
-                  }
-                }
-               }
-             },
-             testimonial : {
-              select: {
-            rating: true,
-            status: true
-          }
-             }
+          testimonial: {
+            select: {
+              rating: true,
+              status: true,
+            },
           },
-          orderBy : {
-            updatedAt : 'desc'
-          }
-        });
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
 
-        // return bookings;
-        return bookings.map(booking => {
-       const permission =  clientBookingPermission(booking.startDateTime, booking.endDateTime, booking.hasClientRescheduledEarlier,booking.rescheduleStatus);
+      // return bookings;
+      return bookings.map((booking) => {
+        const permission = clientBookingPermission(
+          booking.startDateTime,
+          booking.endDateTime,
+          booking.hasClientRescheduledEarlier,
+          booking.rescheduleStatus
+        );
 
-       const today = new Date();
+        const today = new Date();
         const bookingDate = new Date(booking.startDateTime);
 
-  const isSameDay =
-    today.getFullYear() === bookingDate.getFullYear() &&
-    today.getMonth() === bookingDate.getMonth() &&
-    today.getDate() === bookingDate.getDate();
+        const isSameDay =
+          today.getFullYear() === bookingDate.getFullYear() &&
+          today.getMonth() === bookingDate.getMonth() &&
+          today.getDate() === bookingDate.getDate();
 
-
-        return  {
+        return {
           ...booking,
-           meetingLink: isSameDay ? booking.meetingLink : null,
-        hasRated: !!booking.testimonial,
-      canRate:
-        !booking.testimonial &&
-        new Date() > booking.endDateTime,
-        // permissions: getClientBookingPermissions(booking.startDateTime),
-        canJoinSession : isSameDay,
-        canReschedule : permission.canReschedule,
-        rescheduleStatus : permission.rescheduleStatus
-      };
+          meetingLink: isSameDay && booking.status !== "CANCELLED" ? booking.meetingLink : null,
+          hasRated: !!booking.testimonial,
+          canRate:
+            !booking.testimonial &&
+            new Date() > booking.endDateTime &&
+            booking.status !== "CANCELLED",
+          // permissions: getClientBookingPermissions(booking.startDateTime),
+          canJoinSession: isSameDay && booking.status !== "CANCELLED",
+          canReschedule: permission.canReschedule && booking.status !== "CANCELLED",
+          rescheduleStatus: permission.rescheduleStatus,
+          isCancelled: booking.status === "CANCELLED",
+          cancellationReason: booking.cancellationReason,
+        };
       });
-     }catch(error){
-       if(error instanceof ApiError){
-                throw new ApiError(error.statusCode,error.message)
-            }
-            throw error;
-     }
-    },
-    async clientPendingActionList (clientId : string){
-      try{
-
-      }catch(error){
-          if(error instanceof ApiError){
-            throw new ApiError(error.statusCode,error.message)
-          }else{
-            throw error;
-          }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new ApiError(error.statusCode, error.message);
       }
-    } ,
-async pendingList(clientId: string) {
-  try {
-    const now = new Date();
-    const next15Min = new Date(now.getTime() + 15 * 60 * 1000);
+      throw error;
+    }
+  },
+  async clientPendingActionList(clientId: string) {
+    try {
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new ApiError(error.statusCode, error.message);
+      } else {
+        throw error;
+      }
+    }
+  },
+  async pendingList(clientId: string) {
+    try {
+      const now = new Date();
+      const next15Min = new Date(now.getTime() + 15 * 60 * 1000);
 
-    const pendingItems: any[] = [];
+      const pendingItems: any[] = [];
 
-    /* ----------------------------------
+      /* ----------------------------------
        1. SINGLE SESSION (slot-based)
     ----------------------------------- */
-    const singleBooking = await prisma.booking.findFirst({
-      where: {
-        clientId,
-        paymentStatus: "CAPTURED",
-        status: "CONFIRMED",
-        AND: [
-          { startDateTime: { lte: next15Min } },
-          { endDateTime: { gt: now } },
-        ],
-      },
-      include: {
-        therapist: {
-          select: {
-            id: true,
-            user: {
-              select: {
-                firstName: true,
-                lastName: true,
-                profilePhoto: true,
+      const singleBooking = await prisma.booking.findFirst({
+        where: {
+          clientId,
+          paymentStatus: "CAPTURED",
+          status: "CONFIRMED",
+          AND: [{ startDateTime: { lte: next15Min } }, { endDateTime: { gt: now } }],
+        },
+        include: {
+          therapist: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  profilePhoto: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: { startDateTime: "asc" },
-    });
-
-    if (singleBooking) {
-      const permission = clientBookingPermission(
-        singleBooking.startDateTime,
-        singleBooking.endDateTime,
-        singleBooking.hasClientRescheduledEarlier,
-        singleBooking.rescheduleStatus
-      );
-
-      pendingItems.push({
-        type: "SESSION",
-        bookingType: "SINGLE",
-        data: {
-          bookingId: singleBooking.id,
-
-          therapist: singleBooking.therapist,
-
-          startDateTime: singleBooking.startDateTime,
-          endDateTime: singleBooking.endDateTime,
-
-          canJoinSession: permission.canJoinSession,
-          canReschedule: permission.canReschedule,
-
-          meetingLink: permission.canJoinSession
-            ? singleBooking.meetingLink
-            : null,
-
-          isUpcoming: now < singleBooking.startDateTime,
-        },
+        orderBy: { startDateTime: "asc" },
       });
-    }
 
-    /* ----------------------------------
+      if (singleBooking) {
+        const permission = clientBookingPermission(
+          singleBooking.startDateTime,
+          singleBooking.endDateTime,
+          singleBooking.hasClientRescheduledEarlier,
+          singleBooking.rescheduleStatus
+        );
+
+        pendingItems.push({
+          type: "SESSION",
+          bookingType: "SINGLE",
+          data: {
+            bookingId: singleBooking.id,
+
+            therapist: singleBooking.therapist,
+
+            startDateTime: singleBooking.startDateTime,
+            endDateTime: singleBooking.endDateTime,
+
+            canJoinSession: permission.canJoinSession,
+            canReschedule: permission.canReschedule,
+
+            meetingLink: permission.canJoinSession ? singleBooking.meetingLink : null,
+
+            isUpcoming: now < singleBooking.startDateTime,
+          },
+        });
+      }
+
+      /* ----------------------------------
        2. PROGRAM PURCHASES (slot pending)
     ----------------------------------- */
-    const programPurchases = await prisma.programPurchase.findMany({
-      where: {
-        clientId,
-        status: "ACTIVE",
-        validTill: { gt: now },
-      },
-      include: {
-        program: {
-          select: {
-            id: true,
-            title: true,
-          },
+      const programPurchases = await prisma.programPurchase.findMany({
+        where: {
+          clientId,
+          status: "ACTIVE",
+          validTill: { gt: now },
         },
-        programPlan: {
-          select: {
-            id: true,
-            name: true,
-            sessionsCount: true,
-          },
-        },
-        therapist: {
-          include: { user: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    for (const purchase of programPurchases) {
-      const remainingSessions =
-        purchase.totalSessions - purchase.usedSessions;
-
-      if (remainingSessions <= 0) continue;
-
-      pendingItems.push({
-        type: "SESSION",
-        bookingType: "PROGRAM",
-        data: {
-          programPurchaseId: purchase.id,
-
+        include: {
           program: {
-            id: purchase.program.id,
-            title: purchase.program.title,
+            select: {
+              id: true,
+              title: true,
+            },
           },
-
-          plan: {
-            id: purchase.programPlan.id,
-            name: purchase.programPlan.name,
-            totalSessions: purchase.totalSessions,
+          programPlan: {
+            select: {
+              id: true,
+              name: true,
+              sessionsCount: true,
+            },
           },
-
           therapist: {
-            id: purchase.therapist.id,
-            name:
-              purchase.therapist.user.firstName +
-              " " +
-              purchase.therapist.user.lastName,
+            include: { user: true },
           },
-
-          usage: {
-            totalSessions: purchase.totalSessions,
-            usedSessions: purchase.usedSessions,
-            remainingSessions,
-          },
-
-          validFrom: purchase.validFrom,
-          validTill: purchase.validTill,
-
-          canBookSlot: true,
-          createdAt: purchase.createdAt,
         },
+        orderBy: { createdAt: "desc" },
       });
+
+      for (const purchase of programPurchases) {
+        const remainingSessions = purchase.totalSessions - purchase.usedSessions;
+
+        if (remainingSessions <= 0) continue;
+
+        pendingItems.push({
+          type: "SESSION",
+          bookingType: "PROGRAM",
+          data: {
+            programPurchaseId: purchase.id,
+
+            program: {
+              id: purchase.program.id,
+              title: purchase.program.title,
+            },
+
+            plan: {
+              id: purchase.programPlan.id,
+              name: purchase.programPlan.name,
+              totalSessions: purchase.totalSessions,
+            },
+
+            therapist: {
+              id: purchase.therapist.id,
+              name: purchase.therapist.user.firstName + " " + purchase.therapist.user.lastName,
+            },
+
+            usage: {
+              totalSessions: purchase.totalSessions,
+              usedSessions: purchase.usedSessions,
+              remainingSessions,
+            },
+
+            validFrom: purchase.validFrom,
+            validTill: purchase.validTill,
+
+            canBookSlot: true,
+            createdAt: purchase.createdAt,
+          },
+        });
+      }
+
+      return pendingItems;
+    } catch (error) {
+      if (error instanceof ApiError) throw new ApiError(error.statusCode, error.message);
+      throw error;
     }
+  },
+};
 
-    return pendingItems;
-  } catch (error) {
-    if (error instanceof ApiError)
-      throw new ApiError(error.statusCode, error.message);
-    throw error;
-  }
-}
-
-}
-
-
-
-export const clientBookingPermission = (startDateTime : Date, endDateTime : Date, hasClientRescheduledEarlier : boolean, rescheduleStatus : string) => {
+export const clientBookingPermission = (
+  startDateTime: Date,
+  endDateTime: Date,
+  hasClientRescheduledEarlier: boolean,
+  rescheduleStatus: string
+) => {
   const now = new Date();
 
   const start = new Date(startDateTime);
@@ -469,11 +455,10 @@ export const clientBookingPermission = (startDateTime : Date, endDateTime : Date
   // 15 minutes before start
   const joinWindowStart = new Date(start.getTime() - 15 * 60 * 1000);
 
-
   const response = {
     canJoinSession: false,
     canReschedule: false,
-    rescheduleStatus : bookingRescheduleStatus(rescheduleStatus)
+    rescheduleStatus: bookingRescheduleStatus(rescheduleStatus),
   };
 
   // Can join only between (start - 15 mins) and end time
@@ -481,18 +466,17 @@ export const clientBookingPermission = (startDateTime : Date, endDateTime : Date
   //   response.canJoinSession = true;
   // }
 
-   if (now >= joinWindowStart && now <= end && rescheduleStatus !== 'REQUESTED') {
+  if (now >= joinWindowStart && now <= end && rescheduleStatus !== "REQUESTED") {
     response.canJoinSession = true;
   }
 
   // Optional: reschedule allowed only BEFORE join window starts
-  if (clientReschedulePermission(startDateTime,hasClientRescheduledEarlier)) {
+  if (clientReschedulePermission(startDateTime, hasClientRescheduledEarlier)) {
     response.canReschedule = true;
   }
 
   return response;
 };
-
 
 export const clientReschedulePermission = (
   startDateTime: Date,
@@ -517,10 +501,16 @@ export const clientReschedulePermission = (
   return true;
 };
 
-
-export const bookingRescheduleStatus = (rescheduleStatus : string) => {
- return {
-  status : rescheduleStatus,
-  message : rescheduleStatus === 'REQUESTED' ? 'Reschedule request is pending approval' : rescheduleStatus === 'APPROVED' ? 'Reschedule request has been approved by Admin' : rescheduleStatus === 'REJECTED' ? 'Reschedule request has been rejected by Admin' : ''
- }
-}
+export const bookingRescheduleStatus = (rescheduleStatus: string) => {
+  return {
+    status: rescheduleStatus,
+    message:
+      rescheduleStatus === "REQUESTED"
+        ? "Reschedule request is pending approval"
+        : rescheduleStatus === "APPROVED"
+          ? "Reschedule request has been approved by Admin"
+          : rescheduleStatus === "REJECTED"
+            ? "Reschedule request has been rejected by Admin"
+            : "",
+  };
+};

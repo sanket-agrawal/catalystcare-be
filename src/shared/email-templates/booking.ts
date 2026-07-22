@@ -538,3 +538,223 @@ export const clientBookingIncompleteTemplate = (
   </html>
   `;
 };
+
+export const clientBookingCancelledTemplate = (
+  clientFirstName: string,
+  therapistName: string,
+  sessionDate: string,
+  sessionTime: string,
+  reason: string
+) => {
+  return `
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Therapy Session Cancelled</title>
+    </head>
+    <body style="font-family: Roboto, Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" 
+             style="background-color: #f9f9f9; padding: 30px 0;">
+        <tr>
+          <td align="center">
+            
+            <table width="500" cellpadding="0" cellspacing="0" border="0" 
+              style="background-color: #ffffff; border-radius: 10px; overflow: hidden; 
+              box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+
+              <!-- Header -->
+              <tr>
+                <td align="center" style="padding: 20px;">
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" 
+                       alt="Catalyst Care" width="120" style="display:block;">
+                </td>
+              </tr>
+
+              <!-- Body -->
+              <tr>
+                <td style="padding: 25px; text-align: center;">
+                  <h2 style="color: #333; margin-bottom: 10px;">Hi ${clientFirstName},</h2>
+                  <h3 style="color: #dc3545; margin-bottom: 15px;">Your Therapy Session Has Been Cancelled</h3>
+
+                  <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0;">
+                    We want to inform you that your session with <strong>${therapistName}</strong> has been cancelled.
+                  </p>
+
+                  <table align="center" style="margin-top: 15px; font-size: 15px; color: #555;">
+                    <tr><td><strong>Date:</strong></td><td>&nbsp;${sessionDate}</td></tr>
+                    <tr><td><strong>Time:</strong></td><td>&nbsp;${sessionTime}</td></tr>
+                  </table>
+
+                  ${
+                    reason
+                      ? `
+                  <p style="color: #555; margin-top: 15px; font-size: 15px; line-height: 1.6;">
+                    <strong>Reason for Cancellation:</strong><br/>
+                    <span style="color: #dc3545; font-style: italic;">"${reason}"</span>
+                  </p>
+                  `
+                      : ""
+                  }
+
+                  <p style="color:#555; margin-top:20px; font-size:15px; line-height: 1.6;">
+                    If you paid for this session, a refund has been initiated and will be credited to your original payment method. If you would like to book another session, please visit our dashboard.
+                  </p>
+
+                  <a href="${serverConfig.baseFrontendUrl}/dashboard"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style="display:inline-block; margin-top:20px; padding:10px 20px; 
+                    background-color:#007bff; color:#fff; border-radius:6px; 
+                    text-decoration:none; font-size:14px; font-weight: bold;">
+                    Go to Dashboard
+                  </a>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td align="center" style="background-color: #f3f4f6; padding: 12px; 
+                    font-size: 13px; color: #555;">
+                  © Catalyst Care |
+                  <a href="${serverConfig.baseFrontendUrl}" 
+                  target="_blank"
+                   rel="noopener noreferrer"
+                     style="color: #007bff; text-decoration: none;">${serverConfig.baseFrontendUrl}</a>
+
+                  <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     style="margin-left:10px;">
+                    <img src="https://cdn-icons-png.flaticon.com/24/733/733585.png" 
+                         width="20" height="20" 
+                         alt="WhatsApp" style="vertical-align:middle;">
+                  </a>
+
+                  <a href="mailto:${emailFromAddress().infoEmail.email}"
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     style="margin-left:10px;">
+                    <img src="https://cdn-icons-png.flaticon.com/24/732/732200.png" 
+                         width="20" height="20" 
+                         alt="Email" style="vertical-align:middle;">
+                  </a>
+                </td>
+              </tr>
+
+            </table>
+
+          </td>
+        </tr>
+      </table>
+    </body>
+  </html>
+  `;
+};
+
+export const therapistBookingCancelledTemplate = (
+  therapistFirstName: string,
+  clientName: string,
+  sessionDate: string,
+  sessionTime: string,
+  reason: string
+) => {
+  return `
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Therapy Session Cancelled</title>
+    </head>
+    <body style="font-family: Roboto, Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" 
+             style="background-color: #f9f9f9; padding: 30px 0;">
+        <tr>
+          <td align="center">
+            
+            <table width="500" cellpadding="0" cellspacing="0" border="0" 
+              style="background-color: #ffffff; border-radius: 10px; overflow: hidden; 
+              box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+
+              <!-- Header -->
+              <tr>
+                <td align="center" style="padding: 20px;">
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" 
+                       alt="Catalyst Care" width="120" style="display:block;">
+                </td>
+              </tr>
+
+              <!-- Body -->
+              <tr>
+                <td style="padding: 25px; text-align: center;">
+                  <h2 style="color: #333; margin-bottom: 10px;">Hi ${therapistFirstName},</h2>
+                  <h3 style="color: #dc3545; margin-bottom: 15px;">Therapy Session Cancelled</h3>
+
+                  <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0;">
+                    We want to inform you that your scheduled session with <strong>${clientName}</strong> has been cancelled by the administrator.
+                  </p>
+
+                  <table align="center" style="margin-top: 15px; font-size: 15px; color: #555;">
+                    <tr><td><strong>Date:</strong></td><td>&nbsp;${sessionDate}</td></tr>
+                    <tr><td><strong>Time:</strong></td><td>&nbsp;${sessionTime}</td></tr>
+                  </table>
+
+                  ${
+                    reason
+                      ? `
+                  <p style="color: #555; margin-top: 15px; font-size: 15px; line-height: 1.6;">
+                    <strong>Reason for Cancellation:</strong><br/>
+                    <span style="color: #dc3545; font-style: italic;">"${reason}"</span>
+                  </p>
+                  `
+                      : ""
+                  }
+
+                  <p style="font-size:13px; color:#777; margin-top:20px;">
+                    This time slot has been released back to your available slots.
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td align="center" style="background-color: #f3f4f6; padding: 12px; 
+                    font-size: 13px; color: #555;">
+                  © Catalyst Care |
+                  <a href="${serverConfig.baseFrontendUrl}"
+                  target="_blank"
+                   rel="noopener noreferrer"
+                  style="color: #28a745; text-decoration: none;">
+                    ${serverConfig.baseFrontendUrl}
+                  </a>
+                  <a href="${companyWhatsappDetails().contactWhatsappLink}?text=${companyWhatsappDetails().message}" 
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     style="margin-left:10px;">
+                    <img src="https://cdn-icons-png.flaticon.com/24/733/733585.png" 
+                         width="20" height="20" 
+                         alt="WhatsApp" style="vertical-align:middle;">
+                  </a>
+
+                  <a href="mailto:${emailFromAddress().infoEmail.email}"
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     style="margin-left:10px;">
+                    <img src="https://cdn-icons-png.flaticon.com/24/732/732200.png" 
+                         width="20" height="20" 
+                         alt="Email" style="vertical-align:middle;">
+                  </a>
+                </td>
+              </tr>
+
+            </table>
+
+          </td>
+        </tr>
+      </table>
+    </body>
+  </html>
+  `;
+};

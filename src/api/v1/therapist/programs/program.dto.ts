@@ -1,9 +1,9 @@
 export enum ProgramCadence {
-  DAILY = 'DAILY',
-  WEEKLY = 'WEEKLY',
-  BIWEEKLY = 'BIWEEKLY',
-  MONTHLY = 'MONTHLY',
-  FLEXIBLE = 'FLEXIBLE',
+  DAILY = "DAILY",
+  WEEKLY = "WEEKLY",
+  BIWEEKLY = "BIWEEKLY",
+  MONTHLY = "MONTHLY",
+  FLEXIBLE = "FLEXIBLE",
 }
 
 export interface CreateProgramInput {
@@ -20,6 +20,14 @@ export interface CreateProgramInput {
   }[];
 }
 
+export interface UpdatePlanInput {
+  name?: string;
+  sessionsCount?: number;
+  sessionDuration?: number;
+  price?: number;
+  cadence?: ProgramCadence;
+  recommendedGapDays?: number | null;
+}
 
 export type ProgramPurchaseWithRelations = {
   id: string;

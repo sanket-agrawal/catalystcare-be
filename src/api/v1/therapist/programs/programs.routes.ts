@@ -12,6 +12,7 @@ router.post("/add-plan/:programId", ProgramController.addPlanToProgram);
 router.post("/publish-plan/:planId", ProgramController.publishPlan);
 router.post("/un-publish-plan/:planId", ProgramController.unPublishPlan);
 router.put("/update-plan/:planId", ProgramController.updatePlan);
+router.delete("/delete-plan/:planId", ProgramController.deletePlan);
 router.get("/bookings", ProgramController.fetchProgramBookings);
 router.get("/fetch-purchase-by-id/:purchaseId", ProgramController.fetchPurchaseById);
 

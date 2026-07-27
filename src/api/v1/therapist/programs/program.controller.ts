@@ -178,6 +178,22 @@ const ProgramController = {
       }
     }
   },
+  deletePlan: async (req: Request, res: Response) => {
+    try {
+      const result = await ProgramService.deletePlan(
+        req.params.planId,
+        req.user.therapistProfileId
+      );
+      res.status(200).json(new ApiResponse(true, 200, "Plan Deleted Successfully", result));
+    } catch (error) {
+      console.log("Error in Delete Plan", error);
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
+      } else {
+        res.status(400).json(new ApiResponse(false, 400, "Something went wrong"));
+      }
+    }
+  },
 };
 
 export default ProgramController;

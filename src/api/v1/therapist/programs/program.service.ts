@@ -290,6 +290,44 @@ const ProgramService = {
       data: updateData,
     });
   },
+  deletePlan: async (planId: string, therapistId: string) => {
+    // 1. Verify ownership
+    const plan = await prisma.programPlan.findFirst({
+      where: {
+        id: planId,
+        program: { therapistId },
+      },
+      include: { program: true },
+    });
+
+    if (!plan) {
+      throw new ApiError(404, "Plan not found");
+    }
+
+    // 2. Guard: cannot delete plans of a published program
+    if (plan.program.isActive) {
+      throw new ApiError(400, "Cannot delete plans of a published program");
+    }
+
+    // 3. Check for existing purchases/bookings
+    const purchaseCount = await prisma.programPurchase.count({
+      where: { programPlanId: planId },
+    });
+
+    if (purchaseCount > 0) {
+      throw new ApiError(
+        400,
+        `Cannot delete plan: ${purchaseCount} booking(s) exist for this plan. Retained for audit purposes.`
+      );
+    }
+
+    // 4. Safe to delete
+    await prisma.programPlan.delete({
+      where: { id: planId },
+    });
+
+    return { deleted: true };
+  },
   fetchProgramBookings: async (therapistId: string) => {
     const bookings = await prisma.programPurchase.findMany({
       where: { therapistId },

@@ -8,6 +8,7 @@ import { fetchAllContactFormSubmissions } from "../../../infrastructure/mongodb/
 import assessmentRoutes from "./assessments/assessment.route";
 import testimonialRoutes from "./testimonial/testimonail.routes";
 import sessionRoutes from "./sessions/session.route";
+import slotRoutes from "./slots/slot.route";
 import webinarRoutes from "./webinars/webinar.routes";
 import organizationRoutes from "./organization/index";
 
@@ -95,6 +96,8 @@ router.get(
 );
 
 router.use("/sessions", authenticate, authorizeRoles("ADMIN"), sessionRoutes);
+
+router.use("/slots", authenticate, authorizeRoles("ADMIN"), slotRoutes);
 
 router.use("/webinars", authenticate, authorizeRoles("ADMIN"), webinarRoutes);
 

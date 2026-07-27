@@ -3,15 +3,17 @@ import ProgramController from "./program.controller";
 
 const router = express.Router();
 
-router.post('/create',ProgramController.createProgram);
-router.get('/fetch',ProgramController.fetchAllPrograms)
-router.put('/update/:programId',ProgramController.updateProgram);
-router.post('/publish/:programId',ProgramController.publishProgram)
-router.post('/un-publish/:programId',ProgramController.unPublishProgram)
-router.post('/add-plan/:programId',ProgramController.addPlanToProgram);
-router.post('/publish-plan/:planId',ProgramController.publishPlan);
-router.post('/un-publish-plan/:planId',ProgramController.unPublishPlan);
-router.get('/bookings',ProgramController.fetchProgramBookings);
-router.get('/fetch-purchase-by-id/:purchaseId',ProgramController.fetchPurchaseById);
+router.post("/create", ProgramController.createProgram);
+router.get("/fetch", ProgramController.fetchAllPrograms);
+router.put("/update/:programId", ProgramController.updateProgram);
+router.post("/publish/:programId", ProgramController.publishProgram);
+router.post("/un-publish/:programId", ProgramController.unPublishProgram);
+router.post("/add-plan/:programId", ProgramController.addPlanToProgram);
+router.post("/publish-plan/:planId", ProgramController.publishPlan);
+router.post("/un-publish-plan/:planId", ProgramController.unPublishPlan);
+router.put("/update-plan/:planId", ProgramController.updatePlan);
+router.delete("/delete-plan/:planId", ProgramController.deletePlan);
+router.get("/bookings", ProgramController.fetchProgramBookings);
+router.get("/fetch-purchase-by-id/:purchaseId", ProgramController.fetchPurchaseById);
 
 export default router;

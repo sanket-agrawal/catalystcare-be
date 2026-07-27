@@ -16,14 +16,11 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Generate Prisma client (must happen before TypeScript build)
+RUN npx prisma generate
+
 # Build TypeScript
 RUN npm run build
-
-# Copy Prisma schema first (better layer caching)
-COPY prisma ./prisma/
-
-# Generate Prisma client
-RUN npx prisma generate
 
 # Expose port
 EXPOSE 4000

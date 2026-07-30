@@ -11,6 +11,7 @@ import sessionRoutes from "./sessions/session.route";
 import slotRoutes from "./slots/slot.route";
 import webinarRoutes from "./webinars/webinar.routes";
 import organizationRoutes from "./organization/index";
+import couponRoutes from "./coupons/coupon.routes";
 
 const router = express.Router();
 
@@ -102,5 +103,7 @@ router.use("/slots", authenticate, authorizeRoles("ADMIN"), slotRoutes);
 router.use("/webinars", authenticate, authorizeRoles("ADMIN"), webinarRoutes);
 
 router.use("/organizations", authenticate, authorizeRoles("ADMIN"), organizationRoutes);
+
+router.use("/coupons", authenticate, authorizeRoles("ADMIN"), couponRoutes);
 
 export default router;

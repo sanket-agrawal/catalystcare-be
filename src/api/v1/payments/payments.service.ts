@@ -9,9 +9,17 @@ import { Prisma } from "@prisma/client";
 import { slotConfig } from "../../../shared/config/slot.config";
 import { sendIncompleteBookingEmail } from "../../../shared/utils/booking-email";
 
+import { clientCouponService } from "../coupons/coupon.service";
+
 export const paymentService = {
-  createOrderService: async function (clientId: string, slotId: string) {
+  createOrderService: async function (clientId: string, slotId: string, couponCode?: string) {
     try {
+      const clientProfile = await prisma.clientProfile.findUnique({
+        where: { id: clientId },
+        select: { userId: true },
+      });
+      if (!clientProfile) throw new ApiError(404, "Client profile not found");
+
       // ✅ Fetch slot & therapist details
       const slot = await prisma.availabilitySlot.findUnique({
         where: { id: slotId },
@@ -39,9 +47,23 @@ export const paymentService = {
       if (!therapist) throw new ApiError(404, "Therapist not found for this slot");
 
       const sessionFeeRupees = Number(therapist.sessionFee || 0);
-      const sessionFeeDecimal = therapist.sessionFee || new Decimal(0);
-      const amountPaise = rupeesToPaise(sessionFeeRupees);
+      const originalAmountPaise = rupeesToPaise(sessionFeeRupees);
       const currency = therapist.currency || "INR";
+
+      let finalAmountPaise = originalAmountPaise;
+      let discountPaise = 0;
+      let couponId: string | null = null;
+
+      if (couponCode) {
+        const couponResult = await clientCouponService.validateAndCalculateDiscount(
+          { code: couponCode, purchaseType: "SINGLE", slotId },
+          clientProfile.userId,
+          clientId
+        );
+        finalAmountPaise = couponResult.finalAmountPaise;
+        discountPaise = couponResult.discountPaise;
+        couponId = couponResult.couponId;
+      }
 
       const now = new Date();
       const commissionRate = await prisma.commissionRate.findFirst({
@@ -56,16 +78,99 @@ export const paymentService = {
       const platformPercent = Number(commissionRate?.platformPercent || 0);
       const gatewayPercent = Number(commissionRate?.gatewayPercent || 0);
 
-      const platformFeePaise = Math.round((amountPaise * platformPercent) / 100);
-      const gatewayFeePaise = Math.round((amountPaise * gatewayPercent) / 100);
+      const platformFeePaise = Math.round((finalAmountPaise * platformPercent) / 100);
+      const gatewayFeePaise = Math.round((finalAmountPaise * gatewayPercent) / 100);
 
-      const payoutAmountPaise = amountPaise - platformFeePaise - gatewayFeePaise;
+      const payoutAmountPaise = finalAmountPaise - platformFeePaise - gatewayFeePaise;
+
+      // 🎁 Handle 100% discount free booking
+      if (finalAmountPaise === 0 && couponId) {
+        const { bookingId } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+          await tx.availabilitySlot.update({
+            where: { id: slotId },
+            data: { status: "BOOKED" },
+          });
+
+          const payment = await tx.payment.create({
+            data: {
+              amount: new Decimal(0),
+              amountPaise: 0,
+              currency,
+              status: "CAPTURED",
+              capturedAt: new Date(),
+              commissionRateId: commissionRate?.id || null,
+              platformPercent: commissionRate?.platformPercent || new Decimal(0),
+              gatewayPercent: commissionRate?.gatewayPercent || new Decimal(0),
+              platformFeePaise: 0,
+              gatewayFeePaise: 0,
+              payoutAmountPaise: 0,
+            },
+          });
+
+          const booking = await tx.booking.create({
+            data: {
+              clientId,
+              therapistId: therapist.id,
+              slotId: slot.id,
+              startDateTime: slot.startDateTime,
+              endDateTime: slot.endDateTime,
+              status: "CONFIRMED",
+              paymentStatus: "CAPTURED",
+              isActive: true,
+              payment: { connect: { id: payment.id } },
+            },
+          });
+
+          await tx.couponUsage.create({
+            data: {
+              couponId: couponId!,
+              userId: clientProfile.userId,
+              clientProfileId: clientId,
+              paymentId: payment.id,
+              discountPaise,
+              originalPaise: originalAmountPaise,
+              finalPaise: 0,
+            },
+          });
+
+          await tx.coupon.update({
+            where: { id: couponId! },
+            data: { currentUsageCount: { increment: 1 } },
+          });
+
+          return { bookingId: booking.id };
+        });
+
+        await meetingQueue.add(
+          "create-google-meet",
+          { bookingId },
+          {
+            attempts: 5,
+            backoff: {
+              type: "exponential",
+              delay: 10_000,
+            },
+            removeOnComplete: false,
+            removeOnFail: false,
+          }
+        );
+
+        return {
+          isFree: true,
+          bookingId,
+          amount: 0,
+          originalAmount: originalAmountPaise,
+          discount: discountPaise,
+          currency,
+          message: "Booking confirmed with 100% discount coupon",
+        };
+      }
 
       const shortReceipt = `slot_${slotId.substring(0, 8)}_${Date.now()}`;
 
       // 1️⃣ Create Razorpay order
       const order = await razorpayInstance.orders.create({
-        amount: amountPaise,
+        amount: finalAmountPaise,
         currency,
         receipt: shortReceipt,
       });
@@ -83,8 +188,8 @@ export const paymentService = {
         const payment = await tx.payment.create({
           data: {
             razorpayOrderId: order.id,
-            amount: sessionFeeDecimal,
-            amountPaise,
+            amount: new Decimal(finalAmountPaise / 100),
+            amountPaise: finalAmountPaise,
             currency,
             status: "PENDING",
 
@@ -119,6 +224,25 @@ export const paymentService = {
           },
         });
 
+        if (couponId) {
+          await tx.couponUsage.create({
+            data: {
+              couponId,
+              userId: clientProfile.userId,
+              clientProfileId: clientId,
+              paymentId: payment.id,
+              discountPaise,
+              originalPaise: originalAmountPaise,
+              finalPaise: finalAmountPaise,
+            },
+          });
+
+          await tx.coupon.update({
+            where: { id: couponId },
+            data: { currentUsageCount: { increment: 1 } },
+          });
+        }
+
         return { bookingId: booking.id };
       });
 
@@ -131,7 +255,9 @@ export const paymentService = {
 
       return {
         orderId: order.id,
-        amount: amountPaise,
+        amount: finalAmountPaise,
+        originalAmount: originalAmountPaise,
+        discount: discountPaise,
         currency,
         bookingId,
       };
@@ -351,6 +477,18 @@ export const paymentService = {
       });
 
       if (booking.payment) {
+        const usage = await tx.couponUsage.findUnique({
+          where: { paymentId: booking.payment.id },
+        });
+
+        if (usage) {
+          await tx.couponUsage.delete({ where: { id: usage.id } });
+          await tx.coupon.update({
+            where: { id: usage.couponId },
+            data: { currentUsageCount: { decrement: 1 } },
+          });
+        }
+
         await tx.payment.update({
           where: { id: booking.payment.id },
           data: { status: "FAILED" },

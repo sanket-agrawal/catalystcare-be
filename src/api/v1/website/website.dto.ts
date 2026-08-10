@@ -29,7 +29,6 @@ export type TherapistResponse = {
   shareUrl: string;
 };
 
-
 export type AvailabilitySlotType = {
   id: string;
   startDateTime: Date;
@@ -55,3 +54,9 @@ export type SlotGroupByDate = {
     status: string;
   }[];
 };
+
+export interface SlotNotificationRequestPayload {
+  therapistId?: string;
+  therapistSlug?: string;
+  userId: string;
+}

@@ -42,6 +42,11 @@ export const emailSubjects = (
     "Reschedule Request Rejected – Session Remains Scheduled - CatalystCare",
   clientBookingCancelled: "Your Therapy Session Has Been Cancelled - CatalystCare",
   therapistBookingCancelled: "Therapy Session Cancelled - CatalystCare 🗓",
+  slotNotificationTherapistAlert:
+    "Client Interest Alert: Booking Attempted but No Slots Available - CatalystCare",
+  slotNotificationUserAvailable: therapistName
+    ? `New Slots Available for Dr. ${therapistName} - CatalystCare ✔`
+    : "New Slots Available - CatalystCare ✔",
 });
 
 export const programSlotBookingSubjects = (

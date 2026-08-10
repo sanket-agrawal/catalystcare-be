@@ -57,6 +57,8 @@ model User {
 
   couponsCreated    Coupon[]          @relation("AdminCoupons")
   
+  slotNotificationRequests SlotNotificationRequest[]
+
   @@map("users")
   @@index([email])
 }
@@ -255,6 +257,7 @@ model TherapistProfile {
 
   webinars                            Webinar[]
 
+  slotNotificationRequests            SlotNotificationRequest[]
 
   @@map("therapist_profiles")
 }
@@ -1410,6 +1413,23 @@ model CouponUsage {
   @@index([couponId, userId])
   @@index([userId])
   @@map("coupon_usages")
+}
+
+model SlotNotificationRequest {
+  id           String           @id @default(uuid()) @map("id")
+  therapistId  String           @map("therapist_id")
+  therapist    TherapistProfile @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  
+  userId       String           @map("user_id")
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  isNotified   Boolean          @default(false) @map("is_notified")
+  notifiedAt   DateTime?        @map("notified_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  @@map("slot_notification_requests")
+  @@index([therapistId, isNotified])
+  @@index([userId])
 }
 
 

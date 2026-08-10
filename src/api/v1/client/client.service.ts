@@ -439,6 +439,113 @@ export const clientService = {
       throw error;
     }
   },
+
+  async getUpcoming7DaysBookings(clientId: string) {
+    try {
+      const now = new Date();
+      const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      const bookings = await prisma.booking.findMany({
+        where: {
+          clientId,
+          status: "CONFIRMED",
+          isActive: true,
+          startDateTime: {
+            gte: now,
+            lte: in7Days,
+          },
+        },
+        include: {
+          therapist: {
+            select: {
+              id: true,
+              professionalTitle: true,
+              slug: true,
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  profilePhoto: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          slot: {
+            select: {
+              id: true,
+              startDateTime: true,
+              endDateTime: true,
+            },
+          },
+          programPurchase: {
+            select: {
+              id: true,
+              program: {
+                select: {
+                  id: true,
+                  title: true,
+                },
+              },
+              programPlan: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          startDateTime: "asc",
+        },
+      });
+
+      return bookings.map((b) => {
+        const permissions = clientBookingPermission(
+          b.startDateTime,
+          b.endDateTime,
+          b.hasClientRescheduledEarlier,
+          b.rescheduleStatus || ""
+        );
+        const canCancel = getClientBookingPermissions(b.startDateTime).canCancel;
+
+        return {
+          id: b.id,
+          bookingType: b.bookingType,
+          startDateTime: b.startDateTime,
+          endDateTime: b.endDateTime,
+          meetingLink: permissions.canJoinSession ? b.meetingLink : null,
+          actualMeetingLink: b.meetingLink,
+          flags: {
+            canJoin: permissions.canJoinSession,
+            canReschedule: permissions.canReschedule,
+            canCancel,
+            hasClientRescheduledEarlier: b.hasClientRescheduledEarlier,
+            rescheduleStatus: permissions.rescheduleStatus,
+          },
+          therapist: {
+            id: b.therapist.id,
+            name: `${b.therapist.user.firstName} ${b.therapist.user.lastName}`.trim(),
+            profilePhoto: b.therapist.user.profilePhoto,
+            professionalTitle: b.therapist.professionalTitle,
+            slug: b.therapist.slug,
+          },
+          program: b.programPurchase
+            ? {
+                id: b.programPurchase.program.id,
+                title: b.programPurchase.program.title,
+                planName: b.programPurchase.programPlan.name,
+              }
+            : null,
+          createdAt: b.createdAt,
+        };
+      });
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(500, (error as Error).message || "Error fetching upcoming bookings");
+    }
+  },
 };
 
 export const clientBookingPermission = (

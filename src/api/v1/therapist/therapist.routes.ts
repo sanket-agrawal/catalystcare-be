@@ -1,33 +1,80 @@
-import express from 'express';
-import { therapistController } from './therapist.controller';
-import { authenticate } from '../../../shared/middlewares/authenticatation';
-import availabilityRoutes from './availability/availability.routes';
-import { authorizeRoles } from '../../../shared/middlewares/rbac';
-import { validateRequest } from '../../../shared/middlewares/validate';
-import { upiVpaSchema } from './therapist.dto';
-import programRoutes from './programs/programs.routes';
-import testimonialRoutes from './testimonial/testimonail.routes';
-import sessionRoutes from './sessions/service.route'
-import webinarRoutes from './webinar/webinar.routes'
+import express from "express";
+import { therapistController } from "./therapist.controller";
+import { authenticate } from "../../../shared/middlewares/authenticatation";
+import availabilityRoutes from "./availability/availability.routes";
+import { authorizeRoles } from "../../../shared/middlewares/rbac";
+import { validateRequest } from "../../../shared/middlewares/validate";
+import { upiVpaSchema } from "./therapist.dto";
+import programRoutes from "./programs/programs.routes";
+import testimonialRoutes from "./testimonial/testimonail.routes";
+import sessionRoutes from "./sessions/service.route";
+import webinarRoutes from "./webinar/webinar.routes";
 
 const router = express.Router();
 
-router.post('/register',authenticate, authorizeRoles('THERAPIST'),therapistController.registeration);
-router.use('/availability',authenticate,authorizeRoles('THERAPIST'),availabilityRoutes);
-router.get('/profile',authenticate,authorizeRoles('THERAPIST'),therapistController.profile);
-router.get('/bookings',authenticate,authorizeRoles('THERAPIST'),therapistController.fetchBookings)
-router.post('/set-vpa',authenticate,authorizeRoles('THERAPIST'),validateRequest(upiVpaSchema),therapistController.setUPIVPA);
-router.get('/fetch-masked-vpa',authenticate,authorizeRoles('THERAPIST'),therapistController.fetchMaskedVPA);
-router.get('/billing-dashboard',authenticate,authorizeRoles('THERAPIST'),therapistController.therapistBillingDashboard);
-router.put('/profile-update',authenticate,authorizeRoles('THERAPIST'),therapistController.updateTherapistProfile)
-router.use('/programs',authenticate,authorizeRoles('THERAPIST'),programRoutes);
-router.use('/testimonials',authenticate,authorizeRoles('THERAPIST'),testimonialRoutes)
+router.post(
+  "/register",
+  authenticate,
+  authorizeRoles("THERAPIST"),
+  therapistController.registeration
+);
+router.use("/availability", authenticate, authorizeRoles("THERAPIST"), availabilityRoutes);
+router.get("/profile", authenticate, authorizeRoles("THERAPIST"), therapistController.profile);
+router.get(
+  "/bookings",
+  authenticate,
+  authorizeRoles("THERAPIST"),
+  therapistController.fetchBookings
+);
+router.get(
+  "/upcoming-bookings",
+  authenticate,
+  authorizeRoles("THERAPIST"),
+  therapistController.getUpcomingBookings
+);
+router.post(
+  "/set-vpa",
+  authenticate,
+  authorizeRoles("THERAPIST"),
+  validateRequest(upiVpaSchema),
+  therapistController.setUPIVPA
+);
+router.get(
+  "/fetch-masked-vpa",
+  authenticate,
+  authorizeRoles("THERAPIST"),
+  therapistController.fetchMaskedVPA
+);
+router.get(
+  "/billing-dashboard",
+  authenticate,
+  authorizeRoles("THERAPIST"),
+  therapistController.therapistBillingDashboard
+);
+router.put(
+  "/profile-update",
+  authenticate,
+  authorizeRoles("THERAPIST"),
+  therapistController.updateTherapistProfile
+);
+router.use("/programs", authenticate, authorizeRoles("THERAPIST"), programRoutes);
+router.use("/testimonials", authenticate, authorizeRoles("THERAPIST"), testimonialRoutes);
 
-router.get('/dashboard/pending-list',authenticate,authorizeRoles('THERAPIST'),therapistController.pendingList);
-router.get('/program-billings-dashboard',authenticate,authorizeRoles('THERAPIST'),therapistController.therapistProgramBillingDashboard);
+router.get(
+  "/dashboard/pending-list",
+  authenticate,
+  authorizeRoles("THERAPIST"),
+  therapistController.pendingList
+);
+router.get(
+  "/program-billings-dashboard",
+  authenticate,
+  authorizeRoles("THERAPIST"),
+  therapistController.therapistProgramBillingDashboard
+);
 
-router.use('/sessions',authenticate, authorizeRoles('THERAPIST'),sessionRoutes);
+router.use("/sessions", authenticate, authorizeRoles("THERAPIST"), sessionRoutes);
 
-router.use('/webinars',authenticate,authorizeRoles('THERAPIST'),webinarRoutes);
+router.use("/webinars", authenticate, authorizeRoles("THERAPIST"), webinarRoutes);
 
 export default router;

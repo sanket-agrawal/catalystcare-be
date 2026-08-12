@@ -1,9 +1,7 @@
 import { serverConfig } from "../../shared/config/server.config";
 
 export const therapistProfileApprovalTemplate = (firstName: string, approve: boolean) => {
-  const heading = approve
-    ? `Your Profile Has Been Approved!`
-    : `Your Profile Review Result`;
+  const heading = approve ? `Your Profile Has Been Approved!` : `Your Profile Review Result`;
 
   const message = approve
     ? `We’re excited to let you know that your therapist profile has been approved on Catalyst Care. You can now start connecting with clients and offering your services on our platform.`
@@ -57,10 +55,6 @@ export const therapistProfileApprovalTemplate = (firstName: string, approve: boo
                         <div style="margin-top: 20px; text-align: left;">
                           <h4 style="color: #333; margin-bottom: 10px;">Next Steps</h4>
                           <ol style="color: #555; font-size: 14px; line-height: 1.6; padding-left: 18px;">
-                            <li>
-                              <strong>Connect your Google Calendar</strong><br/>
-                              This allows us to sync your sessions automatically and avoid scheduling conflicts.
-                            </li>
                             <li style="margin-top: 8px;">
                               <strong>Add your availability</strong><br/>
                               Set your available days and time slots so clients can start booking sessions with you.
@@ -104,13 +98,10 @@ export const therapistProfileApprovalTemplate = (firstName: string, approve: boo
   `;
 };
 
-export const therapistProfileOnHoldTemplate = (
-  firstName: string,
-  holdReason: string
-) => {
+export const therapistProfileOnHoldTemplate = (firstName: string, holdReason: string) => {
   const heading = `Your Profile Is Currently On Hold`;
 
-const message = `
+  const message = `
   We’re writing to inform you that your previously approved therapist profile on Catalyst Care has been temporarily placed <strong>on hold</strong>.
   During this period, your profile will not be visible to clients and new bookings may be paused until the review is completed.
 `;
@@ -187,9 +178,7 @@ const message = `
   `;
 };
 
-export const therapistProfileHoldRemovedTemplate = (
-  firstName: string
-) => {
+export const therapistProfileHoldRemovedTemplate = (firstName: string) => {
   const heading = `Your Profile Is Active Again`;
 
   const message = `
@@ -336,7 +325,6 @@ export const adminTherapistProfileSubmissionTemplate = (
 `;
 };
 
-
 export const adminTherapistResubmissionTemplate = (
   therapistName: string,
   therapistEmail: string
@@ -426,7 +414,6 @@ export const adminTherapistResubmissionTemplate = (
 </html>
 `;
 };
-
 
 export const adminTherapistRescheduleRequestTemplate = (
   therapistName: string,

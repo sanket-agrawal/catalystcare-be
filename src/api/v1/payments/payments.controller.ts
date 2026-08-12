@@ -7,13 +7,13 @@ export const paymentController = {
   createOrder: async function (req: Request, res: Response) {
     try {
       const { clientProfileId } = req.user;
-      const { slotId } = req.body;
+      const { slotId, couponCode } = req.body;
 
       if (req.user.role !== "CLIENT") {
         throw new ApiError(403, "Only clients can book therapy sessions");
       }
 
-      const order = await paymentService.createOrderService(clientProfileId, slotId);
+      const order = await paymentService.createOrderService(clientProfileId, slotId, couponCode);
 
       res.status(201).json(new ApiResponse(true, 201, "Order Created Sucessfully", order));
     } catch (error) {

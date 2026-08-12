@@ -825,3 +825,110 @@ export const bookingRescheduleStatus = (rescheduleStatus: string) => {
             : "",
   };
 };
+
+export const getUpcoming7DaysTherapistBookings = async (therapistId: string) => {
+  try {
+    const now = new Date();
+    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const bookings = await prisma.booking.findMany({
+      where: {
+        therapistId,
+        status: "CONFIRMED",
+        isActive: true,
+        startDateTime: {
+          gte: now,
+          lte: in7Days,
+        },
+      },
+      include: {
+        client: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                profilePhoto: true,
+                email: true,
+                mobileNumber: true,
+              },
+            },
+          },
+        },
+        slot: {
+          select: {
+            id: true,
+            startDateTime: true,
+            endDateTime: true,
+          },
+        },
+        programPurchase: {
+          select: {
+            id: true,
+            program: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
+            programPlan: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        startDateTime: "asc",
+      },
+    });
+
+    return bookings.map((b) => {
+      const permissions = therapistBookingPermission(
+        b.startDateTime,
+        b.endDateTime,
+        b.hasTherapistRescheduledEarlier,
+        b.rescheduleStatus || ""
+      );
+
+      return {
+        id: b.id,
+        bookingType: b.bookingType,
+        startDateTime: b.startDateTime,
+        endDateTime: b.endDateTime,
+        meetingLink: permissions.canJoinSession ? b.meetingLink : null,
+        actualMeetingLink: b.meetingLink,
+        flags: {
+          canJoin: permissions.canJoinSession,
+          canReschedule: permissions.canReschedule,
+          hasTherapistRescheduledEarlier: b.hasTherapistRescheduledEarlier,
+          rescheduleStatus: permissions.rescheduleStatus,
+        },
+        client: {
+          id: b.client.id,
+          name: `${b.client.user.firstName} ${b.client.user.lastName}`.trim(),
+          profilePhoto: b.client.user.profilePhoto,
+          email: b.client.user.email,
+          mobileNumber: b.client.user.mobileNumber,
+        },
+        program: b.programPurchase
+          ? {
+              id: b.programPurchase.program.id,
+              title: b.programPurchase.program.title,
+              planName: b.programPurchase.programPlan.name,
+            }
+          : null,
+        createdAt: b.createdAt,
+      };
+    });
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(
+      500,
+      (error as Error).message || "Error fetching therapist upcoming bookings"
+    );
+  }
+};

@@ -12,6 +12,7 @@ import paymentRoutes from "./payments/payments.routes";
 import emailRoutes from "./email/email.routes";
 import organizationRoutes from "./organizations/index";
 import aiRoutes from "./ai/ai.routes";
+import couponRoutes from "./coupons/coupon.routes";
 
 import { authorizeRoles } from "../../shared/middlewares/rbac";
 import { authenticate } from "../../shared/middlewares/authenticatation";
@@ -43,6 +44,7 @@ router.use("/client", clientRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/email", emailRoutes);
 router.use("/ai", aiLimiter, aiRoutes);
+router.use("/coupons", couponRoutes);
 // router.use('/chat',chatRoutes);
 
 export default router;

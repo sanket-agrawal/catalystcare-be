@@ -36,6 +36,18 @@ export const bookingCleanupWorker = new Worker(
       });
 
       if (booking.payment) {
+        const usage = await tx.couponUsage.findUnique({
+          where: { paymentId: booking.payment.id },
+        });
+
+        if (usage) {
+          await tx.couponUsage.delete({ where: { id: usage.id } });
+          await tx.coupon.update({
+            where: { id: usage.couponId },
+            data: { currentUsageCount: { decrement: 1 } },
+          });
+        }
+
         await tx.payment.update({
           where: { id: booking.payment.id },
           data: { status: "FAILED" },

@@ -49,7 +49,6 @@ export type ClientProfileUpdateData = {
   relationShipStatus: RelationShipStatus;
 };
 
-
 export const createAssessmentSchema = z.object({
   recentFeeling: z.string().optional(),
   crowdedWithWorries: z.string().optional(),
@@ -73,3 +72,10 @@ export const createAssessmentSchema = z.object({
 });
 
 export type CreateAssessmentInput = z.infer<typeof createAssessmentSchema>;
+
+export const submitSessionIntakeSchema = z.object({
+  assessment: createAssessmentSchema.optional(),
+  message: z.string().optional(),
+});
+
+export type SubmitSessionIntakeInput = z.infer<typeof submitSessionIntakeSchema>;

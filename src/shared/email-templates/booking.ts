@@ -758,3 +758,69 @@ export const therapistBookingCancelledTemplate = (
   </html>
   `;
 };
+
+export const clientHomeworkAssignedTemplate = (
+  clientFirstName: string,
+  therapistName: string,
+  homeworkDescription: string
+) => {
+  return `
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>New Homework Assigned</title>
+    </head>
+    <body style="font-family: Roboto, Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" 
+             style="background-color: #f9f9f9; padding: 30px 0;">
+        <tr>
+          <td align="center">
+            <table width="500" cellpadding="0" cellspacing="0" border="0" 
+              style="background-color: #ffffff; border-radius: 10px; overflow: hidden; 
+              box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+              <tr>
+                <td align="center" style="padding: 20px;">
+                  <img src="${serverConfig.baseFrontendUrl}/assets/favicon.ico" 
+                       alt="Catalyst Care" width="120" style="display:block;">
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 25px; text-align: left;">
+                  <h2 style="color: #333; margin-bottom: 10px;">Hi ${clientFirstName},</h2>
+                  <p style="color: #555; font-size: 15px; line-height: 1.6;">
+                    Your therapist <strong>${therapistName}</strong> has assigned new homework for you:
+                  </p>
+                  <blockquote style="background-color: #f3f4f6; border-left: 4px solid #007bff; margin: 15px 0; padding: 15px; color: #333; font-style: italic; font-size: 15px;">
+                    ${homeworkDescription}
+                  </blockquote>
+                  <p style="color:#555; font-size:15px;">
+                    Please log in to your dashboard to view details and complete it before your next session.
+                  </p>
+                  <div style="text-align: center; margin-top: 25px;">
+                    <a href="${serverConfig.baseFrontendUrl}/dashboard"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style="display:inline-block; padding:10px 20px; 
+                      background-color:#007bff; color:#fff; border-radius:6px; 
+                      text-decoration:none; font-size:14px;">
+                      Go to Dashboard
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="background-color: #f3f4f6; padding: 12px; 
+                    font-size: 13px; color: #555;">
+                  © Catalyst Care | <a href="${serverConfig.baseFrontendUrl}" target="_blank" style="color: #007bff; text-decoration: none;">${serverConfig.baseFrontendUrl}</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+  </html>
+  `;
+};

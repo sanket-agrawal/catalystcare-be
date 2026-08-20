@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { getClientBookingPermissions } from "./client.helper";
 import { meetingQueue } from "../../../infrastructure/queues";
 import { canRateSession } from "../../../shared/lib/ratings";
+import { aiService } from "../ai/ai.service";
 
 type BookingForClientList = {
   id: string;
@@ -216,6 +217,18 @@ export const clientService = {
   },
   async fetchBookings(clientId: string) {
     try {
+      const clientProfile = await prisma.clientProfile.findUnique({
+        where: { id: clientId },
+        select: { aiSummary: true, userId: true },
+      });
+
+      const latestAssessment = clientProfile
+        ? await prisma.clientAssesment.findFirst({
+            where: { userId: clientProfile.userId },
+            orderBy: { createdAt: "desc" },
+          })
+        : null;
+
       const bookings = await prisma.booking.findMany({
         where: {
           clientId: clientId,
@@ -279,6 +292,9 @@ export const clientService = {
           rescheduleStatus: permission.rescheduleStatus,
           isCancelled: booking.status === "CANCELLED",
           cancellationReason: booking.cancellationReason,
+          coverSummary: clientProfile?.aiSummary || null,
+          intakeForm: latestAssessment || null,
+          message: booking.sessionNotes || null,
         };
       });
     } catch (error) {
@@ -442,6 +458,18 @@ export const clientService = {
 
   async getUpcoming7DaysBookings(clientId: string) {
     try {
+      const clientProfile = await prisma.clientProfile.findUnique({
+        where: { id: clientId },
+        select: { aiSummary: true, userId: true },
+      });
+
+      const latestAssessment = clientProfile
+        ? await prisma.clientAssesment.findFirst({
+            where: { userId: clientProfile.userId },
+            orderBy: { createdAt: "desc" },
+          })
+        : null;
+
       const now = new Date();
       const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -539,11 +567,95 @@ export const clientService = {
               }
             : null,
           createdAt: b.createdAt,
+          coverSummary: clientProfile?.aiSummary || null,
+          intakeForm: latestAssessment || null,
+          message: b.sessionNotes || null,
+          homework: b.homework || null,
         };
       });
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError(500, (error as Error).message || "Error fetching upcoming bookings");
+    }
+  },
+  async updateBookingNotes(bookingId: string, clientId: string, sessionNotes: string) {
+    try {
+      const booking = await prisma.booking.findFirst({
+        where: {
+          id: bookingId,
+          clientId,
+          status: { in: ["CONFIRMED", "PENDING_PAYMENT"] },
+        },
+      });
+
+      if (!booking) {
+        throw new ApiError(404, "Booking not found");
+      }
+
+      const updated = await prisma.booking.update({
+        where: { id: bookingId },
+        data: { sessionNotes: sessionNotes || null },
+      });
+
+      aiService
+        .refreshClientAiSummary(clientId)
+        .catch((err) => console.error("Error refreshing AI summary on booking note update:", err));
+
+      return updated;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(500, (error as Error).message || "Failed to update booking notes");
+    }
+  },
+  async submitSessionIntake(
+    userId: string,
+    clientId: string,
+    bookingId: string,
+    data: { assessment?: any; message?: string }
+  ) {
+    try {
+      const booking = await prisma.booking.findFirst({
+        where: {
+          id: bookingId,
+          clientId,
+        },
+      });
+
+      if (!booking) {
+        throw new ApiError(404, "Booking not found");
+      }
+
+      let newAssessment = null;
+      if (data.assessment && Object.keys(data.assessment).length > 0) {
+        newAssessment = await prisma.clientAssesment.create({
+          data: {
+            ...data.assessment,
+            userId,
+          },
+        });
+      }
+
+      const updatedBooking = await prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+          sessionNotes: data.message || undefined,
+        },
+      });
+
+      aiService
+        .refreshClientAiSummary(clientId)
+        .catch((err) =>
+          console.error("Error refreshing AI summary on session intake submission:", err)
+        );
+
+      return {
+        success: true,
+        assessment: newAssessment,
+        booking: updatedBooking,
+      };
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(500, (error as Error).message || "Failed to submit session intake");
     }
   },
 };

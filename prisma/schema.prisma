@@ -97,6 +97,9 @@ model ClientProfile {
   seekingSupportFor      SeekingSupportFor?    @map("seeking_support_for")
   relationShipStatus     RelationShipStatus?   @map("relation_ship_status")
 
+  aiSummary              String?               @map("ai_summary")
+  aiSummaryUpdatedAt     DateTime?             @map("ai_summary_updated_at")
+
   //bookings
   bookings               Booking[]   
 
@@ -401,6 +404,7 @@ model Booking {
 
   payment           Payment?              
   paymentStatus     PaymentStatus?        @map("payment_status")
+  homework          String?
 
   meetingLink      String?                @map("meeting_link")
   calendarEventId  String?                @map("calendar_event_id")

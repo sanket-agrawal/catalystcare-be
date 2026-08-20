@@ -117,4 +117,57 @@ export const clientController = {
       }
     }
   },
+  async updateBookingNotes(req: Request, res: Response) {
+    try {
+      const clientId = req.user.clientProfileId;
+      const { bookingId } = req.params;
+      const { sessionNotes } = req.body;
+
+      if (!clientId) {
+        throw new ApiError(400, "Client profile not found for user");
+      }
+      if (!bookingId) {
+        throw new ApiError(400, "Booking ID is required");
+      }
+
+      const updated = await clientService.updateBookingNotes(bookingId, clientId, sessionNotes);
+      res
+        .status(200)
+        .json(new ApiResponse(true, 200, "Booking notes updated successfully", updated));
+    } catch (error) {
+      console.log("Error updating client booking notes:", error);
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
+      } else {
+        res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
+      }
+    }
+  },
+  async submitSessionIntake(req: Request, res: Response) {
+    try {
+      const userId = req.user.id;
+      const clientId = req.user.clientProfileId;
+      const { bookingId } = req.params;
+
+      if (!clientId) {
+        throw new ApiError(400, "Client profile not found for user");
+      }
+      if (!bookingId) {
+        throw new ApiError(400, "Booking ID is required");
+      }
+
+      const result = await clientService.submitSessionIntake(userId, clientId, bookingId, req.body);
+
+      res
+        .status(200)
+        .json(new ApiResponse(true, 200, "Session intake submitted successfully", result));
+    } catch (error) {
+      console.error("Error in submitting session intake:", error);
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
+      } else {
+        res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
+      }
+    }
+  },
 };

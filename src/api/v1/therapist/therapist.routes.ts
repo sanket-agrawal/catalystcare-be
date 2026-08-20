@@ -27,6 +27,18 @@ router.get(
   therapistController.fetchBookings
 );
 router.get(
+  "/bookings/:bookingId",
+  authenticate,
+  authorizeRoles("THERAPIST"),
+  therapistController.getBookingDetails
+);
+router.post(
+  "/bookings/:bookingId/homework",
+  authenticate,
+  authorizeRoles("THERAPIST"),
+  therapistController.assignHomework
+);
+router.get(
   "/upcoming-bookings",
   authenticate,
   authorizeRoles("THERAPIST"),

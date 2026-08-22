@@ -1,6 +1,7 @@
 import { ToolName, VentTextRequestDto, VentVoiceRequestDto } from "./ai.dto";
-import { aiConfig } from "../../../shared/config/ai.config";
+import { aiConfig, llmConfig } from "../../../shared/config/ai.config";
 import { prisma } from "../../../infrastructure/prisma/client";
+import { callLLM } from "../../../infrastructure/llm";
 
 const THERAPIST_BRIEFING_SYSTEM_PROMPT = `You are an expert clinical psychologist assistant synthesizing client information into a structured pre-session briefing for a licensed therapist.
 Format the summary concisely in clear markdown with bullet points under these sections:
@@ -114,46 +115,11 @@ Rules:
 - For pomodoro: provide actionable cycle guidance.`;
 
 async function generateWithLLM(messages: ChatMessage[], maxTokens = 220) {
-  if (aiConfig.provider !== "openai") {
-    throw new Error(`Unsupported AI provider: ${aiConfig.provider}`);
-  }
-
-  if (!aiConfig.openAiApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), aiConfig.requestTimeoutMs);
-
-  try {
-    const response = await fetch(`${aiConfig.openAiBaseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${aiConfig.openAiApiKey}`,
-      },
-      body: JSON.stringify({
-        model: aiConfig.openAiModel,
-        temperature: 0.7,
-        max_tokens: maxTokens,
-        messages,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`OpenAI request failed (${response.status}): ${errorBody}`);
-    }
-
-    const data = await response.json();
-    const output = data?.choices?.[0]?.message?.content?.trim();
-    if (!output) throw new Error("LLM returned empty response");
-
-    return output;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return await callLLM({
+    messages,
+    max_tokens: maxTokens,
+    temperature: 0.7,
+  });
 }
 
 export const aiService = {
@@ -184,7 +150,7 @@ export const aiService = {
       metadata: {
         originalLength: cleanedMessage.length,
         channel: payload.channel || "web",
-        model: aiConfig.openAiModel,
+        model: llmConfig.textModel,
       },
     };
   },
@@ -220,7 +186,7 @@ export const aiService = {
         hasAudioUrl: Boolean(payload.audioUrl),
         hasTranscript: Boolean(transcript),
         channel: payload.channel || "web",
-        model: aiConfig.openAiModel,
+        model: llmConfig.textModel,
       },
     };
   },

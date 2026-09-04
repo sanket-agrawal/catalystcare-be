@@ -291,6 +291,11 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
       shareUrl: `${frontendConfig.therapistProfilePage}/${therapist.slug}`,
       programs: therapist.programs,
       webinars: therapist.webinars,
+      professionalTitle: therapist.professionalTitle,
+      highestQualification: therapist.highestQualification,
+      graduationYear: therapist.graduationYear,
+      licenseNumber: therapist.licenseNumber,
+      licensingAuthority: therapist.licensingAuthority,
     };
   } catch (error) {
     if (error instanceof ApiError) throw error;

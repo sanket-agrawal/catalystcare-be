@@ -47,6 +47,7 @@ export const emailSubjects = (
   slotNotificationUserAvailable: therapistName
     ? `New Slots Available for Dr. ${therapistName} - CatalystCare ✔`
     : "New Slots Available - CatalystCare ✔",
+  homeworkAssigned: "New Homework Assigned for Your Therapy Session - CatalystCare",
 });
 
 export const programSlotBookingSubjects = (

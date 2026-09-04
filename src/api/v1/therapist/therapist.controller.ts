@@ -1,7 +1,11 @@
 import ApiError from "../../../shared/utils/ApiError";
 import ApiResponse from "../../../shared/utils/ApiResponse";
 import { Request, Response } from "express";
-import { therapistService, getUpcoming7DaysTherapistBookings } from "./therapist.service";
+import {
+  therapistService,
+  getUpcoming7DaysTherapistBookings,
+  getBookingDetailsForTherapist,
+} from "./therapist.service";
 
 export const therapistController = {
   async registeration(req: Request, res: Response) {
@@ -182,6 +186,59 @@ export const therapistController = {
         );
     } catch (error) {
       console.log("Error fetching upcoming therapist bookings:", error);
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
+      } else {
+        res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
+      }
+    }
+  },
+  async getBookingDetails(req: Request, res: Response) {
+    try {
+      const { therapistProfileId } = req.user;
+      const { bookingId } = req.params;
+
+      if (!therapistProfileId) {
+        throw new ApiError(400, "Therapist profile not found for user");
+      }
+      if (!bookingId) {
+        throw new ApiError(400, "Booking ID is required");
+      }
+
+      const booking = await getBookingDetailsForTherapist(bookingId, therapistProfileId);
+      res
+        .status(200)
+        .json(new ApiResponse(true, 200, "Booking details fetched successfully", booking));
+    } catch (error) {
+      console.log("Error fetching booking details:", error);
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
+      } else {
+        res.status(500).json(new ApiResponse(false, 500, "Internal Server Error"));
+      }
+    }
+  },
+  async assignHomework(req: Request, res: Response) {
+    try {
+      const { therapistProfileId } = req.user;
+      const { bookingId } = req.params;
+      const { homework } = req.body;
+
+      if (!therapistProfileId) {
+        throw new ApiError(400, "Therapist profile not found for user");
+      }
+      if (!bookingId) {
+        throw new ApiError(400, "Booking ID is required");
+      }
+      if (!homework) {
+        throw new ApiError(400, "Homework description is required");
+      }
+
+      const result = await therapistService.assignHomework(therapistProfileId, bookingId, homework);
+
+      res.status(200).json(new ApiResponse(true, 200, "Homework assigned successfully", result));
+    } catch (error) {
+      console.log("Error assigning homework:", error);
       if (error instanceof ApiError) {
         res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
       } else {

@@ -10,9 +10,15 @@ import { slotConfig } from "../../../shared/config/slot.config";
 import { sendIncompleteBookingEmail } from "../../../shared/utils/booking-email";
 
 import { clientCouponService } from "../coupons/coupon.service";
+import { aiService } from "../ai/ai.service";
 
 export const paymentService = {
-  createOrderService: async function (clientId: string, slotId: string, couponCode?: string) {
+  createOrderService: async function (
+    clientId: string,
+    slotId: string,
+    couponCode?: string,
+    sessionNotes?: string
+  ) {
     try {
       const clientProfile = await prisma.clientProfile.findUnique({
         where: { id: clientId },
@@ -117,6 +123,7 @@ export const paymentService = {
               status: "CONFIRMED",
               paymentStatus: "CAPTURED",
               isActive: true,
+              sessionNotes: sessionNotes || null,
               payment: { connect: { id: payment.id } },
             },
           });
@@ -140,6 +147,10 @@ export const paymentService = {
 
           return { bookingId: booking.id };
         });
+
+        aiService
+          .refreshClientAiSummary(clientId)
+          .catch((err) => console.error("Error refreshing AI summary on free booking:", err));
 
         await meetingQueue.add(
           "create-google-meet",
@@ -220,6 +231,7 @@ export const paymentService = {
             status: "PENDING_PAYMENT",
             paymentStatus: "PENDING",
             isActive: true,
+            sessionNotes: sessionNotes || null,
             payment: { connect: { id: payment.id } },
           },
         });
@@ -272,9 +284,16 @@ export const paymentService = {
     razorpay_payment_id: string;
     razorpay_signature: string;
     bookingId: string;
+    sessionNotes?: string;
   }) {
     try {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, bookingId } = data;
+      const {
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+        bookingId,
+        sessionNotes,
+      } = data;
 
       // 1️⃣ Generate expected signature
       const generatedSignature = crypto
@@ -306,7 +325,11 @@ export const paymentService = {
 
         const updatedBooking = await tx.booking.update({
           where: { id: bookingId },
-          data: { paymentStatus: "CAPTURED", status: "CONFIRMED" },
+          data: {
+            paymentStatus: "CAPTURED",
+            status: "CONFIRMED",
+            ...(sessionNotes ? { sessionNotes } : {}),
+          },
         });
 
         await tx.availabilitySlot.update({
@@ -316,6 +339,10 @@ export const paymentService = {
 
         return { updatedPayment, updatedBooking };
       });
+
+      aiService
+        .refreshClientAiSummary(updated.updatedBooking.clientId)
+        .catch((err) => console.error("Error refreshing AI summary on payment verification:", err));
 
       await meetingQueue.add(
         "create-google-meet",
@@ -331,9 +358,118 @@ export const paymentService = {
         }
       );
 
+      const bookingCount = await prisma.booking.count({
+        where: {
+          clientId: updated.updatedBooking.clientId,
+          status: { in: ["CONFIRMED", "COMPLETED"] },
+        },
+      });
+
+      const isFirstBooking = bookingCount <= 1;
+
+      const questionnaire = [
+        {
+          id: "recentFeeling",
+          question: "How have you been feeling recently?",
+          category: "Mood Disorders",
+        },
+        {
+          id: "crowdedWithWorries",
+          question: "Do you often feel crowded with worries?",
+          category: "Anxiety Disorders",
+        },
+        {
+          id: "roomFullWithPeople",
+          question: "How do you feel in a room full of people?",
+          category: "Anxiety Disorders",
+        },
+        {
+          id: "dailyTaskFeeling",
+          question: "How do you feel about your daily tasks?",
+          category: "Mood Disorders",
+        },
+        {
+          id: "thoughtEcho",
+          question: "Do you experience thoughts echoing or repeating in your mind?",
+          category: "Mood Disorders",
+        },
+        {
+          id: "decision",
+          question: "How do you make decisions or handle overthinking?",
+          category: "Cognitive / Personality",
+        },
+        {
+          id: "oldMemories",
+          question: "Do old memories or triggers affect your current state?",
+          category: "Trauma & Stress",
+        },
+        {
+          id: "lossOrSeperation",
+          question: "Have you recently experienced loss or separation?",
+          category: "Trauma & Stress",
+        },
+        {
+          id: "closestRelationShip",
+          question: "How would you describe your closest relationships?",
+          category: "Personality / Relationship Issues",
+        },
+        {
+          id: "sayingNo",
+          question: "Do you find it difficult to say no or set boundaries?",
+          category: "Personality / Relationship Issues",
+        },
+        {
+          id: "nightSleep",
+          question: "How is your night sleep pattern?",
+          category: "Lifestyle & Habits",
+        },
+        {
+          id: "eatingPattern",
+          question: "How is your eating pattern or appetite?",
+          category: "Lifestyle & Habits",
+        },
+        {
+          id: "heavyLifeCope",
+          question: "How do you cope with heavy life situations or stress?",
+          category: "Lifestyle & Habits",
+        },
+        {
+          id: "technologyView",
+          question: "How does technology usage affect your daily life?",
+          category: "Lifestyle & Habits",
+        },
+        {
+          id: "selfImage",
+          question: "How do you view yourself or your self-image?",
+          category: "Personality / Self",
+        },
+        {
+          id: "futurePerspective",
+          question: "What is your perspective on the future?",
+          category: "Mood Disorders / Self",
+        },
+        {
+          id: "sucidalThoughts",
+          question: "Do you have any suicidal thoughts?",
+          category: "Red Flag Concerns",
+        },
+        {
+          id: "halucinations",
+          question: "Have you experienced any hallucinations?",
+          category: "Red Flag Concerns",
+        },
+        {
+          id: "selfHarm",
+          question: "Have you had thoughts of self-harm?",
+          category: "Red Flag Concerns",
+        },
+      ];
+
       return {
         success: true,
         message: "Payment verified and booking confirmed",
+        isFirstBooking,
+        ...(isFirstBooking ? { questionnaire } : {}),
         ...updated,
       };
     } catch (error) {
@@ -398,6 +534,10 @@ export const paymentService = {
           data: { status: "BOOKED" },
         });
       }
+
+      aiService
+        .refreshClientAiSummary(booking.clientId)
+        .catch((err) => console.error("Error refreshing AI summary on webhook capture:", err));
     }
 
     console.log(`✅ Webhook: Payment ${razorpayPaymentId} captured successfully`);

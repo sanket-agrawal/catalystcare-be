@@ -404,7 +404,7 @@ Please produce a concise, structured pre-session clinical summary for the therap
             { role: "system", content: THERAPIST_BRIEFING_SYSTEM_PROMPT },
             { role: "user", content: promptContent },
           ],
-          450
+          800
         );
 
         if (llmGenerated && llmGenerated.trim()) {

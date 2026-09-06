@@ -101,6 +101,7 @@ async function fetchFromProvider(
         messages: options.messages,
         temperature: options.temperature ?? 0.7,
         max_tokens: options.max_tokens ?? 512,
+        ...(provider.name === "gemini" && { reasoning_effort: "none" }),
         ...(options.response_format && {
           response_format: options.response_format,
         }),

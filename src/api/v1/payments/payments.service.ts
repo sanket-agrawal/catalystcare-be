@@ -358,14 +358,19 @@ export const paymentService = {
         }
       );
 
-      const bookingCount = await prisma.booking.count({
-        where: {
-          clientId: updated.updatedBooking.clientId,
-          status: { in: ["CONFIRMED", "COMPLETED"] },
-        },
+      const clientProfile = await prisma.clientProfile.findUnique({
+        where: { id: updated.updatedBooking.clientId },
+        select: { userId: true },
       });
 
-      const isFirstBooking = bookingCount <= 1;
+      const existingAssessment = clientProfile?.userId
+        ? await prisma.clientAssesment.findFirst({
+            where: { userId: clientProfile.userId },
+            select: { id: true },
+          })
+        : null;
+
+      const isFirstBooking = !existingAssessment;
 
       const questionnaire = [
         {

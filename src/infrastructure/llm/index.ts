@@ -14,12 +14,35 @@ export interface LLMRequestOptions {
 }
 
 /**
- * Strips markdown fences in case a model ignores response_format: json_object.
+ * Strips markdown fences or conversational preambles in case a model ignores response_format: json_object.
  * Safe to call even when content is already clean JSON.
  */
 export function safeParseJSON<T>(raw: string): T {
-  const cleaned = raw.replace(/^```json\s*|^```\s*|```\s*$/gm, "").trim();
-  return JSON.parse(cleaned) as T;
+  const cleaned = raw.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch (err) {
+    // If the model included conversational preamble/postscript (e.g., "Here is the insight: { ... }")
+    const firstBrace = raw.indexOf("{");
+    const firstBracket = raw.indexOf("[");
+    let startIdx = -1;
+    let endIdx = -1;
+
+    if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+      startIdx = firstBrace;
+      endIdx = raw.lastIndexOf("}");
+    } else if (firstBracket !== -1) {
+      startIdx = firstBracket;
+      endIdx = raw.lastIndexOf("]");
+    }
+
+    if (startIdx !== -1 && endIdx > startIdx) {
+      const jsonCandidate = raw.slice(startIdx, endIdx + 1);
+      return JSON.parse(jsonCandidate) as T;
+    }
+
+    throw err;
+  }
 }
 
 // ── Provider config types ────────────────────────────────────────────

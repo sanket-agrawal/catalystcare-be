@@ -17,7 +17,18 @@ router.post(
   validateRequest(createAssessmentSchema),
   clientController.assessmentSubmit
 );
+router.patch(
+  "/assessment",
+  authenticate,
+  validateRequest(createAssessmentSchema),
+  clientController.updateAssessment
+);
 router.get("/get-assessments", authenticate, clientController.getAssessments);
+router.get(
+  "/fetch-assessment-based-therapist",
+  authenticate,
+  clientController.getTherapistsByUserNeeds
+);
 router.get(
   "/fetch-assessment-based-therapist/:assessmentId",
   authenticate,

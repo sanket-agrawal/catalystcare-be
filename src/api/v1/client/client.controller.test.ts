@@ -116,6 +116,40 @@ describe("Client Controller", () => {
     });
   });
 
+  describe("updateAssessment", () => {
+    it("should update assessment successfully", async () => {
+      const mockResult = {
+        id: "assessment-1",
+        recentFeeling: "I usually feel steady and balanced",
+      };
+      (clientService.updateAssessmentAnswer as any) = vi.fn().mockResolvedValue(mockResult);
+
+      mockReq.body = { recentFeeling: "I usually feel steady and balanced" };
+
+      await clientController.updateAssessment(mockReq as Request, mockRes as Response);
+
+      expect(clientService.updateAssessmentAnswer).toHaveBeenCalledWith("user-client-1", {
+        recentFeeling: "I usually feel steady and balanced",
+      });
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(ApiResponse).toHaveBeenCalledWith(
+        true,
+        200,
+        "Assessment answer updated successfully",
+        mockResult
+      );
+    });
+
+    it("should handle ApiError in updateAssessment", async () => {
+      const apiError = new ApiError(400, "Update failed");
+      (clientService.updateAssessmentAnswer as any) = vi.fn().mockRejectedValue(apiError);
+
+      await clientController.updateAssessment(mockReq as Request, mockRes as Response);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+    });
+  });
+
   describe("getAssessments", () => {
     it("should fetch user assessments successfully", async () => {
       const mockAssessments = [{ id: "assess-1", score: 10 }];

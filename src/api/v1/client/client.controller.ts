@@ -35,6 +35,24 @@ export const clientController = {
       }
     }
   },
+  async updateAssessment(req: Request, res: Response) {
+    try {
+      const userId = req.user.id;
+
+      const result = await clientService.updateAssessmentAnswer(userId, req.body);
+
+      res
+        .status(200)
+        .json(new ApiResponse(true, 200, "Assessment answer updated successfully", result));
+    } catch (error) {
+      console.error("Error in updating assessment answer:", error);
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json(new ApiResponse(false, error.statusCode, error.message));
+      } else {
+        res.status(400).json(new ApiResponse(false, 400, "Something went wrong"));
+      }
+    }
+  },
   async getAssessments(req: Request, res: Response) {
     try {
       const userId = req.user.id;

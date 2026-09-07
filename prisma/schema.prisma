@@ -23,7 +23,7 @@ model User {
 
   clientProfile    ClientProfile?
   therapistProfile TherapistProfile?
-  ClientAssesment  ClientAssesment[]
+  ClientAssesment  ClientAssesment?
 
   commissionRates  CommissionRate[]  @relation("UserToCommissionRates")
 
@@ -476,7 +476,7 @@ enum RescheduleStatus {
 model ClientAssesment {
   id                     String               @id @default(uuid()) @map("id")
   user                   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId                 String               @map("user_id")
+  userId                 String               @unique @map("user_id")
 
   recentFeeling          String?               @map("recent_feeling")
   crowdedWithWorries     String?               @map("crowded_with_worries")

@@ -11,6 +11,7 @@ import { sendIncompleteBookingEmail } from "../../../shared/utils/booking-email"
 
 import { clientCouponService } from "../coupons/coupon.service";
 import { aiService } from "../ai/ai.service";
+import { CLIENT_ASSESSMENT_QUESTIONS } from "../../../shared/constants/clientAssessmentQuestions";
 
 export const paymentService = {
   createOrderService: async function (
@@ -364,7 +365,7 @@ export const paymentService = {
       });
 
       const existingAssessment = clientProfile?.userId
-        ? await prisma.clientAssesment.findFirst({
+        ? await prisma.clientAssesment.findUnique({
             where: { userId: clientProfile.userId },
             select: { id: true },
           })
@@ -372,103 +373,7 @@ export const paymentService = {
 
       const isFirstBooking = !existingAssessment;
 
-      const questionnaire = [
-        {
-          id: "recentFeeling",
-          question: "How have you been feeling recently?",
-          category: "Mood Disorders",
-        },
-        {
-          id: "crowdedWithWorries",
-          question: "Do you often feel crowded with worries?",
-          category: "Anxiety Disorders",
-        },
-        {
-          id: "roomFullWithPeople",
-          question: "How do you feel in a room full of people?",
-          category: "Anxiety Disorders",
-        },
-        {
-          id: "dailyTaskFeeling",
-          question: "How do you feel about your daily tasks?",
-          category: "Mood Disorders",
-        },
-        {
-          id: "thoughtEcho",
-          question: "Do you experience thoughts echoing or repeating in your mind?",
-          category: "Mood Disorders",
-        },
-        {
-          id: "decision",
-          question: "How do you make decisions or handle overthinking?",
-          category: "Cognitive / Personality",
-        },
-        {
-          id: "oldMemories",
-          question: "Do old memories or triggers affect your current state?",
-          category: "Trauma & Stress",
-        },
-        {
-          id: "lossOrSeperation",
-          question: "Have you recently experienced loss or separation?",
-          category: "Trauma & Stress",
-        },
-        {
-          id: "closestRelationShip",
-          question: "How would you describe your closest relationships?",
-          category: "Personality / Relationship Issues",
-        },
-        {
-          id: "sayingNo",
-          question: "Do you find it difficult to say no or set boundaries?",
-          category: "Personality / Relationship Issues",
-        },
-        {
-          id: "nightSleep",
-          question: "How is your night sleep pattern?",
-          category: "Lifestyle & Habits",
-        },
-        {
-          id: "eatingPattern",
-          question: "How is your eating pattern or appetite?",
-          category: "Lifestyle & Habits",
-        },
-        {
-          id: "heavyLifeCope",
-          question: "How do you cope with heavy life situations or stress?",
-          category: "Lifestyle & Habits",
-        },
-        {
-          id: "technologyView",
-          question: "How does technology usage affect your daily life?",
-          category: "Lifestyle & Habits",
-        },
-        {
-          id: "selfImage",
-          question: "How do you view yourself or your self-image?",
-          category: "Personality / Self",
-        },
-        {
-          id: "futurePerspective",
-          question: "What is your perspective on the future?",
-          category: "Mood Disorders / Self",
-        },
-        {
-          id: "sucidalThoughts",
-          question: "Do you have any suicidal thoughts?",
-          category: "Red Flag Concerns",
-        },
-        {
-          id: "halucinations",
-          question: "Have you experienced any hallucinations?",
-          category: "Red Flag Concerns",
-        },
-        {
-          id: "selfHarm",
-          question: "Have you had thoughts of self-harm?",
-          category: "Red Flag Concerns",
-        },
-      ];
+      const questionnaire = CLIENT_ASSESSMENT_QUESTIONS;
 
       return {
         success: true,

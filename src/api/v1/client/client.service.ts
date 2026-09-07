@@ -7,6 +7,10 @@ import { getClientBookingPermissions } from "./client.helper";
 import { meetingQueue } from "../../../infrastructure/queues";
 import { canRateSession } from "../../../shared/lib/ratings";
 import { aiService } from "../ai/ai.service";
+import {
+  CLIENT_ASSESSMENT_QUESTIONS,
+  FIELD_CATEGORY_MAP,
+} from "../../../shared/constants/clientAssessmentQuestions";
 
 type BookingForClientList = {
   id: string;
@@ -62,103 +66,38 @@ export const clientService = {
   },
   async assessmentSubmit(userId: string, input: any) {
     try {
-      // 1️⃣ Create the assessment
-      const newAssessment = await prisma.clientAssesment.create({
-        data: {
+      // 1️⃣ Upsert the assessment (1:1 relation with User)
+      const newAssessment = await prisma.clientAssesment.upsert({
+        where: { userId },
+        create: {
           ...input,
           userId,
         },
+        update: {
+          ...input,
+        },
       });
 
-      // 2️⃣ Map field names → categories/subcategories
-      const fieldCategoryMap: Record<string, { category: string; subCategory: string }> = {
-        recentFeeling: {
-          category: "Mood Disorders",
-          subCategory: "Depression / Bipolar",
-        },
-        crowdedWithWorries: {
-          category: "Anxiety Disorders",
-          subCategory: "Generalized Anxiety Disorder (GAD)",
-        },
-        roomFullWithPeople: {
-          category: "Anxiety Disorders",
-          subCategory: "Social Anxiety",
-        },
-        dailyTaskFeeling: {
-          category: "Mood Disorders",
-          subCategory: "Depression / Burnout",
-        },
-        thoughtEcho: {
-          category: "Mood Disorders",
-          subCategory: "Depression (Self-worth)",
-        },
-        decision: {
-          category: "Cognitive / Personality",
-          subCategory: "Overthinking / Avoidance / OCD tendencies",
-        },
-        oldMemories: {
-          category: "Trauma & Stress",
-          subCategory: "PTSD / Trauma Triggers",
-        },
-        lossOrSeperation: {
-          category: "Trauma & Stress",
-          subCategory: "Grief / Adjustment Disorders",
-        },
-        closestRelationShip: {
-          category: "Personality / Relationship Issues",
-          subCategory: "Interpersonal Difficulties / Loneliness",
-        },
-        sayingNo: {
-          category: "Personality / Relationship Issues",
-          subCategory: "People-pleasing / Boundaries",
-        },
-        nightSleep: {
-          category: "Lifestyle & Habits",
-          subCategory: "Sleep Disorders / Depression / Anxiety",
-        },
-        eatingPattern: {
-          category: "Lifestyle & Habits",
-          subCategory: "Eating Disorders / Stress Eating",
-        },
-        heavyLifeCope: {
-          category: "Lifestyle & Habits",
-          subCategory: "Substance Use / Maladaptive Coping",
-        },
-        technologyView: {
-          category: "Lifestyle & Habits",
-          subCategory: "Digital Addiction / Overstimulation",
-        },
-        selfImage: {
-          category: "Personality / Self",
-          subCategory: "Low Self-esteem / Identity Disturbance",
-        },
-        futurePerspective: {
-          category: "Mood Disorders / Self",
-          subCategory: "Hopelessness / Depression",
-        },
-        sucidalThoughts: {
-          category: "Red Flag Concerns",
-          subCategory: "Suicidality",
-        },
-        halucinations: {
-          category: "Red Flag Concerns",
-          subCategory: "Psychosis",
-        },
-        selfHarm: {
-          category: "Red Flag Concerns",
-          subCategory: "Suicidal or Homicidal Ideation",
-        },
-      };
+      // Asynchronously refresh AI summary if client profile exists
+      const clientProfile = await prisma.clientProfile.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+      if (clientProfile) {
+        aiService
+          .refreshClientAiSummary(clientProfile.id)
+          .catch((err) => console.error("Error refreshing AI summary on assessment submit:", err));
+      }
 
-      // 3️⃣ Collect category/subcategory names based on which fields are present in input
+      // 2️⃣ Collect category/subcategory names based on which fields are present in input
       const activeMappings = Object.keys(input)
-        .filter((key) => fieldCategoryMap[key])
-        .map((key) => fieldCategoryMap[key]);
+        .filter((key) => FIELD_CATEGORY_MAP[key])
+        .map((key) => FIELD_CATEGORY_MAP[key]);
 
       const categoryNames = [...new Set(activeMappings.map((m) => m.category))];
       const subCategoryNames = [...new Set(activeMappings.map((m) => m.subCategory))];
 
-      // 4️⃣ Fetch matching therapists
+      // 3️⃣ Fetch matching therapists
       const recommendedTherapists = await prisma.therapistProfile.findMany({
         where: {
           status: "APPROVED",
@@ -181,7 +120,7 @@ export const clientService = {
         },
       });
 
-      // 5️⃣ Return
+      // 4️⃣ Return
       return {
         assessment: newAssessment,
         matchedCategories: categoryNames,
@@ -189,30 +128,132 @@ export const clientService = {
         recommendedTherapists,
       };
     } catch (error) {
-      console.error("Error creating assessment:", error);
-      throw new ApiError(400, "Failed to create assessment");
+      console.error("Error creating/updating assessment:", error);
+      throw new ApiError(400, "Failed to submit assessment");
+    }
+  },
+
+  async updateAssessmentAnswer(userId: string, input: Partial<CreateAssessmentInput>) {
+    try {
+      // 1️⃣ Upsert assessment with updated answers
+      const updatedAssessment = await prisma.clientAssesment.upsert({
+        where: { userId },
+        create: {
+          ...input,
+          userId,
+        },
+        update: {
+          ...input,
+        },
+      });
+
+      // 2️⃣ Refresh AI summary asynchronously
+      const clientProfile = await prisma.clientProfile.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+
+      if (clientProfile) {
+        aiService
+          .refreshClientAiSummary(clientProfile.id)
+          .catch((err) => console.error("Error refreshing AI summary on assessment update:", err));
+      }
+
+      return updatedAssessment;
+    } catch (error) {
+      console.error("Error updating assessment answer:", error);
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(400, "Failed to update assessment answer");
     }
   },
 
   async getAssessments(userId: string) {
     try {
-      const assessments = await prisma.clientAssesment.findMany({
+      const assessment = await prisma.clientAssesment.findUnique({
         where: { userId },
-        orderBy: { createdAt: "desc" },
       });
-      return assessments;
+      return assessment ? [assessment] : [];
     } catch (error) {
       console.error("Error fetching assessments:", error);
       throw new ApiError(400, "Failed to fetch assessments");
     }
   },
-  async getTherapistByUserNeeds(user: authenticatedUser, assessmentId: string) {
+  async getTherapistByUserNeeds(user: authenticatedUser, assessmentId?: string) {
     try {
+      // 1️⃣ Find assessment by ID if provided, otherwise directly by user.id (1:1 relation)
+      const assessment = await prisma.clientAssesment.findFirst({
+        where: assessmentId
+          ? {
+              OR: [{ id: assessmentId }, { userId: user.id }],
+            }
+          : { userId: user.id },
+      });
+
+      if (!assessment) {
+        throw new ApiError(404, "Assessment not found");
+      }
+
+      // 2️⃣ Prepare question master with options and user's selected option
+      const assessmentQuestions = CLIENT_ASSESSMENT_QUESTIONS.map((q) => ({
+        key: q.key,
+        section: q.section,
+        question: q.question,
+        options: q.options,
+        selectedOption: (assessment as any)[q.key] ?? null,
+        category: q.category,
+        subCategory: q.subCategory,
+        isRedFlag: q.isRedFlag || false,
+      }));
+
+      // 3️⃣ Collect active categories & subcategories from user's answers
+      const activeMappings = CLIENT_ASSESSMENT_QUESTIONS.filter(
+        (q) => (assessment as any)[q.key]
+      ).map((q) => ({ category: q.category, subCategory: q.subCategory }));
+
+      const categoryNames = [...new Set(activeMappings.map((m) => m.category))];
+      const subCategoryNames = [...new Set(activeMappings.map((m) => m.subCategory))];
+
+      // 4️⃣ Fetch matching therapists
+      const recommendedTherapists = await prisma.therapistProfile.findMany({
+        where: {
+          status: "APPROVED",
+          ...(categoryNames.length > 0 || subCategoryNames.length > 0
+            ? {
+                OR: [
+                  { categories: { some: { name: { in: categoryNames } } } },
+                  { subCategories: { some: { name: { in: subCategoryNames } } } },
+                ],
+              }
+            : {}),
+        },
+        include: {
+          categories: true,
+          subCategories: true,
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+              mobileNumber: true,
+              profilePhoto: true,
+            },
+          },
+        },
+      });
+
+      return {
+        assessmentId: assessment.id,
+        questions: assessmentQuestions,
+        matchedCategories: categoryNames,
+        matchedSubCategories: subCategoryNames,
+        recommendedTherapists,
+      };
     } catch (error) {
       if (error instanceof ApiError) {
         throw new ApiError(error.statusCode, error.message);
       }
-      throw error;
+      console.error("Error in getTherapistByUserNeeds:", error);
+      throw new ApiError(500, "Failed to get therapists based on user needs");
     }
   },
   async fetchBookings(clientId: string) {
@@ -223,9 +264,8 @@ export const clientService = {
       });
 
       const latestAssessment = clientProfile
-        ? await prisma.clientAssesment.findFirst({
+        ? await prisma.clientAssesment.findUnique({
             where: { userId: clientProfile.userId },
-            orderBy: { createdAt: "desc" },
           })
         : null;
 
@@ -464,9 +504,8 @@ export const clientService = {
       });
 
       const latestAssessment = clientProfile
-        ? await prisma.clientAssesment.findFirst({
+        ? await prisma.clientAssesment.findUnique({
             where: { userId: clientProfile.userId },
-            orderBy: { createdAt: "desc" },
           })
         : null;
 
@@ -627,10 +666,14 @@ export const clientService = {
 
       let newAssessment = null;
       if (data.assessment && Object.keys(data.assessment).length > 0) {
-        newAssessment = await prisma.clientAssesment.create({
-          data: {
+        newAssessment = await prisma.clientAssesment.upsert({
+          where: { userId },
+          create: {
             ...data.assessment,
             userId,
+          },
+          update: {
+            ...data.assessment,
           },
         });
       }

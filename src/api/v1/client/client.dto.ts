@@ -73,6 +73,9 @@ export const createAssessmentSchema = z.object({
 
 export type CreateAssessmentInput = z.infer<typeof createAssessmentSchema>;
 
+export const updateAssessmentSchema = createAssessmentSchema;
+export type UpdateAssessmentInput = CreateAssessmentInput;
+
 export const submitSessionIntakeSchema = z.object({
   assessment: createAssessmentSchema.optional(),
   message: z.string().optional(),

@@ -15,11 +15,12 @@ import {
   normalizeVpa,
   sha256Hex,
 } from "../../../shared/lib/crypto";
+import { clientHomeworkAssignedTemplate } from "../../../shared/email-templates/booking";
 import {
   adminTherapistProfileSubmissionTemplate,
   adminTherapistResubmissionTemplate,
 } from "../../../shared/email-templates/admin";
-import { canRateSession } from "@shared/lib/ratings";
+import { aiService, formatAiSummaryAsBullets } from "../ai/ai.service";
 
 export const therapistService = {
   async register(
@@ -190,21 +191,43 @@ export const therapistService = {
           client: {
             select: {
               id: true,
+              userId: true,
+              ageGroup: true,
+              genderIdentity: true,
+              occupation: true,
+              seekingSupportFor: true,
+              relationShipStatus: true,
+              aiSummary: true,
+              aiSummaryUpdatedAt: true,
               user: {
                 select: {
                   firstName: true,
                   lastName: true,
                   profilePhoto: true,
+                  email: true,
+                  mobileNumber: true,
                 },
               },
             },
-            //  include: { user: true },
           },
         },
         orderBy: {
           updatedAt: "desc",
         },
       });
+
+      const userIds = [...new Set(bookings.map((b) => b.client.userId))];
+      const assessments = await prisma.clientAssesment.findMany({
+        where: { userId: { in: userIds } },
+        orderBy: { createdAt: "desc" },
+      });
+
+      const latestAssessmentMap = new Map<string, any>();
+      for (const assessment of assessments) {
+        if (!latestAssessmentMap.has(assessment.userId)) {
+          latestAssessmentMap.set(assessment.userId, assessment);
+        }
+      }
 
       return bookings.map((booking) => {
         const permission = therapistBookingPermission(
@@ -222,18 +245,35 @@ export const therapistService = {
           today.getMonth() === bookingDate.getMonth() &&
           today.getDate() === bookingDate.getDate();
 
+        const latestAssessment = latestAssessmentMap.get(booking.client.userId) || null;
+
         return {
           id: booking.id,
           status: booking.status,
-          client: booking.client,
           startDateTime: booking.startDateTime,
           endDateTime: booking.endDateTime,
+          sessionNotes: booking.sessionNotes,
+          clientMessage: booking.sessionNotes || null,
+          message: booking.sessionNotes || null,
+          homework: booking.homework || null,
           meetingLink: isSameDay && booking.status !== "CANCELLED" ? booking.meetingLink : null,
           canJoinSession: isSameDay && booking.status !== "CANCELLED",
           canReschedule: permission.canReschedule && booking.status !== "CANCELLED",
           rescheduleStatus: permission.rescheduleStatus,
           isCancelled: booking.status === "CANCELLED",
           cancellationReason: booking.cancellationReason,
+          client: {
+            id: booking.client.id,
+            user: booking.client.user,
+            ageGroup: booking.client.ageGroup,
+            genderIdentity: booking.client.genderIdentity,
+            occupation: booking.client.occupation,
+            seekingSupportFor: booking.client.seekingSupportFor,
+            relationShipStatus: booking.client.relationShipStatus,
+            aiSummary: formatAiSummaryAsBullets(booking.client.aiSummary),
+            aiSummaryUpdatedAt: booking.client.aiSummaryUpdatedAt,
+            latestAssessment,
+          },
         };
       });
     } catch (error) {
@@ -752,6 +792,55 @@ export const therapistService = {
       throw error;
     }
   },
+  async assignHomework(therapistId: string, bookingId: string, homeworkDescription: string) {
+    try {
+      const booking = await prisma.booking.findFirst({
+        where: {
+          id: bookingId,
+          therapistId,
+          status: { in: ["CONFIRMED", "COMPLETED"] },
+        },
+        include: {
+          client: {
+            include: {
+              user: true,
+            },
+          },
+          therapist: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
+
+      if (!booking) {
+        throw new ApiError(404, "Booking not found or not confirmed");
+      }
+
+      const updated = await prisma.booking.update({
+        where: { id: bookingId },
+        data: { homework: homeworkDescription },
+      });
+
+      const clientEmail = booking.client.user.email;
+      const clientName = booking.client.user.firstName;
+      const therapistName =
+        `Dr. ${booking.therapist.user.firstName} ${booking.therapist.user.lastName}`.trim();
+
+      await emailQueue.add("homeworkAssigned", {
+        to: clientEmail,
+        subject: emailSubjects(therapistName).homeworkAssigned,
+        html: clientHomeworkAssignedTemplate(clientName, therapistName, homeworkDescription),
+        sender: emailFromAddress().infoEmail,
+      });
+
+      return updated;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(500, (error as Error).message || "Failed to assign homework");
+    }
+  },
 };
 
 export const therapistBookingPermission = (
@@ -845,6 +934,14 @@ export const getUpcoming7DaysTherapistBookings = async (therapistId: string) => 
         client: {
           select: {
             id: true,
+            userId: true,
+            ageGroup: true,
+            genderIdentity: true,
+            occupation: true,
+            seekingSupportFor: true,
+            relationShipStatus: true,
+            aiSummary: true,
+            aiSummaryUpdatedAt: true,
             user: {
               select: {
                 firstName: true,
@@ -886,6 +983,19 @@ export const getUpcoming7DaysTherapistBookings = async (therapistId: string) => 
       },
     });
 
+    const userIds = [...new Set(bookings.map((b) => b.client.userId))];
+    const assessments = await prisma.clientAssesment.findMany({
+      where: { userId: { in: userIds } },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const latestAssessmentMap = new Map<string, any>();
+    for (const assessment of assessments) {
+      if (!latestAssessmentMap.has(assessment.userId)) {
+        latestAssessmentMap.set(assessment.userId, assessment);
+      }
+    }
+
     return bookings.map((b) => {
       const permissions = therapistBookingPermission(
         b.startDateTime,
@@ -894,11 +1004,16 @@ export const getUpcoming7DaysTherapistBookings = async (therapistId: string) => 
         b.rescheduleStatus || ""
       );
 
+      const latestAssessment = latestAssessmentMap.get(b.client.userId) || null;
+
       return {
         id: b.id,
         bookingType: b.bookingType,
         startDateTime: b.startDateTime,
         endDateTime: b.endDateTime,
+        sessionNotes: b.sessionNotes,
+        clientMessage: b.sessionNotes || null,
+        message: b.sessionNotes || null,
         meetingLink: permissions.canJoinSession ? b.meetingLink : null,
         actualMeetingLink: b.meetingLink,
         flags: {
@@ -910,9 +1025,19 @@ export const getUpcoming7DaysTherapistBookings = async (therapistId: string) => 
         client: {
           id: b.client.id,
           name: `${b.client.user.firstName} ${b.client.user.lastName}`.trim(),
+          firstName: b.client.user.firstName,
+          lastName: b.client.user.lastName,
           profilePhoto: b.client.user.profilePhoto,
           email: b.client.user.email,
           mobileNumber: b.client.user.mobileNumber,
+          ageGroup: b.client.ageGroup,
+          genderIdentity: b.client.genderIdentity,
+          occupation: b.client.occupation,
+          seekingSupportFor: b.client.seekingSupportFor,
+          relationShipStatus: b.client.relationShipStatus,
+          aiSummary: formatAiSummaryAsBullets(b.client.aiSummary),
+          aiSummaryUpdatedAt: b.client.aiSummaryUpdatedAt,
+          latestAssessment,
         },
         program: b.programPurchase
           ? {
@@ -922,6 +1047,7 @@ export const getUpcoming7DaysTherapistBookings = async (therapistId: string) => 
             }
           : null,
         createdAt: b.createdAt,
+        homework: b.homework || null,
       };
     });
   } catch (error) {
@@ -930,5 +1056,141 @@ export const getUpcoming7DaysTherapistBookings = async (therapistId: string) => 
       500,
       (error as Error).message || "Error fetching therapist upcoming bookings"
     );
+  }
+};
+
+export const getBookingDetailsForTherapist = async (bookingId: string, therapistId: string) => {
+  try {
+    const booking = await prisma.booking.findFirst({
+      where: {
+        id: bookingId,
+        therapistId,
+        paymentStatus: "CAPTURED",
+        isActive: true,
+      },
+      include: {
+        client: {
+          select: {
+            id: true,
+            userId: true,
+            ageGroup: true,
+            genderIdentity: true,
+            occupation: true,
+            seekingSupportFor: true,
+            relationShipStatus: true,
+            aiSummary: true,
+            aiSummaryUpdatedAt: true,
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+                mobileNumber: true,
+                profilePhoto: true,
+              },
+            },
+          },
+        },
+        slot: {
+          select: {
+            id: true,
+            startDateTime: true,
+            endDateTime: true,
+          },
+        },
+        programPurchase: {
+          select: {
+            id: true,
+            program: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
+            programPlan: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      throw new ApiError(404, "Booking not found");
+    }
+
+    const latestAssessment = await prisma.clientAssesment.findFirst({
+      where: { userId: booking.client.userId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    let aiSummary = booking.client.aiSummary;
+    let aiSummaryUpdatedAt = booking.client.aiSummaryUpdatedAt;
+    if (!aiSummary) {
+      try {
+        aiSummary = await aiService.refreshClientAiSummary(booking.client.id);
+        aiSummaryUpdatedAt = new Date();
+      } catch (err) {
+        console.warn("Could not generate AI summary on the fly:", err);
+      }
+    }
+
+    const permissions = therapistBookingPermission(
+      booking.startDateTime,
+      booking.endDateTime,
+      booking.hasTherapistRescheduledEarlier,
+      booking.rescheduleStatus || ""
+    );
+
+    return {
+      id: booking.id,
+      bookingType: booking.bookingType,
+      status: booking.status,
+      startDateTime: booking.startDateTime,
+      endDateTime: booking.endDateTime,
+      sessionNotes: booking.sessionNotes,
+      clientMessage: booking.sessionNotes || null,
+      message: booking.sessionNotes || null,
+      meetingLink: permissions.canJoinSession ? booking.meetingLink : null,
+      actualMeetingLink: booking.meetingLink,
+      homework: booking.homework || null,
+      flags: {
+        canJoin: permissions.canJoinSession,
+        canReschedule: permissions.canReschedule,
+        hasTherapistRescheduledEarlier: booking.hasTherapistRescheduledEarlier,
+        rescheduleStatus: permissions.rescheduleStatus,
+      },
+      client: {
+        id: booking.client.id,
+        name: `${booking.client.user.firstName} ${booking.client.user.lastName}`.trim(),
+        firstName: booking.client.user.firstName,
+        lastName: booking.client.user.lastName,
+        email: booking.client.user.email,
+        mobileNumber: booking.client.user.mobileNumber,
+        profilePhoto: booking.client.user.profilePhoto,
+        ageGroup: booking.client.ageGroup,
+        genderIdentity: booking.client.genderIdentity,
+        occupation: booking.client.occupation,
+        seekingSupportFor: booking.client.seekingSupportFor,
+        relationShipStatus: booking.client.relationShipStatus,
+        aiSummary: formatAiSummaryAsBullets(aiSummary),
+        aiSummaryUpdatedAt,
+        latestAssessment,
+      },
+      program: booking.programPurchase
+        ? {
+            id: booking.programPurchase.program.id,
+            title: booking.programPurchase.program.title,
+            planName: booking.programPurchase.programPlan.name,
+          }
+        : null,
+      createdAt: booking.createdAt,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(500, (error as Error).message || "Error fetching booking details");
   }
 };

@@ -7,13 +7,18 @@ export const paymentController = {
   createOrder: async function (req: Request, res: Response) {
     try {
       const { clientProfileId } = req.user;
-      const { slotId, couponCode } = req.body;
+      const { slotId, couponCode, sessionNotes } = req.body;
 
       if (req.user.role !== "CLIENT") {
         throw new ApiError(403, "Only clients can book therapy sessions");
       }
 
-      const order = await paymentService.createOrderService(clientProfileId, slotId, couponCode);
+      const order = await paymentService.createOrderService(
+        clientProfileId,
+        slotId,
+        couponCode,
+        sessionNotes
+      );
 
       res.status(201).json(new ApiResponse(true, 201, "Order Created Sucessfully", order));
     } catch (error) {
@@ -27,7 +32,13 @@ export const paymentController = {
   },
   verifyPayment: async function (req: Request, res: Response) {
     try {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, bookingId } = req.body;
+      const {
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+        bookingId,
+        sessionNotes,
+      } = req.body;
 
       if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !bookingId)
         throw new ApiError(400, "All Razorpay parameters and bookingId are required");
@@ -37,6 +48,7 @@ export const paymentController = {
         razorpay_payment_id,
         razorpay_signature,
         bookingId,
+        sessionNotes,
       });
 
       res.status(200).json(new ApiResponse(true, 200, "Payment verified successfully", result));

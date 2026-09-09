@@ -1,5 +1,169 @@
 import { ToolName, VentTextRequestDto, VentVoiceRequestDto } from "./ai.dto";
-import { aiConfig } from "../../../shared/config/ai.config";
+import { aiConfig, llmConfig } from "../../../shared/config/ai.config";
+import { prisma } from "../../../infrastructure/prisma/client";
+import { callLLM } from "../../../infrastructure/llm";
+
+const THERAPIST_BRIEFING_SYSTEM_PROMPT = `You are an expert clinical psychologist assistant synthesizing client information into a structured pre-session briefing for a licensed therapist.
+Format the summary into distinct markdown sections using "### " headers, and format every point as a list item with a bullet ("- ").
+
+Use these sections:
+### Client Overview & Context
+- **Seeking Support For**: ...
+- **Demographics**: ...
+- **Relationship Status**: ...
+
+### Assessment Highlights
+- **Mood**: ...
+- **Anxiety / Thought Load**: ...
+- **Sleep & Functioning**: ...
+- **Coping Mechanisms**: ...
+- **Triggers**: ...
+
+### Session Notes Across Bookings
+- **[Date]**: [Brief summary of session notes or "No prior session notes."]
+
+### Recent Communication Themes
+- [Brief summary of recent communication or "No recent messages beyond assessment and session notes."]
+
+### Clinical Considerations & Risk Flags
+- **Safety**: [Any suicidal thoughts, self-harm, or hallucinations, or "No acute safety flags."]
+- **Key Considerations**: [Clinical focus areas]
+
+Rules:
+- Strictly use "### " followed by the section name for each header. Do NOT use numbered sections like "1. Section".
+- Every item under each section MUST be a bullet starting with "- ".
+- Use bold labels for key-value items formatted strictly as "- **Label**: Value".
+- Be concise, clinical, objective, and professional.
+- Do not invent details not present in the input.
+- Keep the entire summary within 150-250 words.`;
+
+export function formatAiSummaryAsBullets(text: string | null | undefined): string | null {
+  if (text === null || text === undefined || typeof text !== "string") return text as any;
+  let s = text.trim();
+  if (!s) return s;
+
+  // 1. Separate inline numbered headers: e.g. 'himself 2. Assessment Highlights' -> 'himself\n\n### Assessment Highlights'
+  s = s.replace(/([^\n])\s+([1-9]\.\s+(?:\*\*)?[A-Za-z &()/]+(?:\*\*)?:?)/g, "$1\n\n$2");
+
+  // 2. Normalize section headers to '### <Title>'
+  s = s.replace(
+    /^(?:#+\s*|[1-9]\.\s*)(?:\*\*)?([A-Za-z &()/]+?)(?:\*\*)?:?\s*$/gm,
+    (_m, title) => "### " + title.trim()
+  );
+
+  // 3. Process section by section
+  const sections = s.split(/(?=###\s+)/g);
+  const formattedSections = sections.map((sec) => {
+    const lines = sec
+      .trim()
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (!lines.length) return "";
+    const header = lines[0].startsWith("###") ? lines.shift() : "### Summary";
+    const items: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
+      // Strip leading bullet markers
+      line = line.replace(/^[-•*]\s*/, "").trim();
+      if (!line) continue;
+
+      // Handle date header e.g. 4/9/2026 or 04/09/2026 followed by session note line
+      if (
+        /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(line) &&
+        i + 1 < lines.length &&
+        !lines[i + 1].includes(":") &&
+        !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(lines[i + 1])
+      ) {
+        const nextLine = lines[++i].replace(/^[-•*]\s*/, "").trim();
+        items.push(`- **${line}**: ${nextLine.replace(/\*\*/g, "").trim()}`);
+        continue;
+      }
+
+      const colonIdx = line.indexOf(":");
+      if (colonIdx > 0 && colonIdx < 60) {
+        const key = line.slice(0, colonIdx).replace(/\*\*/g, "").trim();
+        const val = line
+          .slice(colonIdx + 1)
+          .replace(/\*\*/g, "")
+          .trim();
+        items.push(`- **${key}**: ${val}`);
+      } else {
+        items.push(`- ${line.replace(/\*\*/g, "").trim()}`);
+      }
+    }
+    return `${header}\n${items.join("\n")}`;
+  });
+
+  return formattedSections.filter(Boolean).join("\n\n");
+}
+
+function buildDeterministicClientSummary(
+  clientProfile: any,
+  assessment: any,
+  sessionNotesList: string[],
+  recentMessages: string[]
+): string {
+  const parts: string[] = [];
+
+  parts.push("### Client Overview & Context");
+  parts.push(
+    `- **Seeking Support For**: ${clientProfile.seekingSupportFor || "General Mental Wellness"}\n- **Age Group**: ${clientProfile.ageGroup || "Not specified"}\n- **Gender Identity**: ${clientProfile.genderIdentity || "Not specified"}\n- **Occupation**: ${clientProfile.occupation || "Not specified"}\n- **Relationship Status**: ${clientProfile.relationShipStatus || "Not specified"}`
+  );
+
+  if (assessment) {
+    parts.push("### Assessment Highlights");
+    const assessmentItems: string[] = [];
+    if (assessment.recentFeeling)
+      assessmentItems.push(`- **Recent Feelings**: ${assessment.recentFeeling}`);
+    if (assessment.crowdedWithWorries)
+      assessmentItems.push(`- **Worries**: ${assessment.crowdedWithWorries}`);
+    if (assessment.roomFullWithPeople)
+      assessmentItems.push(`- **Social Anxiety**: ${assessment.roomFullWithPeople}`);
+    if (assessment.nightSleep)
+      assessmentItems.push(`- **Sleep Quality**: ${assessment.nightSleep}`);
+    if (assessment.eatingPattern)
+      assessmentItems.push(`- **Eating Habits**: ${assessment.eatingPattern}`);
+    if (assessment.heavyLifeCope)
+      assessmentItems.push(`- **Coping Mechanisms**: ${assessment.heavyLifeCope}`);
+    if (assessment.futurePerspective)
+      assessmentItems.push(`- **Future Perspective**: ${assessment.futurePerspective}`);
+    if (assessment.lossOrSeperation)
+      assessmentItems.push(`- **Loss/Separation**: ${assessment.lossOrSeperation}`);
+    if (assessment.oldMemories)
+      assessmentItems.push(`- **Trauma / Old Memories**: ${assessment.oldMemories}`);
+    parts.push(
+      assessmentItems.length > 0
+        ? assessmentItems.join("\n")
+        : "- Assessment submitted with standard baseline indicators."
+    );
+  }
+
+  if (sessionNotesList.length > 0) {
+    parts.push("### Session Notes Across Bookings");
+    parts.push(sessionNotesList.map((note) => `- ${note}`).join("\n"));
+  }
+
+  if (recentMessages.length > 0) {
+    parts.push("### Recent Messages");
+    parts.push(recentMessages.map((msg) => `- ${msg}`).join("\n"));
+  }
+
+  if (
+    assessment &&
+    (assessment.sucidalThoughts || assessment.selfHarm || assessment.halucinations)
+  ) {
+    parts.push("### Clinical Considerations & Risk Flags");
+    const flags: string[] = [];
+    if (assessment.sucidalThoughts)
+      flags.push(`- Suicidal Ideation flag: ${assessment.sucidalThoughts}`);
+    if (assessment.selfHarm) flags.push(`- Self-Harm flag: ${assessment.selfHarm}`);
+    if (assessment.halucinations) flags.push(`- Hallucinations flag: ${assessment.halucinations}`);
+    parts.push(flags.join("\n"));
+  }
+
+  return parts.join("\n\n");
+}
 
 const DEFAULT_BREATHING_SCRIPT =
   "Sit comfortably, relax your shoulders, and inhale for 4 counts. Hold for 4, then exhale for 6. Repeat this cycle for 2 minutes while gently noticing your breath.";
@@ -33,46 +197,11 @@ Rules:
 - For pomodoro: provide actionable cycle guidance.`;
 
 async function generateWithLLM(messages: ChatMessage[], maxTokens = 220) {
-  if (aiConfig.provider !== "openai") {
-    throw new Error(`Unsupported AI provider: ${aiConfig.provider}`);
-  }
-
-  if (!aiConfig.openAiApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), aiConfig.requestTimeoutMs);
-
-  try {
-    const response = await fetch(`${aiConfig.openAiBaseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${aiConfig.openAiApiKey}`,
-      },
-      body: JSON.stringify({
-        model: aiConfig.openAiModel,
-        temperature: 0.7,
-        max_tokens: maxTokens,
-        messages,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`OpenAI request failed (${response.status}): ${errorBody}`);
-    }
-
-    const data = await response.json();
-    const output = data?.choices?.[0]?.message?.content?.trim();
-    if (!output) throw new Error("LLM returned empty response");
-
-    return output;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return await callLLM({
+    messages,
+    max_tokens: maxTokens,
+    temperature: 0.7,
+  });
 }
 
 export const aiService = {
@@ -103,7 +232,7 @@ export const aiService = {
       metadata: {
         originalLength: cleanedMessage.length,
         channel: payload.channel || "web",
-        model: aiConfig.openAiModel,
+        model: llmConfig.textModel,
       },
     };
   },
@@ -112,8 +241,7 @@ export const aiService = {
     const transcript = payload.transcript?.trim();
 
     // Keep the endpoint stable while speech-to-text provider integration is pending.
-    const normalizedTranscript =
-      transcript || "Voice note received. (Transcript unavailable)";
+    const normalizedTranscript = transcript || "Voice note received. (Transcript unavailable)";
     let llmResponse = "";
 
     try {
@@ -140,7 +268,7 @@ export const aiService = {
         hasAudioUrl: Boolean(payload.audioUrl),
         hasTranscript: Boolean(transcript),
         channel: payload.channel || "web",
-        model: aiConfig.openAiModel,
+        model: llmConfig.textModel,
       },
     };
   },
@@ -201,8 +329,7 @@ export const aiService = {
         return {
           type: "tool_response",
           tool,
-          response:
-            "Why don't programmers like nature? It has too many bugs.",
+          response: "Why don't programmers like nature? It has too many bugs.",
         };
       case "pomodoro":
         return {
@@ -220,8 +347,7 @@ export const aiService = {
         return {
           type: "tool_response",
           tool,
-          response:
-            "I'm here to listen. Share whatever is on your mind, no pressure.",
+          response: "I'm here to listen. Share whatever is on your mind, no pressure.",
         };
       default:
         return {
@@ -229,6 +355,165 @@ export const aiService = {
           tool,
           response: "Tool not supported yet.",
         };
+    }
+  },
+
+  async refreshClientAiSummary(clientId: string): Promise<string> {
+    try {
+      const clientProfile = await prisma.clientProfile.findUnique({
+        where: { id: clientId },
+        include: {
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      });
+
+      if (!clientProfile) {
+        throw new Error(`Client profile not found for ID ${clientId}`);
+      }
+
+      // 1. Fetch latest client assessment
+      const latestAssessment = await prisma.clientAssesment.findFirst({
+        where: { userId: clientProfile.userId },
+        orderBy: { createdAt: "desc" },
+      });
+
+      // 2. Fetch all bookings with sessionNotes
+      const bookings = await prisma.booking.findMany({
+        where: {
+          clientId,
+          paymentStatus: "CAPTURED",
+        },
+        orderBy: { startDateTime: "desc" },
+        select: {
+          id: true,
+          startDateTime: true,
+          sessionNotes: true,
+          status: true,
+        },
+      });
+
+      const sessionNotesList: string[] = bookings
+        .filter((b) => Boolean(b.sessionNotes && b.sessionNotes.trim()))
+        .map(
+          (b) =>
+            `[${new Date(b.startDateTime).toLocaleDateString("en-IN")}]: ${b.sessionNotes?.trim()}`
+        );
+
+      // 3. Fetch recent conversation messages
+      const conversations = await prisma.conversation.findMany({
+        where: { clientId },
+        include: {
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 5,
+            select: {
+              content: true,
+              senderId: true,
+              createdAt: true,
+            },
+          },
+        },
+      });
+
+      const recentMessages: string[] = [];
+      for (const conv of conversations) {
+        for (const msg of conv.messages) {
+          if (msg.content && msg.content.trim()) {
+            const roleLabel = msg.senderId === clientProfile.userId ? "Client" : "Therapist";
+            recentMessages.push(
+              `[${new Date(msg.createdAt).toLocaleDateString("en-IN")} - ${roleLabel}]: ${msg.content.trim()}`
+            );
+          }
+        }
+      }
+
+      const deterministicSummary = buildDeterministicClientSummary(
+        clientProfile,
+        latestAssessment,
+        sessionNotesList,
+        recentMessages
+      );
+
+      let summary = deterministicSummary;
+
+      try {
+        const promptContent = `Client Context:
+- Seeking Support For: ${clientProfile.seekingSupportFor || "General"}
+- Demographics: Age Group: ${clientProfile.ageGroup || "N/A"}, Gender: ${clientProfile.genderIdentity || "N/A"}, Occupation: ${clientProfile.occupation || "N/A"}, Relationship: ${clientProfile.relationShipStatus || "N/A"}
+
+Latest Assessment Responses:
+${
+  latestAssessment
+    ? JSON.stringify({
+        recentFeeling: latestAssessment.recentFeeling,
+        crowdedWithWorries: latestAssessment.crowdedWithWorries,
+        roomFullWithPeople: latestAssessment.roomFullWithPeople,
+        dailyTaskFeeling: latestAssessment.dailyTaskFeeling,
+        thoughtEcho: latestAssessment.thoughtEcho,
+        decision: latestAssessment.decision,
+        oldMemories: latestAssessment.oldMemories,
+        lossOrSeperation: latestAssessment.lossOrSeperation,
+        closestRelationShip: latestAssessment.closestRelationShip,
+        sayingNo: latestAssessment.sayingNo,
+        nightSleep: latestAssessment.nightSleep,
+        eatingPattern: latestAssessment.eatingPattern,
+        heavyLifeCope: latestAssessment.heavyLifeCope,
+        technologyView: latestAssessment.technologyView,
+        selfImage: latestAssessment.selfImage,
+        futurePerspective: latestAssessment.futurePerspective,
+        sucidalThoughts: latestAssessment.sucidalThoughts,
+        halucinations: latestAssessment.halucinations,
+        selfHarm: latestAssessment.selfHarm,
+      })
+    : "No formal assessment submitted yet."
+}
+
+Session Notes Across All Bookings:
+${sessionNotesList.length > 0 ? sessionNotesList.join("\n") : "No session notes provided yet."}
+
+Recent Messages:
+${recentMessages.length > 0 ? recentMessages.join("\n") : "No prior messages."}
+
+Please produce a concise, structured pre-session clinical summary for the therapist.`;
+
+        const llmGenerated = await generateWithLLM(
+          [
+            { role: "system", content: THERAPIST_BRIEFING_SYSTEM_PROMPT },
+            { role: "user", content: promptContent },
+          ],
+          800
+        );
+
+        if (llmGenerated && llmGenerated.trim()) {
+          summary = llmGenerated.trim();
+        }
+      } catch (llmError) {
+        console.warn(
+          "LLM summary generation failed, falling back to deterministic summary:",
+          llmError
+        );
+      }
+
+      summary = formatAiSummaryAsBullets(summary) || summary;
+
+      // Persist the summary on ClientProfile
+      await prisma.clientProfile.update({
+        where: { id: clientId },
+        data: {
+          aiSummary: summary,
+          aiSummaryUpdatedAt: new Date(),
+        },
+      });
+
+      return summary;
+    } catch (error) {
+      console.error("Error refreshing client AI summary:", error);
+      throw error;
     }
   },
 };

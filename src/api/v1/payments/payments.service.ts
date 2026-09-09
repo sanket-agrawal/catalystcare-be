@@ -10,9 +10,16 @@ import { slotConfig } from "../../../shared/config/slot.config";
 import { sendIncompleteBookingEmail } from "../../../shared/utils/booking-email";
 
 import { clientCouponService } from "../coupons/coupon.service";
+import { aiService } from "../ai/ai.service";
+import { CLIENT_ASSESSMENT_QUESTIONS } from "../../../shared/constants/clientAssessmentQuestions";
 
 export const paymentService = {
-  createOrderService: async function (clientId: string, slotId: string, couponCode?: string) {
+  createOrderService: async function (
+    clientId: string,
+    slotId: string,
+    couponCode?: string,
+    sessionNotes?: string
+  ) {
     try {
       const clientProfile = await prisma.clientProfile.findUnique({
         where: { id: clientId },
@@ -117,6 +124,7 @@ export const paymentService = {
               status: "CONFIRMED",
               paymentStatus: "CAPTURED",
               isActive: true,
+              sessionNotes: sessionNotes || null,
               payment: { connect: { id: payment.id } },
             },
           });
@@ -140,6 +148,10 @@ export const paymentService = {
 
           return { bookingId: booking.id };
         });
+
+        aiService
+          .refreshClientAiSummary(clientId)
+          .catch((err) => console.error("Error refreshing AI summary on free booking:", err));
 
         await meetingQueue.add(
           "create-google-meet",
@@ -220,6 +232,7 @@ export const paymentService = {
             status: "PENDING_PAYMENT",
             paymentStatus: "PENDING",
             isActive: true,
+            sessionNotes: sessionNotes || null,
             payment: { connect: { id: payment.id } },
           },
         });
@@ -272,9 +285,16 @@ export const paymentService = {
     razorpay_payment_id: string;
     razorpay_signature: string;
     bookingId: string;
+    sessionNotes?: string;
   }) {
     try {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, bookingId } = data;
+      const {
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+        bookingId,
+        sessionNotes,
+      } = data;
 
       // 1️⃣ Generate expected signature
       const generatedSignature = crypto
@@ -306,7 +326,11 @@ export const paymentService = {
 
         const updatedBooking = await tx.booking.update({
           where: { id: bookingId },
-          data: { paymentStatus: "CAPTURED", status: "CONFIRMED" },
+          data: {
+            paymentStatus: "CAPTURED",
+            status: "CONFIRMED",
+            ...(sessionNotes ? { sessionNotes } : {}),
+          },
         });
 
         await tx.availabilitySlot.update({
@@ -316,6 +340,10 @@ export const paymentService = {
 
         return { updatedPayment, updatedBooking };
       });
+
+      aiService
+        .refreshClientAiSummary(updated.updatedBooking.clientId)
+        .catch((err) => console.error("Error refreshing AI summary on payment verification:", err));
 
       await meetingQueue.add(
         "create-google-meet",
@@ -331,9 +359,27 @@ export const paymentService = {
         }
       );
 
+      const clientProfile = await prisma.clientProfile.findUnique({
+        where: { id: updated.updatedBooking.clientId },
+        select: { userId: true },
+      });
+
+      const existingAssessment = clientProfile?.userId
+        ? await prisma.clientAssesment.findUnique({
+            where: { userId: clientProfile.userId },
+            select: { id: true },
+          })
+        : null;
+
+      const isFirstBooking = !existingAssessment;
+
+      const questionnaire = CLIENT_ASSESSMENT_QUESTIONS;
+
       return {
         success: true,
         message: "Payment verified and booking confirmed",
+        isFirstBooking,
+        ...(isFirstBooking ? { questionnaire } : {}),
         ...updated,
       };
     } catch (error) {
@@ -398,6 +444,10 @@ export const paymentService = {
           data: { status: "BOOKED" },
         });
       }
+
+      aiService
+        .refreshClientAiSummary(booking.clientId)
+        .catch((err) => console.error("Error refreshing AI summary on webhook capture:", err));
     }
 
     console.log(`✅ Webhook: Payment ${razorpayPaymentId} captured successfully`);

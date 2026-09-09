@@ -116,6 +116,40 @@ describe("Client Controller", () => {
     });
   });
 
+  describe("updateAssessment", () => {
+    it("should update assessment successfully", async () => {
+      const mockResult = {
+        id: "assessment-1",
+        recentFeeling: "I usually feel steady and balanced",
+      };
+      (clientService.updateAssessmentAnswer as any) = vi.fn().mockResolvedValue(mockResult);
+
+      mockReq.body = { recentFeeling: "I usually feel steady and balanced" };
+
+      await clientController.updateAssessment(mockReq as Request, mockRes as Response);
+
+      expect(clientService.updateAssessmentAnswer).toHaveBeenCalledWith("user-client-1", {
+        recentFeeling: "I usually feel steady and balanced",
+      });
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(ApiResponse).toHaveBeenCalledWith(
+        true,
+        200,
+        "Assessment answer updated successfully",
+        mockResult
+      );
+    });
+
+    it("should handle ApiError in updateAssessment", async () => {
+      const apiError = new ApiError(400, "Update failed");
+      (clientService.updateAssessmentAnswer as any) = vi.fn().mockRejectedValue(apiError);
+
+      await clientController.updateAssessment(mockReq as Request, mockRes as Response);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+    });
+  });
+
   describe("getAssessments", () => {
     it("should fetch user assessments successfully", async () => {
       const mockAssessments = [{ id: "assess-1", score: 10 }];
@@ -255,6 +289,107 @@ describe("Client Controller", () => {
       await clientController.pendingList(mockReq as Request, mockRes as Response);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe("updateBookingNotes", () => {
+    it("should update booking notes successfully", async () => {
+      const mockUpdated = { id: "booking-1", sessionNotes: "Discuss stress management" };
+      (clientService.updateBookingNotes as any).mockResolvedValue(mockUpdated);
+
+      mockReq.params = { bookingId: "booking-1" };
+      mockReq.body = { sessionNotes: "Discuss stress management" };
+
+      await clientController.updateBookingNotes(mockReq as Request, mockRes as Response);
+
+      expect(clientService.updateBookingNotes).toHaveBeenCalledWith(
+        "booking-1",
+        "client-profile-1",
+        "Discuss stress management"
+      );
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(ApiResponse).toHaveBeenCalledWith(
+        true,
+        200,
+        "Booking notes updated successfully",
+        mockUpdated
+      );
+    });
+
+    it("should throw 400 if bookingId is missing", async () => {
+      mockReq.params = {};
+      mockReq.body = { sessionNotes: "Some note" };
+
+      await clientController.updateBookingNotes(mockReq as Request, mockRes as Response);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(ApiResponse).toHaveBeenCalledWith(false, 400, "Booking ID is required");
+    });
+
+    it("should handle ApiError from service", async () => {
+      const apiError = new ApiError(404, "Booking not found");
+      (clientService.updateBookingNotes as any).mockRejectedValue(apiError);
+
+      mockReq.params = { bookingId: "booking-1" };
+      mockReq.body = { sessionNotes: "Some note" };
+
+      await clientController.updateBookingNotes(mockReq as Request, mockRes as Response);
+
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+    });
+  });
+
+  describe("submitSessionIntake", () => {
+    it("should submit session intake successfully", async () => {
+      const mockResult = { success: true };
+      (clientService.submitSessionIntake as any).mockResolvedValue(mockResult);
+
+      mockReq.params = { bookingId: "booking-1" };
+      mockReq.body = {
+        assessment: { recentFeeling: "Anxious" },
+        message: "Hello therapist",
+      };
+
+      await clientController.submitSessionIntake(mockReq as Request, mockRes as Response);
+
+      expect(clientService.submitSessionIntake).toHaveBeenCalledWith(
+        "user-client-1",
+        "client-profile-1",
+        "booking-1",
+        {
+          assessment: { recentFeeling: "Anxious" },
+          message: "Hello therapist",
+        }
+      );
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(ApiResponse).toHaveBeenCalledWith(
+        true,
+        200,
+        "Session intake submitted successfully",
+        mockResult
+      );
+    });
+
+    it("should throw 400 if bookingId is missing", async () => {
+      mockReq.params = {};
+      mockReq.body = { message: "Some msg" };
+
+      await clientController.submitSessionIntake(mockReq as Request, mockRes as Response);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(ApiResponse).toHaveBeenCalledWith(false, 400, "Booking ID is required");
+    });
+
+    it("should handle ApiError from service", async () => {
+      const apiError = new ApiError(404, "Booking not found");
+      (clientService.submitSessionIntake as any).mockRejectedValue(apiError);
+
+      mockReq.params = { bookingId: "booking-1" };
+      mockReq.body = { message: "Some msg" };
+
+      await clientController.submitSessionIntake(mockReq as Request, mockRes as Response);
+
+      expect(mockRes.status).toHaveBeenCalledWith(404);
     });
   });
 });

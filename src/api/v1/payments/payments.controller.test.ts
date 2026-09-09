@@ -48,24 +48,30 @@ describe("Payments Controller", () => {
       expect(paymentService.createOrderService).toHaveBeenCalledWith(
         "client-profile-1",
         "slot-1",
+        undefined,
         undefined
       );
       expect(mockRes.status).toHaveBeenCalledWith(201);
       expect(ApiResponse).toHaveBeenCalledWith(true, 201, "Order Created Sucessfully", mockOrder);
     });
 
-    it("should successfully create an order with a coupon code", async () => {
+    it("should successfully create an order with a coupon code and session notes", async () => {
       const mockOrder = { id: "order-1", amount: 40000, discount: 10000 };
       (paymentService.createOrderService as any).mockResolvedValue(mockOrder);
 
-      mockReq.body = { slotId: "slot-1", couponCode: "WELCOME20" };
+      mockReq.body = {
+        slotId: "slot-1",
+        couponCode: "WELCOME20",
+        sessionNotes: "Feeling anxious about work",
+      };
 
       await paymentController.createOrder(mockReq as Request, mockRes as Response);
 
       expect(paymentService.createOrderService).toHaveBeenCalledWith(
         "client-profile-1",
         "slot-1",
-        "WELCOME20"
+        "WELCOME20",
+        "Feeling anxious about work"
       );
       expect(mockRes.status).toHaveBeenCalledWith(201);
       expect(ApiResponse).toHaveBeenCalledWith(true, 201, "Order Created Sucessfully", mockOrder);
@@ -98,7 +104,7 @@ describe("Payments Controller", () => {
 
     it("should handle generic errors", async () => {
       (paymentService.createOrderService as any).mockRejectedValue(
-        new Error("Unexpected Razorpay error")
+        new Error("Something went wrong")
       );
 
       mockReq.body = { slotId: "slot-1" };
@@ -111,7 +117,7 @@ describe("Payments Controller", () => {
   });
 
   describe("verifyPayment", () => {
-    it("should verify payment successfully", async () => {
+    it("should verify payment successfully with session notes", async () => {
       const mockVerifyResult = { bookingId: "booking-1", success: true };
       (paymentService.verifyPaymentService as any).mockResolvedValue(mockVerifyResult);
 
@@ -120,6 +126,7 @@ describe("Payments Controller", () => {
         razorpay_payment_id: "pay-1",
         razorpay_signature: "sig-1",
         bookingId: "booking-1",
+        sessionNotes: "Looking forward to this session",
       };
 
       await paymentController.verifyPayment(mockReq as Request, mockRes as Response);
@@ -129,6 +136,7 @@ describe("Payments Controller", () => {
         razorpay_payment_id: "pay-1",
         razorpay_signature: "sig-1",
         bookingId: "booking-1",
+        sessionNotes: "Looking forward to this session",
       });
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(ApiResponse).toHaveBeenCalledWith(

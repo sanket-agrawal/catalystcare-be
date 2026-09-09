@@ -153,6 +153,11 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
         yearOfExperience: true,
         languageSpoken: true,
         sessionFee: true,
+        professionalTitle: true,
+        highestQualification: true,
+        graduationYear: true,
+        licenseNumber: true,
+        licensingAuthority: true,
         categories: { select: { slug: true, name: true } },
         subCategories: { select: { slug: true, name: true } },
         user: { select: { firstName: true, lastName: true, profilePhoto: true } },
@@ -286,6 +291,11 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
       shareUrl: `${frontendConfig.therapistProfilePage}/${therapist.slug}`,
       programs: therapist.programs,
       webinars: therapist.webinars,
+      professionalTitle: therapist.professionalTitle,
+      highestQualification: therapist.highestQualification,
+      graduationYear: therapist.graduationYear,
+      licenseNumber: therapist.licenseNumber,
+      licensingAuthority: therapist.licensingAuthority,
     };
   } catch (error) {
     if (error instanceof ApiError) throw error;

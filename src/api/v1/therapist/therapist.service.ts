@@ -20,8 +20,7 @@ import {
   adminTherapistProfileSubmissionTemplate,
   adminTherapistResubmissionTemplate,
 } from "../../../shared/email-templates/admin";
-import { canRateSession } from "@shared/lib/ratings";
-import { aiService } from "../ai/ai.service";
+import { aiService, formatAiSummaryAsBullets } from "../ai/ai.service";
 
 export const therapistService = {
   async register(
@@ -271,7 +270,7 @@ export const therapistService = {
             occupation: booking.client.occupation,
             seekingSupportFor: booking.client.seekingSupportFor,
             relationShipStatus: booking.client.relationShipStatus,
-            aiSummary: booking.client.aiSummary,
+            aiSummary: formatAiSummaryAsBullets(booking.client.aiSummary),
             aiSummaryUpdatedAt: booking.client.aiSummaryUpdatedAt,
             latestAssessment,
           },
@@ -1036,7 +1035,7 @@ export const getUpcoming7DaysTherapistBookings = async (therapistId: string) => 
           occupation: b.client.occupation,
           seekingSupportFor: b.client.seekingSupportFor,
           relationShipStatus: b.client.relationShipStatus,
-          aiSummary: b.client.aiSummary,
+          aiSummary: formatAiSummaryAsBullets(b.client.aiSummary),
           aiSummaryUpdatedAt: b.client.aiSummaryUpdatedAt,
           latestAssessment,
         },
@@ -1177,7 +1176,7 @@ export const getBookingDetailsForTherapist = async (bookingId: string, therapist
         occupation: booking.client.occupation,
         seekingSupportFor: booking.client.seekingSupportFor,
         relationShipStatus: booking.client.relationShipStatus,
-        aiSummary,
+        aiSummary: formatAiSummaryAsBullets(aiSummary),
         aiSummaryUpdatedAt,
         latestAssessment,
       },

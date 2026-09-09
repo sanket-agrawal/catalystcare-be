@@ -4,17 +4,99 @@ import { prisma } from "../../../infrastructure/prisma/client";
 import { callLLM } from "../../../infrastructure/llm";
 
 const THERAPIST_BRIEFING_SYSTEM_PROMPT = `You are an expert clinical psychologist assistant synthesizing client information into a structured pre-session briefing for a licensed therapist.
-Format the summary concisely in clear markdown with bullet points under these sections:
-1. **Client Overview & Context**: Seeking support for, demographics, relationship status.
-2. **Assessment Highlights**: Emotional state, anxiety/depression indicators, coping style, and triggers from assessment.
-3. **Session Notes & Themes**: Key messages and themes the client shared across their bookings.
-4. **Recent Communication Themes**: Key points from recent messages (if any).
-5. **Clinical Considerations & Risk Flags**: Any safety/risk flags (suicide ideation, sleep disruption, grief, self-harm) or suggested focal points.
+Format the summary into distinct markdown sections using "### " headers, and format every point as a list item with a bullet ("- ").
+
+Use these sections:
+### Client Overview & Context
+- **Seeking Support For**: ...
+- **Demographics**: ...
+- **Relationship Status**: ...
+
+### Assessment Highlights
+- **Mood**: ...
+- **Anxiety / Thought Load**: ...
+- **Sleep & Functioning**: ...
+- **Coping Mechanisms**: ...
+- **Triggers**: ...
+
+### Session Notes Across Bookings
+- **[Date]**: [Brief summary of session notes or "No prior session notes."]
+
+### Recent Communication Themes
+- [Brief summary of recent communication or "No recent messages beyond assessment and session notes."]
+
+### Clinical Considerations & Risk Flags
+- **Safety**: [Any suicidal thoughts, self-harm, or hallucinations, or "No acute safety flags."]
+- **Key Considerations**: [Clinical focus areas]
 
 Rules:
+- Strictly use "### " followed by the section name for each header. Do NOT use numbered sections like "1. Section".
+- Every item under each section MUST be a bullet starting with "- ".
+- Use bold labels for key-value items formatted strictly as "- **Label**: Value".
 - Be concise, clinical, objective, and professional.
 - Do not invent details not present in the input.
 - Keep the entire summary within 150-250 words.`;
+
+export function formatAiSummaryAsBullets(text: string | null | undefined): string | null {
+  if (text === null || text === undefined || typeof text !== "string") return text as any;
+  let s = text.trim();
+  if (!s) return s;
+
+  // 1. Separate inline numbered headers: e.g. 'himself 2. Assessment Highlights' -> 'himself\n\n### Assessment Highlights'
+  s = s.replace(/([^\n])\s+([1-9]\.\s+(?:\*\*)?[A-Za-z &()/]+(?:\*\*)?:?)/g, "$1\n\n$2");
+
+  // 2. Normalize section headers to '### <Title>'
+  s = s.replace(
+    /^(?:#+\s*|[1-9]\.\s*)(?:\*\*)?([A-Za-z &()/]+?)(?:\*\*)?:?\s*$/gm,
+    (_m, title) => "### " + title.trim()
+  );
+
+  // 3. Process section by section
+  const sections = s.split(/(?=###\s+)/g);
+  const formattedSections = sections.map((sec) => {
+    const lines = sec
+      .trim()
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (!lines.length) return "";
+    const header = lines[0].startsWith("###") ? lines.shift() : "### Summary";
+    const items: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
+      // Strip leading bullet markers
+      line = line.replace(/^[-•*]\s*/, "").trim();
+      if (!line) continue;
+
+      // Handle date header e.g. 4/9/2026 or 04/09/2026 followed by session note line
+      if (
+        /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(line) &&
+        i + 1 < lines.length &&
+        !lines[i + 1].includes(":") &&
+        !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(lines[i + 1])
+      ) {
+        const nextLine = lines[++i].replace(/^[-•*]\s*/, "").trim();
+        items.push(`- **${line}**: ${nextLine.replace(/\*\*/g, "").trim()}`);
+        continue;
+      }
+
+      const colonIdx = line.indexOf(":");
+      if (colonIdx > 0 && colonIdx < 60) {
+        const key = line.slice(0, colonIdx).replace(/\*\*/g, "").trim();
+        const val = line
+          .slice(colonIdx + 1)
+          .replace(/\*\*/g, "")
+          .trim();
+        items.push(`- **${key}**: ${val}`);
+      } else {
+        items.push(`- ${line.replace(/\*\*/g, "").trim()}`);
+      }
+    }
+    return `${header}\n${items.join("\n")}`;
+  });
+
+  return formattedSections.filter(Boolean).join("\n\n");
+}
 
 function buildDeterministicClientSummary(
   clientProfile: any,
@@ -416,6 +498,8 @@ Please produce a concise, structured pre-session clinical summary for the therap
           llmError
         );
       }
+
+      summary = formatAiSummaryAsBullets(summary) || summary;
 
       // Persist the summary on ClientProfile
       await prisma.clientProfile.update({

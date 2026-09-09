@@ -5,8 +5,7 @@ import { ClientProfileUpdateData, CreateAssessmentInput } from "./client.dto";
 import { Prisma } from "@prisma/client";
 import { getClientBookingPermissions } from "./client.helper";
 import { meetingQueue } from "../../../infrastructure/queues";
-import { canRateSession } from "../../../shared/lib/ratings";
-import { aiService } from "../ai/ai.service";
+import { aiService, formatAiSummaryAsBullets } from "../ai/ai.service";
 import {
   CLIENT_ASSESSMENT_QUESTIONS,
   FIELD_CATEGORY_MAP,
@@ -332,7 +331,7 @@ export const clientService = {
           rescheduleStatus: permission.rescheduleStatus,
           isCancelled: booking.status === "CANCELLED",
           cancellationReason: booking.cancellationReason,
-          coverSummary: clientProfile?.aiSummary || null,
+          coverSummary: formatAiSummaryAsBullets(clientProfile?.aiSummary) || null,
           intakeForm: latestAssessment || null,
           message: booking.sessionNotes || null,
         };
@@ -606,7 +605,7 @@ export const clientService = {
               }
             : null,
           createdAt: b.createdAt,
-          coverSummary: clientProfile?.aiSummary || null,
+          coverSummary: formatAiSummaryAsBullets(clientProfile?.aiSummary) || null,
           intakeForm: latestAssessment || null,
           message: b.sessionNotes || null,
           homework: b.homework || null,

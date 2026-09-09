@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { aiService } from "./ai.service";
+import { aiService, formatAiSummaryAsBullets } from "./ai.service";
 import { prisma } from "../../../infrastructure/prisma/client";
 
 vi.mock("../../../infrastructure/prisma/client", () => ({
@@ -123,6 +123,42 @@ describe("aiService", () => {
       await expect(aiService.refreshClientAiSummary("non-existent-client")).rejects.toThrow(
         "Client profile not found for ID non-existent-client"
       );
+    });
+  });
+
+  describe("formatAiSummaryAsBullets", () => {
+    it("should return null or undefined as-is", () => {
+      expect(formatAiSummaryAsBullets(null)).toBeNull();
+      expect(formatAiSummaryAsBullets(undefined)).toBeUndefined();
+    });
+
+    it("should format messy numbered summary into clean markdown bullets with ### headers", () => {
+      const messy = `1. Client Overview & Context
+Age/Gender/Occupation: ** Male, 25-34, working professional
+Relationship status: ** Married
+Presenting concern: Seeking individual therapy for himself 2. Assessment Highlights
+Mood: ** Marked swings between high and low
+4/9/2026
+Engaged in self-monitoring/testing`;
+
+      const formatted = formatAiSummaryAsBullets(messy);
+      expect(formatted).toContain("### Client Overview & Context");
+      expect(formatted).toContain("- **Age/Gender/Occupation**: Male, 25-34, working professional");
+      expect(formatted).toContain("- **Relationship status**: Married");
+      expect(formatted).toContain("### Assessment Highlights");
+      expect(formatted).toContain("- **Mood**: Marked swings between high and low");
+      expect(formatted).toContain("- **4/9/2026**: Engaged in self-monitoring/testing");
+    });
+
+    it("should be idempotent on already formatted bulleted summary", () => {
+      const formatted = `### Client Overview & Context
+- **Seeking Support For**: Mental Wellness
+- **Age Group**: 25-34
+
+### Assessment Highlights
+- **Recent Feelings**: Good`;
+
+      expect(formatAiSummaryAsBullets(formatted)).toBe(formatted);
     });
   });
 

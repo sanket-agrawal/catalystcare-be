@@ -210,6 +210,7 @@ export const therapistService = {
               },
             },
           },
+          sessionNote: true,
         },
         orderBy: {
           updatedAt: "desc",
@@ -252,7 +253,7 @@ export const therapistService = {
           status: booking.status,
           startDateTime: booking.startDateTime,
           endDateTime: booking.endDateTime,
-          sessionNotes: booking.sessionNotes,
+          sessionNotes: booking.sessionNote || null,
           clientMessage: booking.sessionNotes || null,
           message: booking.sessionNotes || null,
           homework: booking.homework || null,

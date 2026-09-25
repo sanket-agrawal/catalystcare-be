@@ -261,6 +261,8 @@ model TherapistProfile {
   webinars                            Webinar[]
 
   slotNotificationRequests            SlotNotificationRequest[]
+  
+  sessionNotes                        SessionNote[]
 
   @@map("therapist_profiles")
 }
@@ -432,6 +434,8 @@ model Booking {
   rescheduleReviewedAt DateTime?            @map("reschedule_reviewed_at")
   orgSubscriptionId  String?                @map("org_subscription_id")
   orgSubscription    OrgSubscription?       @relation(fields: [orgSubscriptionId], references: [id])
+
+  sessionNote        SessionNote?
 
   @@unique([slotId, isActive], name: "unique_active_slot_booking")
   @@index([clientId, status])
@@ -1437,3 +1441,45 @@ model SlotNotificationRequest {
 }
 
 
+model SessionNote {
+  id                  String           @id @default(uuid())
+  bookingId           String           @unique @map("booking_id")
+  booking             Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  therapistId         String           @map("therapist_id")
+  therapist           TherapistProfile @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+
+  // ── Structured Clinical Fields ──
+  sessionType         SessionType      @default(INDIVIDUAL) @map("session_type")
+  moodBefore          Int?             @map("mood_before")          // 1-10 scale
+  moodAfter           Int?             @map("mood_after")           // 1-10 scale
+  presentingConcerns  String?          @map("presenting_concerns")  // what client came with
+  sessionSummary      String           @map("session_summary")      // main session content (required)
+  interventionsUsed   String[]         @map("interventions_used")   // e.g. ["CBT", "Mindfulness"]
+  keyObservations     String?          @map("key_observations")
+  progressNotes       String?          @map("progress_notes")
+  riskAssessment      RiskLevel?       @map("risk_assessment")      // NONE, LOW, MODERATE, HIGH, CRITICAL
+  nextSessionGoals    String?          @map("next_session_goals")
+
+  // ── Metadata ──
+  isDeleted           Boolean          @default(false) @map("is_deleted")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  @@index([therapistId, createdAt])
+  @@index([bookingId])
+  @@map("session_notes_records")
+}
+
+enum SessionType {
+  INDIVIDUAL
+  COUPLE
+}
+
+enum RiskLevel {
+  NONE
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+}

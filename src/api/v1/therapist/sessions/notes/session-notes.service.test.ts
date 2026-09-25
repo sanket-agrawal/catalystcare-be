@@ -12,6 +12,7 @@ const mockPrisma = vi.hoisted(() => ({
   },
   sessionNote: {
     create: vi.fn(),
+    upsert: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
     count: vi.fn(),
@@ -180,7 +181,7 @@ describe("SessionNotesService", () => {
         sessionType: "INDIVIDUAL",
         createdAt: new Date(),
       };
-      mockPrisma.sessionNote.create.mockResolvedValue(createdNote);
+      mockPrisma.sessionNote.upsert.mockResolvedValue(createdNote);
 
       const result = await SessionNotesService.create(THERAPIST_ID, {
         bookingId: BOOKING_ID,
@@ -199,7 +200,7 @@ describe("SessionNotesService", () => {
           },
         })
       );
-      expect(mockPrisma.sessionNote.create).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.sessionNote.upsert).toHaveBeenCalledTimes(1);
     });
 
     it("should throw 404 if booking not found", async () => {
@@ -229,16 +230,14 @@ describe("SessionNotesService", () => {
           sessionType: "INDIVIDUAL",
           interventionsUsed: [],
         })
-      ).rejects.toThrow(
-        "Session notes can only be added to COMPLETED or CONFIRMED bookings"
-      );
+      ).rejects.toThrow("Session notes can only be added to COMPLETED or CONFIRMED bookings");
     });
 
     it("should throw 409 if a note already exists for booking", async () => {
       mockPrisma.booking.findFirst.mockResolvedValue({
         id: BOOKING_ID,
         status: "COMPLETED",
-        sessionNote: { id: NOTE_ID },
+        sessionNote: { id: NOTE_ID, isDeleted: false },
       });
 
       await expect(
@@ -248,9 +247,7 @@ describe("SessionNotesService", () => {
           sessionType: "INDIVIDUAL",
           interventionsUsed: [],
         })
-      ).rejects.toThrow(
-        "A session note already exists for this booking. Use update instead."
-      );
+      ).rejects.toThrow("A session note already exists for this booking. Use update instead.");
     });
   });
 
@@ -259,19 +256,16 @@ describe("SessionNotesService", () => {
       const note = { id: NOTE_ID, bookingId: BOOKING_ID };
       mockPrisma.sessionNote.findFirst.mockResolvedValue(note);
 
-      const result = await SessionNotesService.getByBookingId(
-        THERAPIST_ID,
-        BOOKING_ID
-      );
+      const result = await SessionNotesService.getByBookingId(THERAPIST_ID, BOOKING_ID);
       expect(result).toEqual(note);
     });
 
     it("should throw 404 if no note found", async () => {
       mockPrisma.sessionNote.findFirst.mockResolvedValue(null);
 
-      await expect(
-        SessionNotesService.getByBookingId(THERAPIST_ID, BOOKING_ID)
-      ).rejects.toThrow("Session note not found for this booking");
+      await expect(SessionNotesService.getByBookingId(THERAPIST_ID, BOOKING_ID)).rejects.toThrow(
+        "Session note not found for this booking"
+      );
     });
   });
 
@@ -287,9 +281,9 @@ describe("SessionNotesService", () => {
     it("should throw 404 if note not found", async () => {
       mockPrisma.sessionNote.findFirst.mockResolvedValue(null);
 
-      await expect(
-        SessionNotesService.getById(THERAPIST_ID, NOTE_ID)
-      ).rejects.toThrow("Session note not found");
+      await expect(SessionNotesService.getById(THERAPIST_ID, NOTE_ID)).rejects.toThrow(
+        "Session note not found"
+      );
     });
   });
 
@@ -327,10 +321,7 @@ describe("SessionNotesService", () => {
         isDeleted: true,
       });
 
-      const result = await SessionNotesService.softDelete(
-        THERAPIST_ID,
-        NOTE_ID
-      );
+      const result = await SessionNotesService.softDelete(THERAPIST_ID, NOTE_ID);
       expect(result.message).toBe("Session note deleted successfully");
       expect(mockPrisma.sessionNote.update).toHaveBeenCalledWith({
         where: { id: NOTE_ID },
@@ -341,9 +332,9 @@ describe("SessionNotesService", () => {
     it("should throw 404 if note does not exist", async () => {
       mockPrisma.sessionNote.findFirst.mockResolvedValue(null);
 
-      await expect(
-        SessionNotesService.softDelete(THERAPIST_ID, NOTE_ID)
-      ).rejects.toThrow("Session note not found");
+      await expect(SessionNotesService.softDelete(THERAPIST_ID, NOTE_ID)).rejects.toThrow(
+        "Session note not found"
+      );
     });
   });
 

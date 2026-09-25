@@ -62,7 +62,6 @@ export const createSessionNoteSchema = z.object({
     .max(3000, "nextSessionGoals must not exceed 3000 characters")
     .optional()
     .nullable(),
-
 });
 
 // ── Update Session Note (all optional) ──
@@ -122,12 +121,21 @@ export const updateSessionNoteSchema = z
       .max(3000, "nextSessionGoals must not exceed 3000 characters")
       .optional()
       .nullable(),
-
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided for update",
   });
 
+// ── List / Filter Query ──
+export const sessionNotesQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50, "limit must not exceed 50").default(10),
+  sessionType: SessionTypeEnum.optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+});
+
 // ── Inferred types ──
 export type CreateSessionNoteDTO = z.infer<typeof createSessionNoteSchema>;
 export type UpdateSessionNoteDTO = z.infer<typeof updateSessionNoteSchema>;
+export type SessionNotesQueryDTO = z.infer<typeof sessionNotesQuerySchema>;

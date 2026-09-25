@@ -253,7 +253,7 @@ export const therapistService = {
           status: booking.status,
           startDateTime: booking.startDateTime,
           endDateTime: booking.endDateTime,
-          sessionNotes: booking.sessionNote || null,
+          sessionNotes: booking.sessionNotes || null,
           clientMessage: booking.sessionNotes || null,
           message: booking.sessionNotes || null,
           homework: booking.homework || null,

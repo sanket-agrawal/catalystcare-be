@@ -25,10 +25,19 @@ export function getOpenApiSpec() {
         get: {
           tags: ["Health"],
           summary: "Health check",
-          description: "Returns process uptime and a simple status payload.",
+          description:
+            "Returns server status, database and redis connectivity, uptime, timestamp, and memory usage.",
           responses: {
             "200": {
-              description: "Service is healthy",
+              description: "Service is healthy and all dependencies are operational",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/ApiSuccessHealth" },
+                },
+              },
+            },
+            "503": {
+              description: "Service degraded or dependency check failed",
               content: {
                 "application/json": {
                   schema: { $ref: "#/components/schemas/ApiSuccessHealth" },
@@ -36,7 +45,7 @@ export function getOpenApiSpec() {
               },
             },
             "500": {
-              description: "Health check failed",
+              description: "Health check failed with internal error",
               content: {
                 "application/json": {
                   schema: { $ref: "#/components/schemas/ApiErrorBody" },
@@ -50,7 +59,8 @@ export function getOpenApiSpec() {
         post: {
           tags: ["Auth"],
           summary: "Login",
-          description: "Authenticate with email and password; returns tokens in the app-specific response body.",
+          description:
+            "Authenticate with email and password; returns tokens in the app-specific response body.",
           requestBody: {
             required: true,
             content: {
@@ -102,13 +112,26 @@ export function getOpenApiSpec() {
           properties: {
             success: { type: "boolean", example: true },
             statusCode: { type: "integer", example: 200 },
-            message: { type: "string" },
+            message: { type: "string", example: "Health Check Performed Successfully" },
             data: {
               type: "object",
               properties: {
                 status: { type: "string", example: "Healthy" },
-                upTime: { type: "number" },
-                timeStamp: { type: "integer" },
+                server: { type: "string", example: "ok" },
+                database: { type: "string", example: "ok" },
+                redis: { type: "string", example: "ok" },
+                timestamp: { type: "string", example: "2026-09-25T17:50:00.000Z" },
+                uptime: { type: "integer", example: 3600 },
+                upTime: { type: "number", example: 3600.123 },
+                timeStamp: { type: "integer", example: 1727286600000 },
+                memory: {
+                  type: "object",
+                  properties: {
+                    rss: { type: "string", example: "128 MB" },
+                    heapUsed: { type: "string", example: "64 MB" },
+                    heapTotal: { type: "string", example: "96 MB" },
+                  },
+                },
               },
             },
           },

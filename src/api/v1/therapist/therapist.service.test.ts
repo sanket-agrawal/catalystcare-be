@@ -161,8 +161,8 @@ describe("Therapist Service Helpers", () => {
 
       expect(bookings).toHaveLength(1);
       expect(bookings[0].sessionNote).toEqual(mockSessionNote);
-      expect(bookings[0].clientMessage).toBe("Client wants to discuss anxiety");
-      expect(bookings[0].message).toBe("Client wants to discuss anxiety");
+      expect(bookings[0].clientMessage).toEqual(mockSessionNote);
+      expect(bookings[0].message).toEqual(mockSessionNote);
       expect(bookings[0].homework).toBe("Do breathing exercise");
     });
   });
@@ -273,8 +273,8 @@ describe("Therapist Service Helpers", () => {
       const booking = await getBookingDetailsForTherapist("booking-3", "therapist-1");
 
       expect(booking.sessionNote).toEqual(mockSessionNote);
-      expect(booking.clientMessage).toBe("Details session notes");
-      expect(booking.message).toBe("Details session notes");
+      expect(booking.clientMessage).toEqual(mockSessionNote);
+      expect(booking.message).toEqual(mockSessionNote);
       expect(booking.homework).toBe("Reflect on journal");
     });
   });

@@ -9,6 +9,7 @@ vi.mock("../infrastructure/redis/index", () => ({
     on: vi.fn(),
     disconnect: vi.fn(),
     quit: vi.fn().mockResolvedValue("OK"),
+    ping: vi.fn().mockResolvedValue("PONG"),
     status: "ready",
   },
 }));

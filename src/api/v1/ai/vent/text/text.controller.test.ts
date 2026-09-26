@@ -14,7 +14,7 @@ describe("VentController", () => {
   let mockPersistenceService: any;
   let controller: VentController;
 
-  let mockReq: Partial<Request>;
+  let mockReq: Request;
   let mockRes: Partial<Response>;
   let mockNext: any;
 
@@ -54,10 +54,10 @@ describe("VentController", () => {
     );
 
     mockReq = {
-      user: { id: "user-123" } as any,
+      user: { id: "user-123" },
       params: {},
       body: {},
-    };
+    } as unknown as Request;
 
     mockRes = {
       status: vi.fn().mockReturnThis(),
@@ -305,15 +305,17 @@ describe("VentController", () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(mockRes.json).toHaveBeenCalledWith(
-        new ApiResponse(
-          true,
-          200,
-          "Vent Reply Successfully",
-          expect.objectContaining({
-            suggestTherapy: true,
-            platformUrl: expect.stringContaining("catalystcare"),
-          })
-        )
+        new ApiResponse(true, 200, "Vent Reply Successfully", {
+          sessionId: validSessionId,
+          reply: mockLLMResponse.reply,
+          isValid: true,
+          isCrisis: false,
+          helplines: undefined,
+          suggestTherapy: true,
+          platformUrl: expect.any(String),
+          sentiment: undefined,
+          suggestedExercise: undefined,
+        })
       );
     });
 
@@ -561,15 +563,22 @@ describe("VentController", () => {
       // getRecentMessages should NOT be called since suggestTherapy is already true
       expect(mockPersistenceService.getRecentMessages).not.toHaveBeenCalled();
       expect(mockRes.json).toHaveBeenCalledWith(
-        new ApiResponse(
-          true,
-          200,
-          "Vent Reply Successfully",
-          expect.objectContaining({
-            suggestTherapy: true,
-            platformUrl: expect.stringContaining("catalystcare"),
-          })
-        )
+        new ApiResponse(true, 200, "Vent Reply Successfully", {
+          sessionId: validSessionId,
+          reply: mockLLMResponse.reply,
+          isValid: true,
+          isCrisis: false,
+          helplines: undefined,
+          suggestTherapy: true,
+          platformUrl: expect.any(String),
+          sentiment: "SAD",
+          suggestedExercise: {
+            type: "mindfulness",
+            title: "Self-Compassion Pause",
+            instructions:
+              "Place a hand over your heart. Breathe deeply and tell yourself: 'This is a moment of difficulty. May I be kind to myself in this moment.' Allow yourself to feel without judgment.",
+          },
+        })
       );
     });
 

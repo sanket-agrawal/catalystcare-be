@@ -136,9 +136,14 @@ export const fetchCategoryBySlugService = async (categorySlug: string) => {
 
 export const fetchTherapistBySlugService = async (therapistSlug: string) => {
   try {
-    const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+    // Start of tomorrow in IST, converted to UTC for DB comparison
+    const tomorrowStartUTC = DateTime.now()
+      .setZone("Asia/Kolkata")
+      .plus({ days: 1 })
+      .startOf("day")
+      .toUTC()
+      .toJSDate();
 
-    const now = new Date();
     // ---------- FETCH THERAPIST BASIC DETAILS ----------
     const therapist = await prisma.therapistProfile.findFirst({
       where: {
@@ -171,12 +176,12 @@ export const fetchTherapistBySlugService = async (therapistSlug: string) => {
           },
         },
 
-        // 🔥 RETURN ONLY FUTURE SLOTS FROM NOW
+        // 🔥 RETURN ONLY SLOTS FROM TOMORROW (IST) ONWARDS
         slots: {
           where: {
             status: "AVAILABLE",
             startDateTime: {
-              gte: now,
+              gte: tomorrowStartUTC,
             },
           },
           select: {

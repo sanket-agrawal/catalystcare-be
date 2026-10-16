@@ -5,6 +5,7 @@ import {
   UpdateSessionNoteDTO,
   SessionNotesQueryDTO,
 } from "./session-notes.dto";
+import { aiService } from "../../../ai/ai.service";
 
 const SessionNotesService = {
   create: async (therapistId: string, data: CreateSessionNoteDTO) => {
@@ -17,6 +18,7 @@ const SessionNotesService = {
       },
       select: {
         id: true,
+        clientId: true,
         status: true,
         sessionNote: { select: { id: true, isDeleted: true } },
       },
@@ -52,6 +54,13 @@ const SessionNotesService = {
       },
     });
 
+    // Auto-refresh client AI summary in background with new clinical session notes
+    if (booking.clientId) {
+      aiService.refreshClientAiSummary(booking.clientId).catch((err) => {
+        console.warn("[SessionNotesService] Failed to auto-refresh client AI summary:", err);
+      });
+    }
+
     return sessionNote;
   },
 
@@ -63,7 +72,10 @@ const SessionNotesService = {
         therapistId,
         isDeleted: false,
       },
-      select: { id: true },
+      select: {
+        id: true,
+        booking: { select: { clientId: true } },
+      },
     });
 
     if (!existingNote) {
@@ -74,6 +86,13 @@ const SessionNotesService = {
       where: { id: noteId },
       data,
     });
+
+    // Auto-refresh client AI summary in background with updated clinical notes
+    if (existingNote.booking?.clientId) {
+      aiService.refreshClientAiSummary(existingNote.booking.clientId).catch((err) => {
+        console.warn("[SessionNotesService] Failed to auto-refresh client AI summary:", err);
+      });
+    }
 
     return updatedNote;
   },
@@ -86,7 +105,10 @@ const SessionNotesService = {
         therapistId,
         isDeleted: false,
       },
-      select: { id: true },
+      select: {
+        id: true,
+        booking: { select: { clientId: true } },
+      },
     });
 
     if (!existingNote) {
@@ -97,6 +119,13 @@ const SessionNotesService = {
       where: { id: noteId },
       data: { isDeleted: true },
     });
+
+    // Auto-refresh client AI summary in background after session note deletion
+    if (existingNote.booking?.clientId) {
+      aiService.refreshClientAiSummary(existingNote.booking.clientId).catch((err) => {
+        console.warn("[SessionNotesService] Failed to auto-refresh client AI summary:", err);
+      });
+    }
 
     return { message: "Session note deleted successfully" };
   },

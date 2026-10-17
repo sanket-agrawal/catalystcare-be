@@ -382,7 +382,7 @@ export const aiService = {
         orderBy: { createdAt: "desc" },
       });
 
-      // 2. Fetch all bookings with sessionNotes
+      // 2. Fetch all bookings with sessionNotes and clinical SessionNote records
       const bookings = await prisma.booking.findMany({
         where: {
           clientId,
@@ -394,15 +394,60 @@ export const aiService = {
           startDateTime: true,
           sessionNotes: true,
           status: true,
+          sessionNote: {
+            where: { isDeleted: false },
+            select: {
+              sessionType: true,
+              moodBefore: true,
+              moodAfter: true,
+              presentingConcerns: true,
+              sessionSummary: true,
+              interventionsUsed: true,
+              keyObservations: true,
+              progressNotes: true,
+              riskAssessment: true,
+              nextSessionGoals: true,
+            },
+          },
         },
       });
 
-      const sessionNotesList: string[] = bookings
-        .filter((b) => Boolean(b.sessionNotes && b.sessionNotes.trim()))
-        .map(
-          (b) =>
-            `[${new Date(b.startDateTime).toLocaleDateString("en-IN")}]: ${b.sessionNotes?.trim()}`
-        );
+      const sessionNotesList: string[] = [];
+      for (const b of bookings) {
+        const dateStr = new Date(b.startDateTime).toLocaleDateString("en-IN");
+        const note = b.sessionNote;
+
+        if (note) {
+          const details: string[] = [];
+          if (note.sessionType) details.push(`Type: ${note.sessionType}`);
+          if (
+            note.moodBefore !== null &&
+            note.moodBefore !== undefined &&
+            note.moodAfter !== null &&
+            note.moodAfter !== undefined
+          ) {
+            details.push(`Mood Shift: ${note.moodBefore}/10 -> ${note.moodAfter}/10`);
+          }
+          if (note.presentingConcerns)
+            details.push(`Presenting Concerns: ${note.presentingConcerns}`);
+          if (note.sessionSummary) details.push(`Clinical Summary: ${note.sessionSummary}`);
+          if (note.interventionsUsed && note.interventionsUsed.length > 0) {
+            details.push(`Interventions: ${note.interventionsUsed.join(", ")}`);
+          }
+          if (note.keyObservations) details.push(`Observations: ${note.keyObservations}`);
+          if (note.progressNotes) details.push(`Progress: ${note.progressNotes}`);
+          if (note.riskAssessment && note.riskAssessment !== "NONE") {
+            details.push(`Clinical Risk Assessment: ${note.riskAssessment}`);
+          }
+          if (note.nextSessionGoals) details.push(`Next Goals: ${note.nextSessionGoals}`);
+          if (b.sessionNotes && b.sessionNotes.trim()) {
+            details.push(`Client Pre-Session Note: ${b.sessionNotes.trim()}`);
+          }
+          sessionNotesList.push(`[${dateStr}] ${details.join(" | ")}`);
+        } else if (b.sessionNotes && b.sessionNotes.trim()) {
+          sessionNotesList.push(`[${dateStr}] Client Pre-Session Note: ${b.sessionNotes.trim()}`);
+        }
+      }
 
       // 3. Fetch recent conversation messages
       const conversations = await prisma.conversation.findMany({

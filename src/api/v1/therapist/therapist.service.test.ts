@@ -110,7 +110,7 @@ describe("Therapist Service Helpers", () => {
   });
 
   describe("fetchBookings", () => {
-    it("should include clientMessage and message mapped from sessionNote", async () => {
+    it("should include clientMessage and message mapped from sessionNotes (client message)", async () => {
       const now = new Date();
       const mockSessionNote = {
         id: "note-1",
@@ -127,6 +127,7 @@ describe("Therapist Service Helpers", () => {
         startDateTime: new Date(now.getTime() + 2 * 60 * 60 * 1000),
         endDateTime: new Date(now.getTime() + 3 * 60 * 60 * 1000),
         sessionNote: mockSessionNote,
+        sessionNotes: "I'm feeling very stressed about work lately",
         homework: "Do breathing exercise",
         hasTherapistRescheduledEarlier: false,
         rescheduleStatus: "NONE",
@@ -161,14 +162,14 @@ describe("Therapist Service Helpers", () => {
 
       expect(bookings).toHaveLength(1);
       expect(bookings[0].sessionNote).toEqual(mockSessionNote);
-      expect(bookings[0].clientMessage).toEqual(mockSessionNote);
-      expect(bookings[0].message).toEqual(mockSessionNote);
+      expect(bookings[0].clientMessage).toBe("I'm feeling very stressed about work lately");
+      expect(bookings[0].message).toBe("I'm feeling very stressed about work lately");
       expect(bookings[0].homework).toBe("Do breathing exercise");
     });
   });
 
   describe("getUpcoming7DaysTherapistBookings", () => {
-    it("should include clientMessage and message mapped from sessionNote", async () => {
+    it("should include clientMessage and message mapped from sessionNotes (client message)", async () => {
       const now = new Date();
       const mockSessionNote = {
         id: "note-2",
@@ -184,6 +185,7 @@ describe("Therapist Service Helpers", () => {
         startDateTime: new Date(now.getTime() + 2 * 60 * 60 * 1000),
         endDateTime: new Date(now.getTime() + 3 * 60 * 60 * 1000),
         sessionNote: mockSessionNote,
+        sessionNotes: "Looking forward to discussing my progress",
         homework: null,
         hasTherapistRescheduledEarlier: false,
         rescheduleStatus: "NONE",
@@ -218,13 +220,13 @@ describe("Therapist Service Helpers", () => {
 
       expect(bookings).toHaveLength(1);
       expect(bookings[0].sessionNote).toEqual(mockSessionNote);
-      expect(bookings[0].clientMessage).toBe("Upcoming session notes");
-      expect(bookings[0].message).toBe("Upcoming session notes");
+      expect(bookings[0].clientMessage).toBe("Looking forward to discussing my progress");
+      expect(bookings[0].message).toBe("Looking forward to discussing my progress");
     });
   });
 
   describe("getBookingDetailsForTherapist", () => {
-    it("should include clientMessage and message mapped from sessionNote", async () => {
+    it("should include clientMessage and message mapped from sessionNotes (client message)", async () => {
       const now = new Date();
       const mockSessionNote = {
         id: "note-3",
@@ -240,6 +242,7 @@ describe("Therapist Service Helpers", () => {
         startDateTime: new Date(now.getTime() + 2 * 60 * 60 * 1000),
         endDateTime: new Date(now.getTime() + 3 * 60 * 60 * 1000),
         sessionNote: mockSessionNote,
+        sessionNotes: "I need help with relationship issues",
         homework: "Reflect on journal",
         hasTherapistRescheduledEarlier: false,
         rescheduleStatus: "NONE",
@@ -273,8 +276,8 @@ describe("Therapist Service Helpers", () => {
       const booking = await getBookingDetailsForTherapist("booking-3", "therapist-1");
 
       expect(booking.sessionNote).toEqual(mockSessionNote);
-      expect(booking.clientMessage).toEqual(mockSessionNote);
-      expect(booking.message).toEqual(mockSessionNote);
+      expect(booking.clientMessage).toBe("I need help with relationship issues");
+      expect(booking.message).toBe("I need help with relationship issues");
       expect(booking.homework).toBe("Reflect on journal");
     });
   });

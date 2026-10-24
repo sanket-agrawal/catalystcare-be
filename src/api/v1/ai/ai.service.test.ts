@@ -102,7 +102,27 @@ describe("aiService", () => {
       expect(prisma.booking.findMany).toHaveBeenCalledWith({
         where: { clientId: "client-profile-1", paymentStatus: "CAPTURED" },
         orderBy: { startDateTime: "desc" },
-        select: { id: true, startDateTime: true, sessionNotes: true, status: true },
+        select: {
+          id: true,
+          startDateTime: true,
+          sessionNotes: true,
+          status: true,
+          sessionNote: {
+            where: { isDeleted: false },
+            select: {
+              sessionType: true,
+              moodBefore: true,
+              moodAfter: true,
+              presentingConcerns: true,
+              sessionSummary: true,
+              interventionsUsed: true,
+              keyObservations: true,
+              progressNotes: true,
+              riskAssessment: true,
+              nextSessionGoals: true,
+            },
+          },
+        },
       });
       expect(prisma.clientProfile.update).toHaveBeenCalledWith({
         where: { id: "client-profile-1" },
@@ -115,6 +135,57 @@ describe("aiService", () => {
       expect(summary).toContain("Client Overview & Context");
       expect(summary).toContain("Assessment Highlights");
       expect(summary).toContain("Session Notes Across Bookings");
+    });
+
+    it("should include rich clinical SessionNote details in the summary when present", async () => {
+      const mockProfile = {
+        id: "client-profile-1",
+        userId: "user-1",
+        ageGroup: "AGE_25_34",
+        genderIdentity: "FEMALE",
+        occupation: "WORKING_PROFESSIONAL",
+        seekingSupportFor: "MYSELF",
+        relationShipStatus: "SINGLE",
+        user: { firstName: "Jane", lastName: "Doe" },
+      };
+
+      const mockBookingsWithClinicalNote = [
+        {
+          id: "booking-1",
+          startDateTime: new Date("2026-08-20T10:00:00Z"),
+          sessionNotes: "Client reported acute stress",
+          status: "COMPLETED",
+          sessionNote: {
+            sessionType: "INDIVIDUAL",
+            moodBefore: 4,
+            moodAfter: 7,
+            presentingConcerns: "Panic attacks and work burnout",
+            sessionSummary: "Conducted CBT cognitive restructuring and 4-7-8 breathing",
+            interventionsUsed: ["CBT", "Mindfulness"],
+            keyObservations: "Client showed good emotional awareness",
+            progressNotes: "Anxiety symptoms reduced post-exercise",
+            riskAssessment: "LOW",
+            nextSessionGoals: "Track daily thought records",
+          },
+        },
+      ];
+
+      (prisma.clientProfile.findUnique as any).mockResolvedValue(mockProfile);
+      (prisma.clientAssesment.findFirst as any).mockResolvedValue(null);
+      (prisma.booking.findMany as any).mockResolvedValue(mockBookingsWithClinicalNote);
+      (prisma.conversation.findMany as any).mockResolvedValue([]);
+      (prisma.clientProfile.update as any).mockResolvedValue({
+        ...mockProfile,
+        aiSummary: "Summary",
+      });
+
+      const summary = await aiService.refreshClientAiSummary("client-profile-1");
+
+      expect(summary).toContain("Session Notes Across Bookings");
+      expect(summary).toContain("Mood Shift: 4/10 -> 7/10");
+      expect(summary).toContain("CBT, Mindfulness");
+      expect(summary).toContain("Conducted CBT cognitive restructuring");
+      expect(summary).toContain("Track daily thought records");
     });
 
     it("should throw error if client profile is not found", async () => {

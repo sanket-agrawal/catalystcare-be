@@ -39,3 +39,7 @@ build/
 .DS_Store
 Thumbs.db
 /src/generated/prisma
+
+# Temporary Dummy Scripts
+prisma/dummy.seed.ts
+

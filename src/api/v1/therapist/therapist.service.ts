@@ -210,6 +210,7 @@ export const therapistService = {
               },
             },
           },
+          sessionNote: true,
         },
         orderBy: {
           updatedAt: "desc",
@@ -252,7 +253,7 @@ export const therapistService = {
           status: booking.status,
           startDateTime: booking.startDateTime,
           endDateTime: booking.endDateTime,
-          sessionNotes: booking.sessionNotes,
+          sessionNote: booking.sessionNote || null,
           clientMessage: booking.sessionNotes || null,
           message: booking.sessionNotes || null,
           homework: booking.homework || null,
@@ -977,6 +978,7 @@ export const getUpcoming7DaysTherapistBookings = async (therapistId: string) => 
             },
           },
         },
+        sessionNote: true,
       },
       orderBy: {
         startDateTime: "asc",
@@ -1011,7 +1013,7 @@ export const getUpcoming7DaysTherapistBookings = async (therapistId: string) => 
         bookingType: b.bookingType,
         startDateTime: b.startDateTime,
         endDateTime: b.endDateTime,
-        sessionNotes: b.sessionNotes,
+        sessionNote: b.sessionNote || null,
         clientMessage: b.sessionNotes || null,
         message: b.sessionNotes || null,
         meetingLink: permissions.canJoinSession ? b.meetingLink : null,
@@ -1115,6 +1117,7 @@ export const getBookingDetailsForTherapist = async (bookingId: string, therapist
             },
           },
         },
+        sessionNote: true,
       },
     });
 
@@ -1151,7 +1154,7 @@ export const getBookingDetailsForTherapist = async (bookingId: string, therapist
       status: booking.status,
       startDateTime: booking.startDateTime,
       endDateTime: booking.endDateTime,
-      sessionNotes: booking.sessionNotes,
+      sessionNote: booking.sessionNote || null,
       clientMessage: booking.sessionNotes || null,
       message: booking.sessionNotes || null,
       meetingLink: permissions.canJoinSession ? booking.meetingLink : null,

@@ -1,5 +1,5 @@
 // assessmentResultTemplate.ts
-// - Uses configKey (not key) for all insight lookups — fixes null content
+// - Uses configKey (not key) for all insight lookups - fixes null content
 // - Elegant email design with gradient header, styled cards, clean typography
 
 import { serverConfig } from "../config/server.config";
@@ -16,8 +16,8 @@ export interface AssessmentResultEmailPayload {
   assessmentSlug: string;
 
   primaryZone: {
-    key: string;        // DB key e.g. "EMOTIONAL_EXPRESSION"
-    configKey: string;  // config key e.g. "emotional_expression"
+    key: string; // DB key e.g. "EMOTIONAL_EXPRESSION"
+    configKey: string; // config key e.g. "emotional_expression"
     title: string;
     scaledScore: number;
     label: string;
@@ -25,7 +25,7 @@ export interface AssessmentResultEmailPayload {
 
   zones: Array<{
     key: string;
-    configKey: string;  // used for all config/insight lookups
+    configKey: string; // used for all config/insight lookups
     title: string;
     scaledScore: number;
     label: string;
@@ -52,10 +52,10 @@ function scoreBarHtml(score: number, color: string): string {
 // Band colour helper
 // ─────────────────────────────────────────────
 function bandColor(score: number): string {
-  if (score < 30) return "#10b981"; // green  — not a concern
-  if (score < 50) return "#f59e0b"; // amber  — mild
-  if (score < 70) return "#f97316"; // orange — active
-  return "#ef4444";                 // red    — strong
+  if (score < 30) return "#10b981"; // green  - not a concern
+  if (score < 50) return "#f59e0b"; // amber  - mild
+  if (score < 70) return "#f97316"; // orange - active
+  return "#ef4444"; // red    - strong
 }
 
 // ─────────────────────────────────────────────
@@ -73,7 +73,7 @@ function topZoneCardHtml(
   const rankLabel = isPrimary ? "Most affected area" : "Second most affected area";
   const barColor = bandColor(zone.scaledScore);
 
-  // Direction always available — content is guaranteed non-null at call site
+  // Direction always available - content is guaranteed non-null at call site
   // but we guard anyway for safety
   const insightText = content?.insight ?? "";
   const directionText = content?.direction ?? "";
@@ -115,13 +115,19 @@ function topZoneCardHtml(
       <!-- Score bar -->
       ${scoreBarHtml(zone.scaledScore, barColor)}
 
-      ${insightText ? `
+      ${
+        insightText
+          ? `
       <!-- Insight -->
       <p style="margin:0 0 16px;font-size:14px;line-height:1.7;color:#374151;">
         ${insightText}
-      </p>` : ""}
+      </p>`
+          : ""
+      }
 
-      ${directionText ? `
+      ${
+        directionText
+          ? `
       <!-- Direction box -->
       <table width="100%" cellpadding="0" cellspacing="0"
              style="background:${accentColor}0d;border-radius:8px;">
@@ -137,7 +143,9 @@ function topZoneCardHtml(
             </p>
           </td>
         </tr>
-      </table>` : ""}
+      </table>`
+          : ""
+      }
 
     </td>
   </tr>
@@ -147,9 +155,7 @@ function topZoneCardHtml(
 // ─────────────────────────────────────────────
 // Main template
 // ─────────────────────────────────────────────
-export const assessmentResultTemplate = (
-  payload: AssessmentResultEmailPayload
-): string => {
+export const assessmentResultTemplate = (payload: AssessmentResultEmailPayload): string => {
   const { assessmentTitle, assessmentSlug, zones } = payload;
 
   const config = getAssessmentConfig(assessmentSlug);
@@ -167,16 +173,13 @@ export const assessmentResultTemplate = (
     "Below is a clear snapshot of how things are showing up for you right now.";
 
   // ── Top 2 zones sorted by scaledScore desc ──
-  const topTwoZones = [...zones]
-    .sort((a, b) => b.scaledScore - a.scaledScore)
-    .slice(0, 2);
+  const topTwoZones = [...zones].sort((a, b) => b.scaledScore - a.scaledScore).slice(0, 2);
 
   const topZonesHtml = topTwoZones
     .map((zone, idx) => {
       const band = getScoreBand(zone.scaledScore);
       // KEY FIX: use configKey not key for all lookups
-      const bandLabel =
-        config?.zones[zone.configKey]?.bands[band]?.label ?? zone.label;
+      const bandLabel = config?.zones[zone.configKey]?.bands[band]?.label ?? zone.label;
       const content = getZoneContent(assessmentSlug, zone.configKey, zone.scaledScore);
       return topZoneCardHtml(zone, idx, content, bandLabel);
     })
@@ -186,8 +189,7 @@ export const assessmentResultTemplate = (
   const zoneRowsHtml = zones
     .map((z) => {
       const band = getScoreBand(z.scaledScore);
-      const labelFromConfig =
-        config?.zones[z.configKey]?.bands[band]?.label ?? z.label;
+      const labelFromConfig = config?.zones[z.configKey]?.bands[band]?.label ?? z.label;
       const barColor = bandColor(z.scaledScore);
       return `
 <tr>

@@ -429,7 +429,7 @@ export class AvailabilityService {
             where: { id: availabilityId },
             data: {
               effectiveTo: nowUtc,
-              // do not set isActive=false — keep historical record
+              // do not set isActive=false - keep historical record
             },
           });
 

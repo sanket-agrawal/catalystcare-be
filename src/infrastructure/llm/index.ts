@@ -143,7 +143,7 @@ function delay(ms: number): Promise<void> {
 
 /**
  * Shared LLM fetch wrapper used by all services.
- * Provider-agnostic — works with any OpenAI-compatible API.
+ * Provider-agnostic - works with any OpenAI-compatible API.
  *
  * Strategy:
  *  1. Try primary provider (Groq) with up to N retries
@@ -188,12 +188,12 @@ export async function callLLM(options: LLMRequestOptions): Promise<string> {
       return await fetchFromProvider(fallback, fallbackOptions);
     } catch (fallbackErr: any) {
       console.error(`[LLM] Fallback (${fallback.name}) also failed:`, fallbackErr.message);
-      // Throw fallback error — it's the most recent
+      // Throw fallback error - it's the most recent
       throw fallbackErr;
     }
   }
 
-  // No fallback configured — throw primary error
+  // No fallback configured - throw primary error
   throw lastError!;
 }
 

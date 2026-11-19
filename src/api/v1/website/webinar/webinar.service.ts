@@ -155,7 +155,7 @@ async function handlePaidRegistration(webinar: any, input: InitiateRegistrationI
   };
 }
 
-// ─── Paid flow — step 2: verify & confirm ────────────────────────────────────
+// ─── Paid flow - step 2: verify & confirm ────────────────────────────────────
 
 export async function verifyWebinarPayment(input: VerifyPaymentInput) {
   // 1. Fetch registration
@@ -174,7 +174,7 @@ export async function verifyWebinarPayment(input: VerifyPaymentInput) {
 
   if (!registration) throw new ApiError(404, "Registration not found");
   if (registration.status === WebinarRegistrationStatus.CONFIRMED) {
-    // Idempotent — already confirmed (e.g. webhook beat us)
+    // Idempotent - already confirmed (e.g. webhook beat us)
     return { status: "CONFIRMED", registrationId: registration.id };
   }
   if (registration.status !== WebinarRegistrationStatus.PENDING_PAYMENT) {

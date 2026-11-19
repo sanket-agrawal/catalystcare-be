@@ -24,7 +24,7 @@ export interface LLMResponse {
 
 export interface VentTextRequest {
   message: string;
-  sessionId: string; // required now — client must create session first
+  sessionId: string; // required now - client must create session first
 }
 
 export interface SuggestedExercise {
@@ -40,7 +40,7 @@ export interface VentTextResponse {
   isCrisis: boolean; // FE uses this to show helpline UI
   helplines?: Helpline[]; // only present when isCrisis true
   suggestTherapy: boolean; // true when AI thinks user should consider professional therapy
-  platformUrl?: string; // CatalystCare URL — included when therapy is suggested
+  platformUrl?: string; // CatalystCare URL - included when therapy is suggested
   sentiment?: string;
   suggestedExercise?: SuggestedExercise;
 }

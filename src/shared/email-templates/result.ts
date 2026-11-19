@@ -40,20 +40,15 @@ const getBadgeStyle = (score?: number) => {
 /* ------------------ Template Generator ------------------ */
 
 export const generateResultsEmailHTML = (data: ResultsEmailData): string => {
-  const {
-    assessmentTitle,
-    results,
-    highestBlocker,
-    contextExplanation,
-    focusAdvice
-  } = data;
+  const { assessmentTitle, results, highestBlocker, contextExplanation, focusAdvice } = data;
 
   const year = new Date().getFullYear();
 
-  const resultsRows = results.map(item => {
-    const score = normalizeScore(item.score);
+  const resultsRows = results
+    .map((item) => {
+      const score = normalizeScore(item.score);
 
-    return `
+      return `
       <tr>
         <td style="padding:10px 0;">
           <table width="100%" cellpadding="0" cellspacing="0">
@@ -85,7 +80,7 @@ export const generateResultsEmailHTML = (data: ResultsEmailData): string => {
                   font-weight:600;
                   ${getBadgeStyle(score)}
                 ">
-                  ${score} — ${item.label}
+                  ${score} - ${item.label}
                 </span>
               </td>
             </tr>
@@ -93,7 +88,8 @@ export const generateResultsEmailHTML = (data: ResultsEmailData): string => {
         </td>
       </tr>
     `;
-  }).join("");
+    })
+    .join("");
 
   const focusScore = normalizeScore(highestBlocker.score);
 
@@ -179,7 +175,7 @@ export const generateResultsEmailHTML = (data: ResultsEmailData): string => {
                     ${highestBlocker.name}
                   </h2>
                   <p style="margin:0;font-size:14px;font-weight:600;">
-                    ${focusScore} / 100 — ${highestBlocker.label}
+                    ${focusScore} / 100 - ${highestBlocker.label}
                   </p>
 
                   <table width="100%" style="margin-top:14px;background:#1e40af;border-radius:6px;">

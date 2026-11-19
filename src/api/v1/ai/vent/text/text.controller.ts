@@ -127,7 +127,7 @@ export class VentController {
             this.persistenceService.getRecentMessages(userId, sessionId, 10),
           ]);
 
-          // Don't override on shallow conversations — need at least 3 user-AI exchanges
+          // Don't override on shallow conversations - need at least 3 user-AI exchanges
           const hasEnoughDepth = recentMessages.length >= 6;
 
           // Check if therapy was already suggested within the last 5 assistant messages

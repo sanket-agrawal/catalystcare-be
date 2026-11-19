@@ -14,13 +14,13 @@ const SUMMARY_TRIGGER_EVERY_N = 10;
 
 const SUMMARY_SYSTEM_PROMPT = `You are a clinical assistant helping a mental wellness AI maintain a compassionate memory of a user.
 
-Given a conversation history, extract a concise psychological profile — key emotional themes, recurring stressors, relationship dynamics, and any context that would help a future conversation feel continuous and caring.
+Given a conversation history, extract a concise psychological profile - key emotional themes, recurring stressors, relationship dynamics, and any context that would help a future conversation feel continuous and caring.
 
 Rules:
 - Write in third person ("The user...")
 - Be specific, not generic. "User stressed about father's expectations around engineering career" not "User has family stress"
 - Max 200 words
-- If an existing summary is provided, MERGE new insights with it — don't discard old context
+- If an existing summary is provided, MERGE new insights with it - don't discard old context
 - Only include emotionally meaningful information, not small talk
 - Output plain text, no bullet points, no headers`;
 
@@ -162,7 +162,7 @@ export class VentPersistenceService {
   }
 
   async deleteSession(userId: string, sessionId: string): Promise<void> {
-    // Soft delete — keeps data, removes from user's list
+    // Soft delete - keeps data, removes from user's list
     await this.prisma.ventSession.updateMany({
       where: { id: sessionId, userId },
       data: { isActive: false },

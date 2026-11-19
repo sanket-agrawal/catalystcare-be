@@ -50,7 +50,7 @@ async function main() {
   console.log("📝 Response:\n", content);
 
   if (!content) {
-    console.error("\n⚠️  Empty response — this is the issue we saw with Cerebras");
+    console.error("\n⚠️  Empty response - this is the issue we saw with Cerebras");
   } else {
     try {
       const parsed = JSON.parse(content);

@@ -12,7 +12,7 @@ vi.mock("../../../infrastructure/prisma/client", () => ({
 import healthRoutes from "./health.routes";
 
 /**
- * Lightweight app: only health routes — no Redis, MongoDB, or BullMQ (safe for pre-docker CI).
+ * Lightweight app: only health routes - no Redis, MongoDB, or BullMQ (safe for pre-docker CI).
  */
 function buildTestApp() {
   const app = express();

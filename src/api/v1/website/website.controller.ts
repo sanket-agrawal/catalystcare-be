@@ -63,7 +63,11 @@ export const fetchTherapistBySlug = async (req: Request, res: Response) => {
 
 export const fetchCategoryDetailsBySlug = async (req: Request, res: Response) => {
   try {
-    const category = await fetchCategoryBySlugService(req.params.slug);
+    const focus = req.query.focus as string | undefined;
+    const category = await fetchCategoryBySlugService(req.params.slug, focus);
+    if (!category) {
+      throw new ApiError(404, "Category not found");
+    }
     res.status(200).json(new ApiResponse(true, 200, "Category Fetched Successfully", category));
   } catch (error) {
     console.log("Error while Fetching Category by Slug :", error);

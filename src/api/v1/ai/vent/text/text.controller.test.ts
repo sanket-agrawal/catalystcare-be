@@ -481,7 +481,7 @@ describe("VentController", () => {
       };
       mockLLMService.processVentMessage.mockResolvedValue(mockLLMResponse);
       mockPersistenceService.getUserVentMemory.mockResolvedValue({ currentEma: -0.6 });
-      // Only 2 messages — not enough depth
+      // Only 2 messages - not enough depth
       mockPersistenceService.getRecentMessages.mockResolvedValue([
         { role: "user", content: "I feel stressed" },
         { role: "assistant", content: "What's going on?" },

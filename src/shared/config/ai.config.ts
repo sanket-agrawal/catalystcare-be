@@ -60,5 +60,5 @@ export const llmConfig = {
   },
 };
 
-/** @deprecated Use llmConfig instead — kept for backward compatibility */
+/** @deprecated Use llmConfig instead - kept for backward compatibility */
 export const groqConfig = llmConfig;

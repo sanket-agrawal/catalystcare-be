@@ -66,7 +66,7 @@ model User {
 enum AccountType {
   EXTENSION_ONLY    // signed up via extension, no platform profile yet
   PLATFORM          // signed up via platform directly  
-  FULL              // has both — either upgraded or was platform user who used extension
+  FULL              // has both - either upgraded or was platform user who used extension
 }
 
 
@@ -980,7 +980,7 @@ model WebinarRegistration {
   webinarId         String                    @map("webinar_id")
   webinar           Webinar                   @relation(fields: [webinarId], references: [id], onDelete: Cascade)
 
-  // Guest identity — no auth required
+  // Guest identity - no auth required
   guestName         String                    @map("guest_name")
   guestEmail        String                    @map("guest_email")
   guestPhone        String?                   @map("guest_phone")
@@ -992,7 +992,7 @@ model WebinarRegistration {
   confirmationJobId  String?                 @map("confirmation_job_id")
 
   // Soft idempotency key so the same guest can't double-register
-  // (unique on webinarId + guestEmail, only one CONFIRMED allowed — enforced at app layer)
+  // (unique on webinarId + guestEmail, only one CONFIRMED allowed - enforced at app layer)
   
   createdAt         DateTime                  @default(now()) @map("created_at")
   updatedAt         DateTime                  @updatedAt @map("updated_at")
@@ -1141,7 +1141,7 @@ model OrgSubscription {
   planId         String?      @map("plan_id")
   plan           OrgPlan?     @relation(fields: [planId], references: [id])
 
-  // Billing snapshot — frozen at purchase time
+  // Billing snapshot - frozen at purchase time
   planName       String       @map("plan_name")
   planType       OrgType      @map("plan_type")
   totalSessions  Int          @map("total_sessions")

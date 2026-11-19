@@ -96,7 +96,7 @@ class SlotService {
       if (rowsForDay.length === 0) continue;
 
       for (const row of rowsForDay) {
-        // effectiveFrom/effectiveTo date comparison — treat as UTC day boundaries
+        // effectiveFrom/effectiveTo date comparison - treat as UTC day boundaries
         if (row.effectiveFrom && d < new Date(row.effectiveFrom.toString())) continue;
         if (row.effectiveTo && d > new Date(row.effectiveTo.toString())) continue;
 

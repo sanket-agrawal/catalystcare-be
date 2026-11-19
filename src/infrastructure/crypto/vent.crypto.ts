@@ -9,18 +9,11 @@ export function encryptContent(plaintext: string): string {
   const iv = crypto.randomBytes(12); // 96-bit IV for GCM
   const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
 
-  const encrypted = Buffer.concat([
-    cipher.update(plaintext, "utf8"),
-    cipher.final(),
-  ]);
-  const tag = cipher.getAuthTag(); // authentication tag — detects tampering
+  const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag(); // authentication tag - detects tampering
 
   // Store as iv:tag:ciphertext (all base64)
-  return [
-    iv.toString("base64"),
-    tag.toString("base64"),
-    encrypted.toString("base64"),
-  ].join(":");
+  return [iv.toString("base64"), tag.toString("base64"), encrypted.toString("base64")].join(":");
 }
 
 // vent.crypto.ts

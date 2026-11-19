@@ -27,12 +27,11 @@ export interface AssessmentInsightConfig {
 }
 
 export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
-
   // ─────────────────────────────────────────────
-  // ASSESSMENT 1 — Why You're Stuck
+  // ASSESSMENT 1 - Why You're Stuck
   // ─────────────────────────────────────────────
   "stuck-pattern": {
-    title: "Why You're Stuck — and Why Discipline Isn't the Problem",
+    title: "Why You're Stuck - and Why Discipline Isn't the Problem",
     reportHeadline: 'Your "Stuck Pattern" Overview',
     reportSubheadline:
       "Feeling stuck doesn't come from one cause. This report shows how each mental blocker is affecting you right now.",
@@ -69,7 +68,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             insight:
               "Fear is actively influencing your behaviour, often showing up as overthinking, delay, or avoidance. You may spend considerable time preparing mentally without translating that into action.",
             meaning:
-              "Tasks may feel heavier than they objectively are because they carry emotional weight — such as fear of mistakes, judgement, or not meeting expectations. This creates a gap between intention and execution.",
+              "Tasks may feel heavier than they objectively are because they carry emotional weight - such as fear of mistakes, judgement, or not meeting expectations. This creates a gap between intention and execution.",
             direction:
               "Shift your focus from doing things well to simply starting. Breaking tasks into very small, low-pressure actions can help bypass resistance and rebuild momentum.",
           },
@@ -78,7 +77,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             insight:
               "Fear is creating strong emotional resistance, making it difficult to begin or engage with important tasks. The discomfort associated with starting may feel disproportionately high compared to the task itself.",
             meaning:
-              "Avoidance may be functioning as a short-term relief mechanism. This is not a lack of discipline — it is your mind trying to protect you from perceived risk or pressure.",
+              "Avoidance may be functioning as a short-term relief mechanism. This is not a lack of discipline - it is your mind trying to protect you from perceived risk or pressure.",
             direction:
               "Lower the emotional stakes around tasks. Start with very small, time-bound efforts and treat all work as provisional rather than final. Reducing pressure will gradually reduce avoidance.",
           },
@@ -134,8 +133,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
               "Your energy levels appear stable and sufficient to support consistent action.",
             meaning:
               "You are likely able to engage with tasks without significant resistance from fatigue or exhaustion.",
-            direction:
-              "Maintain your current balance and continue protecting recovery habits.",
+            direction: "Maintain your current balance and continue protecting recovery habits.",
           },
           "30-49": {
             label: "Mild friction",
@@ -181,10 +179,8 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             label: "Mild friction",
             insight:
               "You may experience mild distraction, particularly when tasks are unclear, repetitive, or mentally demanding.",
-            meaning:
-              "Focus may fluctuate, but it is still recoverable with some structure.",
-            direction:
-              "Define clear, short tasks and reduce obvious distractions before starting.",
+            meaning: "Focus may fluctuate, but it is still recoverable with some structure.",
+            direction: "Define clear, short tasks and reduce obvious distractions before starting.",
           },
           "50-69": {
             label: "Active blocker",
@@ -202,7 +198,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             meaning:
               "Even when you intend to focus, your attention may be pulled in multiple directions, reducing your ability to engage deeply.",
             direction:
-              "Simplify your environment aggressively — remove distractions, reduce multitasking, and create dedicated focus periods.",
+              "Simplify your environment aggressively - remove distractions, reduce multitasking, and create dedicated focus periods.",
           },
         },
       },
@@ -210,7 +206,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
   },
 
   // ─────────────────────────────────────────────
-  // ASSESSMENT 2 — Relationship Emotional Zones
+  // ASSESSMENT 2 - Relationship Emotional Zones
   // ─────────────────────────────────────────────
   "relationship-emotional-zones": {
     title: "Understand Your Relationship's Emotional Zones",
@@ -317,27 +313,22 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
           },
           "30-49": {
             label: "Mild friction",
-            insight:
-              "Some conflicts may leave minor emotional residue even after resolution.",
-            meaning:
-              "You may move on logically, but not always feel fully settled emotionally.",
+            insight: "Some conflicts may leave minor emotional residue even after resolution.",
+            meaning: "You may move on logically, but not always feel fully settled emotionally.",
             direction: "Add short follow-ups after disagreements to ensure closure.",
           },
           "50-69": {
             label: "Active issue",
             insight:
               "Conflicts may feel draining or partially unresolved. You may struggle to feel understood during disagreements.",
-            meaning:
-              "This can lead to repeated issues or emotional distance over time.",
-            direction:
-              'Shift focus from "solving" to understanding emotions during conflict.',
+            meaning: "This can lead to repeated issues or emotional distance over time.",
+            direction: 'Shift focus from "solving" to understanding emotions during conflict.',
           },
           "70-100": {
             label: "Strong issue",
             insight:
               "Conflict is likely creating emotional disconnection or stress. Conversations may escalate, repeat, or feel unsafe.",
-            meaning:
-              "You may withdraw, become defensive, or feel stuck in recurring patterns.",
+            meaning: "You may withdraw, become defensive, or feel stuck in recurring patterns.",
             direction:
               "Pause high-intensity conversations and return when calm to prioritise emotional safety.",
           },
@@ -354,17 +345,14 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
           },
           "30-49": {
             label: "Mild friction",
-            insight:
-              "There may be mild mismatch in how support is given and received.",
-            meaning:
-              "Your partner may care, but not always in the way you expect or need.",
+            insight: "There may be mild mismatch in how support is given and received.",
+            meaning: "Your partner may care, but not always in the way you expect or need.",
             direction: "Be specific about what support looks like for you.",
           },
           "50-69": {
             label: "Active issue",
             insight: "Support may feel inconsistent or insufficient at times.",
-            meaning:
-              "You may feel disappointed or emotionally unsupported in certain situations.",
+            meaning: "You may feel disappointed or emotionally unsupported in certain situations.",
             direction: "Replace assumptions with clear, direct requests.",
           },
           "70-100": {
@@ -372,8 +360,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             insight: "Support needs are likely not being met consistently.",
             meaning:
               "You may feel alone, unsupported, or misunderstood despite being in the relationship.",
-            direction:
-              "Have a direct conversation about expectations and emotional needs.",
+            direction: "Have a direct conversation about expectations and emotional needs.",
           },
         },
       },
@@ -394,20 +381,17 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
           },
           "50-69": {
             label: "Active issue",
-            insight:
-              "External stress is actively influencing your relationship dynamics.",
+            insight: "External stress is actively influencing your relationship dynamics.",
             meaning:
               "Pressure from work or life may lead to irritability, withdrawal, or miscommunication.",
-            direction:
-              "Create space to process stress separately from relationship conversations.",
+            direction: "Create space to process stress separately from relationship conversations.",
           },
           "70-100": {
             label: "Strong issue",
             insight: "Stress spillover is a strong pattern affecting connection.",
             meaning:
               "Your relationship may be absorbing emotional pressure from outside, leading to tension or disconnection.",
-            direction:
-              "Actively separate stress processing from relationship interactions.",
+            direction: "Actively separate stress processing from relationship interactions.",
           },
         },
       },
@@ -415,10 +399,10 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
   },
 
   // ─────────────────────────────────────────────
-  // ASSESSMENT 3 — How Are You Really Doing Emotionally
+  // ASSESSMENT 3 - How Are You Really Doing Emotionally
   // ─────────────────────────────────────────────
   "emotional-wellbeing-snapshot": {
-    title: "How Are You Really Doing — Emotionally?",
+    title: "How Are You Really Doing - Emotionally?",
     reportHeadline: "Your Emotional Wellbeing Snapshot",
     reportSubheadline:
       "This snapshot shows how different emotional patterns are showing up for you right now.",
@@ -438,8 +422,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
               "Your emotional energy appears stable and available for daily life. You are likely able to engage with responsibilities and interactions without feeling consistently drained.",
             meaning:
               "You can recover after emotional effort and maintain a baseline sense of capacity through the day.",
-            direction:
-              "Continue supporting this through rest, routine, and balanced workload.",
+            direction: "Continue supporting this through rest, routine, and balanced workload.",
           },
           "30-49": {
             label: "Mild emotional strain",
@@ -447,8 +430,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
               "There may be a low level of emotional fatigue building. You are still functioning, but things may feel slightly heavier than usual.",
             meaning:
               "You may need more effort to stay present, patient, or engaged, especially across long days.",
-            direction:
-              "Add small recovery breaks and reduce unnecessary emotional demands early.",
+            direction: "Add small recovery breaks and reduce unnecessary emotional demands early.",
           },
           "50-69": {
             label: "Active emotional strain",
@@ -456,8 +438,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
               "Your emotional energy is actively strained, making routine tasks feel more effortful. You may feel tired even before fully engaging with your day.",
             meaning:
               "This can reduce motivation, increase irritability, and make it harder to stay consistent.",
-            direction:
-              "Lower expectations temporarily and prioritise recovery alongside output.",
+            direction: "Lower expectations temporarily and prioritise recovery alongside output.",
           },
           "70-100": {
             label: "Strong emotional strain",
@@ -486,8 +467,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
               "You may notice occasional mood fluctuations, such as irritability or low mood, but they are not constant.",
             meaning:
               "Your emotional state may be influenced by stress, fatigue, or environment more than usual.",
-            direction:
-              "Track patterns over a few days to understand what affects your mood.",
+            direction: "Track patterns over a few days to understand what affects your mood.",
           },
           "50-69": {
             label: "Active emotional strain",
@@ -502,8 +482,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             label: "Strong emotional strain",
             insight:
               "Mood instability appears significant, with emotional shifts that may feel intense or difficult to manage.",
-            meaning:
-              "You may feel like your emotions are unpredictable or overwhelming at times.",
+            meaning: "You may feel like your emotions are unpredictable or overwhelming at times.",
             direction:
               "Prioritise stability over productivity and consider professional support if this persists.",
           },
@@ -516,8 +495,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             label: "Not a significant concern",
             insight:
               "You are generally emotionally connected and able to feel engaged with people and activities.",
-            meaning:
-              "Your emotional system is responsive and present in your day-to-day life.",
+            meaning: "Your emotional system is responsive and present in your day-to-day life.",
             direction: "Continue engaging in meaningful and connecting experiences.",
           },
           "30-49": {
@@ -526,17 +504,14 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
               "There may be slight emotional disconnection at times. Some experiences may feel less engaging or meaningful than usual.",
             meaning:
               "You may notice reduced excitement or involvement, even in things you typically enjoy.",
-            direction:
-              "Reintroduce small, low-pressure activities that create connection.",
+            direction: "Reintroduce small, low-pressure activities that create connection.",
           },
           "50-69": {
             label: "Active emotional strain",
             insight:
               "Emotional numbness is actively present. You may feel flat, disconnected, or less emotionally responsive.",
-            meaning:
-              "This can make life feel routine or mechanical, with reduced emotional depth.",
-            direction:
-              "Focus on gentle reconnection rather than forcing strong emotions.",
+            meaning: "This can make life feel routine or mechanical, with reduced emotional depth.",
+            direction: "Focus on gentle reconnection rather than forcing strong emotions.",
           },
           "70-100": {
             label: "Strong emotional strain",
@@ -544,8 +519,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
               "Strong emotional disconnection may be present. You may feel detached from emotions, people, or experiences.",
             meaning:
               "This may be your system's way of protecting itself from overload or prolonged stress.",
-            direction:
-              "Prioritise safe reconnection and consider support if this continues.",
+            direction: "Prioritise safe reconnection and consider support if this continues.",
           },
         },
       },
@@ -573,16 +547,14 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
               "Overwhelm is actively affecting your emotional capacity. Managing daily demands may feel effortful.",
             meaning:
               "Small stressors may feel bigger because your system has less room to absorb them.",
-            direction:
-              "Remove or delay one demand and reduce incoming pressure where possible.",
+            direction: "Remove or delay one demand and reduce incoming pressure where possible.",
           },
           "70-100": {
             label: "Strong emotional strain",
             insight:
               "Your stress load appears high, and your emotional system may be near capacity.",
             meaning: "You may feel tense, overloaded, or like you are barely keeping up.",
-            direction:
-              "Reduce demands immediately and prioritise recovery and support.",
+            direction: "Reduce demands immediately and prioritise recovery and support.",
           },
         },
       },
@@ -593,10 +565,8 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             label: "Not a significant concern",
             insight:
               "You are able to experience enjoyment, interest, and emotional connection in your daily life.",
-            meaning:
-              "Positive emotional experiences are present and accessible to you.",
-            direction:
-              "Continue engaging in activities and relationships that support this.",
+            meaning: "Positive emotional experiences are present and accessible to you.",
+            direction: "Continue engaging in activities and relationships that support this.",
           },
           "30-49": {
             label: "Mild emotional strain",
@@ -604,24 +574,20 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
               "Positive engagement may be slightly reduced. Enjoyment or connection may feel less frequent or less intense.",
             meaning:
               "You may still have positive moments, but they may not feel as consistent or fulfilling.",
-            direction:
-              "Intentionally include small moments of enjoyment without pressure.",
+            direction: "Intentionally include small moments of enjoyment without pressure.",
           },
           "50-69": {
             label: "Active emotional strain",
             insight:
               "Positive engagement is actively reduced. You may feel less interested, motivated, or connected to things around you.",
-            meaning:
-              "Activities that once felt meaningful may now feel neutral or effortful.",
-            direction:
-              "Reintroduce simple, previously enjoyable activities at a low intensity.",
+            meaning: "Activities that once felt meaningful may now feel neutral or effortful.",
+            direction: "Reintroduce simple, previously enjoyable activities at a low intensity.",
           },
           "70-100": {
             label: "Strong emotional strain",
             insight:
               "Positive engagement appears significantly reduced. Joy, interest, or connection may feel difficult to access.",
-            meaning:
-              "You may feel disconnected from meaning, motivation, or emotional reward.",
+            meaning: "You may feel disconnected from meaning, motivation, or emotional reward.",
             direction:
               "Focus on small, manageable sources of connection and consider support if this persists.",
           },
@@ -631,10 +597,10 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
   },
 
   // ─────────────────────────────────────────────
-  // ASSESSMENT 4 — How Much Are You Carrying
+  // ASSESSMENT 4 - How Much Are You Carrying
   // ─────────────────────────────────────────────
   "life-load-role-strain": {
-    title: "How Much Are You Carrying — Emotionally & Mentally?",
+    title: "How Much Are You Carrying - Emotionally & Mentally?",
     reportHeadline: "Your Life Load Overview",
     reportSubheadline:
       "This report shows how different responsibilities are affecting your emotional and mental capacity.",
@@ -693,8 +659,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             label: "Not a significant issue",
             insight:
               "You are not significantly overburdened by managing others' emotions or expectations. You likely feel able to express your own needs when required.",
-            meaning:
-              "Emotional responsibility is relatively balanced in your environment.",
+            meaning: "Emotional responsibility is relatively balanced in your environment.",
             direction:
               "Continue maintaining this balance by staying aware of your own emotional needs.",
           },
@@ -704,8 +669,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
               "You may sometimes take on emotional responsibility for others, such as keeping situations calm or managing expectations.",
             meaning:
               "This may not feel overwhelming yet, but it can slowly create fatigue if it becomes a pattern.",
-            direction:
-              "Pause before stepping in emotionally and check whether it is necessary.",
+            direction: "Pause before stepping in emotionally and check whether it is necessary.",
           },
           "50-69": {
             label: "Active strain",
@@ -734,10 +698,8 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             label: "Not a significant issue",
             insight:
               "You are generally able to protect your time and set boundaries when needed. Your limits are respected or maintained.",
-            meaning:
-              "You likely have space for rest and personal time without excessive guilt.",
-            direction:
-              "Continue maintaining clear boundaries to support this balance.",
+            meaning: "You likely have space for rest and personal time without excessive guilt.",
+            direction: "Continue maintaining clear boundaries to support this balance.",
           },
           "30-49": {
             label: "Mild strain",
@@ -764,7 +726,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             meaning:
               "You may feel unable to say no, guilty when resting, or repeatedly pulled beyond your capacity.",
             direction:
-              "Rebuild boundaries actively — reduce commitments and prioritise your own time without justification.",
+              "Rebuild boundaries actively - reduce commitments and prioritise your own time without justification.",
           },
         },
       },
@@ -791,8 +753,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             label: "Active strain",
             insight:
               "Your identity may be increasingly shaped by roles and responsibilities, with less space for personal expression.",
-            meaning:
-              "You may feel like you are functioning more than truly living or choosing.",
+            meaning: "You may feel like you are functioning more than truly living or choosing.",
             direction:
               "Reconnect with interests, preferences, and choices that are not tied to obligations.",
           },
@@ -814,14 +775,12 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             label: "Not a significant issue",
             insight:
               "You appear to have access to support and shared responsibility. You likely do not feel alone in managing your roles.",
-            meaning:
-              "You are able to rely on others when needed, which helps maintain balance.",
+            meaning: "You are able to rely on others when needed, which helps maintain balance.",
             direction: "Continue asking for and accepting support when required.",
           },
           "30-49": {
             label: "Mild strain",
-            insight:
-              "Support may be present but not always consistent or evenly distributed.",
+            insight: "Support may be present but not always consistent or evenly distributed.",
             meaning:
               "You may sometimes feel like you are carrying slightly more than your fair share.",
             direction:
@@ -848,8 +807,8 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
       },
     },
   },
-    "burnout-self-check": {
-    title: "How Burned Out Are You — Really?",
+  "burnout-self-check": {
+    title: "How Burned Out Are You - Really?",
     reportHeadline: "Your Burnout Check Results",
     reportSubheadline:
       "This snapshot shows how burnout is currently affecting your energy, mental load, and engagement.",
@@ -895,7 +854,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             insight:
               "Energy depletion is a primary signal right now. Fatigue may feel constant, rest may not restore you, and even small demands may feel disproportionately heavy.",
             meaning:
-              "Your system is operating beyond its sustainable capacity. This is not a willpower issue — it is a resource issue that requires attention.",
+              "Your system is operating beyond its sustainable capacity. This is not a willpower issue - it is a resource issue that requires attention.",
             direction:
               "Rest is not optional at this stage. Reduce commitments where possible and seek support if this level of depletion has been sustained for weeks.",
           },
@@ -949,8 +908,7 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
             label: "Not a significant concern",
             insight:
               "You appear emotionally present and engaged with your day. Autopilot and emotional distance are not strong signals right now.",
-            meaning:
-              "Disengagement is not currently a significant burnout driver for you.",
+            meaning: "Disengagement is not currently a significant burnout driver for you.",
             direction:
               "Continue engaging in work and activities that feel meaningful. Protect that connection.",
           },
@@ -990,10 +948,9 @@ export const assessmentInsights: Record<string, AssessmentInsightConfig> = {
 // ─────────────────────────────────────────────
 // Helper: get band content for a given score
 // ─────────────────────────────────────────────
-  // ASSESSMENT 5 — How Burned Out Are You — Really?
-  // ─────────────────────────────────────────────
-  // Zone keys match what's stored in DB: energy_depletion, mental_load, disengagement
-
+// ASSESSMENT 5 - How Burned Out Are You - Really?
+// ─────────────────────────────────────────────
+// Zone keys match what's stored in DB: energy_depletion, mental_load, disengagement
 
 export function getScoreBand(score: number): "0-29" | "30-49" | "50-69" | "70-100" {
   if (score < 30) return "0-29";
@@ -1017,8 +974,6 @@ export function getZoneContent(
   return zone.bands[band] ?? null;
 }
 
-export function getAssessmentConfig(
-  assessmentSlug: string
-): AssessmentInsightConfig | null {
+export function getAssessmentConfig(assessmentSlug: string): AssessmentInsightConfig | null {
   return assessmentInsights[assessmentSlug] ?? null;
 }

@@ -76,7 +76,7 @@
 // }
 
 // /**
-//  * Core invite creation — upserts invitation rows inside a transaction.
+//  * Core invite creation - upserts invitation rows inside a transaction.
 //  * If an EXPIRED / REVOKED invite already exists for the same (orgId, email)
 //  * pair, it is replaced (Prisma upsert on the unique constraint).
 //  */
@@ -133,7 +133,7 @@
 
 //     const blockedStatuses = ["SUSPENDED", "EXPIRED"];
 //     if (blockedStatuses.includes(org.status)) {
-//       throw new ApiError(403, `Cannot invite members — organization is ${org.status.toLowerCase()}`);
+//       throw new ApiError(403, `Cannot invite members - organization is ${org.status.toLowerCase()}`);
 //     }
 
 //     // 2. Check active subscription seat limit (POOL policy)
@@ -216,7 +216,7 @@
 
 //     const blockedStatuses = ["SUSPENDED", "EXPIRED"];
 //     if (blockedStatuses.includes(org.status)) {
-//       throw new ApiError(403, `Cannot invite members — organization is ${org.status.toLowerCase()}`);
+//       throw new ApiError(403, `Cannot invite members - organization is ${org.status.toLowerCase()}`);
 //     }
 
 //     // 2. Parse CSV
@@ -300,7 +300,7 @@
 //     const { toInvite, skipped: skippedEmails } = await partitionEmails(orgId, allEmails);
 //     skipped.push(...skippedEmails);
 
-//     // 7. Create invitations — grouped by role so one transaction per role batch
+//     // 7. Create invitations - grouped by role so one transaction per role batch
 //     const expiresAt = computeExpiry(options.expiresInDays ?? INVITE_EXPIRY_DAYS_DEFAULT);
 
 //     const roleGroups = new Map<OrgMemberRole, string[]>();

@@ -82,113 +82,93 @@ export const getAllCategories = async () => {
         return [];
       });
 
-    if (dbCategories && dbCategories.length > 0) {
-      return dbCategories
-        .filter((cat) => {
-          // Only return categories that have curated landing page content
-          // This excludes DB-only categories like "Clinical Psychology" that
-          // don't have a production-ready landing page yet.
-          const curated = getCuratedCategoryContent(cat.slug || cat.name);
-          return !!curated;
-        })
-        .map((cat) => {
-          const curated = getCuratedCategoryContent(cat.slug || cat.name);
-          const subCategories =
-            curated?.subCategories && curated.subCategories.length > 0
-              ? curated.subCategories
-              : (cat.subCategories || []).map((sub) => ({
-                  id: sub.slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-                  anchor: `#${sub.slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-                  slug: sub.slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-                  name: sub.name,
-                  description: sanitizeClinicalCopy(
-                    sub.description || sub.tagline || sub.websiteDesc
-                  ),
-                }));
+    // Map all curated condition pages, merging DB records (and approved therapists) when available
+    const curatedPages = Object.values(CATEGORY_PAGES_CONTENT);
 
-          return {
-            id: cat.id,
-            slug: cat.slug || curated?.slug,
-            name: cat.name,
-            h1: curated?.h1 || cat.name,
-            subhead: curated?.subhead || sanitizeClinicalCopy(cat.tagline || cat.description),
-            tagline: curated?.tagline || sanitizeClinicalCopy(cat.tagline),
-            description: sanitizeClinicalCopy(cat.description || curated?.subhead),
-            websiteDesc: sanitizeClinicalCopy(cat.websiteDesc || curated?.subhead),
-            iconUrl: cat.iconUrl,
-            heroCta: curated?.heroCta || "Find your therapist",
-            secondaryCta: curated?.secondaryCta || {
-              text: "Not sure? Take the free 1-minute check",
-              href: "/self-help/assessment",
-            },
-            trustStrip: curated?.trustStrip || [],
-            isThisYou: curated?.isThisYou || [],
-            howItWorks: curated?.howItWorks || [],
-            pricing: curated?.pricing || {
-              startingPrice: 499,
-              currency: "INR",
-              text: "Private video sessions from ₹499",
-            },
-            pricingBlock: curated?.pricingBlock || null,
-            subCategories,
-            testimonials: curated?.testimonials || [],
-            faq: curated?.faq || [],
-            faqJsonLd: curated?.faqJsonLd || null,
-            finalCta: curated?.finalCta || {
-              h2: "Start feeling like yourself again.",
-              buttonText: "Find your therapist",
-              secondaryCta: {
-                text: "Not sure? Take the free 1-minute check",
-                href: "/self-help/assessment",
-              },
-            },
-            stickyCtaText: curated?.stickyCtaText || "Sessions from ₹499 — Find your therapist",
-            crisisStrip: curated?.crisisStrip || null,
-            // Top 4 approved therapists for this category
-            therapists: (cat.therapists || []).map((t) => ({
-              id: t.id,
-              slug: t.slug,
-              name: `${t.user.firstName} ${t.user.lastName}`.trim(),
-              profilePhoto: t.user.profilePhoto,
-              professionalTitle: t.professionalTitle,
-              highestQualification: t.highestQualification,
-              yearOfExperience: t.yearOfExperience,
-              sessionFee: t.sessionFee,
-              currency: t.currency,
-              languageSpoken: t.languageSpoken,
-              about: t.about,
-              specializations: t.subCategories.map((sc) => sc.name),
-            })),
-          };
-        });
-    }
+    return curatedPages.map((page) => {
+      // Find matching DB category by slug, alias, or name
+      const dbCat = (dbCategories || []).find((c) => {
+        const cSlug = c.slug?.toLowerCase().trim();
+        const cName = c.name?.toLowerCase().trim();
+        return (
+          cSlug === page.slug ||
+          page.aliases.includes(cSlug || "") ||
+          cName === page.name.toLowerCase() ||
+          page.aliases.includes(cName || "")
+        );
+      });
 
-    // Fallback: If DB has no categories, return all production curated condition pages
-    return Object.values(CATEGORY_PAGES_CONTENT).map((page) => ({
-      id: page.slug,
-      slug: page.slug,
-      name: page.name,
-      h1: page.h1,
-      subhead: page.subhead,
-      tagline: page.tagline,
-      description: page.subhead,
-      websiteDesc: page.subhead,
-      heroCta: page.heroCta,
-      secondaryCta: page.secondaryCta,
-      trustStrip: page.trustStrip,
-      isThisYou: page.isThisYou,
-      howItWorks: page.howItWorks,
-      pricing: page.pricing,
-      pricingBlock: page.pricingBlock,
-      subCategories: page.subCategories,
-      testimonials: page.testimonials,
-      faq: page.faq,
-      faqJsonLd: page.faqJsonLd,
-      finalCta: page.finalCta,
-      stickyCtaText: page.stickyCtaText,
-      crisisStrip: page.crisisStrip,
-      therapists: [], // No DB available in fallback mode
-    }));
+      // Sub-categories: prefer curated, fallback to DB
+      const subCategories =
+        page.subCategories && page.subCategories.length > 0
+          ? page.subCategories
+          : (dbCat?.subCategories || []).map((sub) => ({
+              id: sub.slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+              anchor: `#${sub.slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+              slug: sub.slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+              name: sub.name,
+              description: sanitizeClinicalCopy(sub.description || sub.tagline || sub.websiteDesc),
+            }));
+
+      // Therapists: from DB category if available, otherwise empty array
+      const therapists = (dbCat?.therapists || []).map((t) => ({
+        id: t.id,
+        slug: t.slug,
+        name: `${t.user.firstName} ${t.user.lastName}`.trim(),
+        profilePhoto: t.user.profilePhoto,
+        professionalTitle: t.professionalTitle,
+        highestQualification: t.highestQualification,
+        yearOfExperience: t.yearOfExperience,
+        sessionFee: t.sessionFee,
+        currency: t.currency,
+        languageSpoken: t.languageSpoken,
+        about: t.about,
+        specializations: t.subCategories.map((sc) => sc.name),
+      }));
+
+      return {
+        id: dbCat?.id || page.slug,
+        slug: dbCat?.slug || page.slug,
+        name: dbCat?.name || page.name,
+        h1: page.h1,
+        subhead: page.subhead || sanitizeClinicalCopy(dbCat?.tagline || dbCat?.description),
+        tagline: page.tagline || sanitizeClinicalCopy(dbCat?.tagline),
+        description: sanitizeClinicalCopy(dbCat?.description || page.subhead),
+        websiteDesc: sanitizeClinicalCopy(dbCat?.websiteDesc || page.subhead),
+        iconUrl: dbCat?.iconUrl || null,
+        heroCta: page.heroCta || "Find your therapist",
+        secondaryCta: page.secondaryCta || {
+          text: "Not sure? Take the free 1-minute check",
+          href: "/self-help/assessment",
+        },
+        trustStrip: page.trustStrip || [],
+        isThisYou: page.isThisYou || [],
+        howItWorks: page.howItWorks || [],
+        pricing: page.pricing || {
+          startingPrice: 499,
+          currency: "INR",
+          text: "Private video sessions from ₹499",
+        },
+        pricingBlock: page.pricingBlock ?? null,
+        subCategories,
+        testimonials: page.testimonials || [],
+        faq: page.faq || [],
+        faqJsonLd: page.faqJsonLd || null,
+        finalCta: page.finalCta || {
+          h2: "Start feeling like yourself again.",
+          buttonText: "Find your therapist",
+          secondaryCta: {
+            text: "Not sure? Take the free 1-minute check",
+            href: "/self-help/assessment",
+          },
+        },
+        stickyCtaText: page.stickyCtaText ?? "Sessions from ₹499 — Find your therapist",
+        contentNote: page.contentNote || null,
+        isSafetyPage: page.isSafetyPage || false,
+        whenReady: page.whenReady || null,
+        therapists,
+      };
+    });
   } catch (error) {
     throw new ApiError(500, "Something went wrong while fetching categories");
   }
@@ -372,45 +352,53 @@ export const fetchCategoryBySlugService = async (categorySlug: string, focus?: s
         text: "Not sure? Take the free 1-minute check",
         href: "/self-help/assessment",
       },
-      trustStrip: curated?.trustStrip || [
-        { icon: "✓", label: "Verified therapists" },
-        { icon: "🔒", label: "100% private" },
-        { icon: "₹", label: "Sessions from ₹499" },
-        { icon: "📅", label: "Same-week slots" },
-      ],
+      trustStrip: curated
+        ? curated.trustStrip
+        : [
+            { icon: "✓", label: "Verified therapists" },
+            { icon: "🔒", label: "100% private" },
+            { icon: "₹", label: "Sessions from ₹499" },
+            { icon: "📅", label: "Same-week slots" },
+          ],
       isThisYou: curated?.isThisYou || [],
-      howItWorks: curated?.howItWorks || [
-        {
-          step: 1,
-          title: "Tell us",
-          description: "Share what you're going through — takes 2 minutes.",
-        },
-        {
-          step: 2,
-          title: "Get matched",
-          description: "We suggest verified psychologists suited to your needs and budget.",
-        },
-        {
-          step: 3,
-          title: "Begin sessions",
-          description:
-            "Book directly into your therapist's calendar. Private video call, no travel.",
-        },
-        {
-          step: 4,
-          title: "Track progress",
-          description: "Review goals and insights after each session at your own pace.",
-        },
-      ],
+      howItWorks:
+        curated?.howItWorks ||
+        (curated?.isSafetyPage
+          ? []
+          : [
+              {
+                step: 1,
+                title: "Tell us",
+                description: "Share what you're going through — takes 2 minutes.",
+              },
+              {
+                step: 2,
+                title: "Get matched",
+                description: "We suggest verified psychologists suited to your needs and budget.",
+              },
+              {
+                step: 3,
+                title: "Begin sessions",
+                description:
+                  "Book directly into your therapist's calendar. Private video call, no travel.",
+              },
+              {
+                step: 4,
+                title: "Track progress",
+                description: "Review goals and insights after each session at your own pace.",
+              },
+            ]),
       subCategories,
       testimonials: curated?.testimonials || [],
-      pricingBlock: curated?.pricingBlock || {
-        h2: "What it costs",
-        body: "Sessions start at ₹499. Every therapist sets their own fee — you see it before you book. No packages required, no hidden charges. Pay per session.",
-        startingPrice: 499,
-        currency: "INR",
-        disclaimer: "Each therapist's fee is shown on their profile before you book.",
-      },
+      pricingBlock: curated
+        ? (curated.pricingBlock ?? null)
+        : {
+            h2: "What it costs",
+            body: "Sessions start at ₹499. Every therapist sets their own fee — you see it before you book. No packages required, no hidden charges. Pay per session.",
+            startingPrice: 499,
+            currency: "INR",
+            disclaimer: "Each therapist's fee is shown on their profile before you book.",
+          },
       faq: curated?.faq || [],
       faqJsonLd: curated?.faqJsonLd || null,
       finalCta: curated?.finalCta || {
@@ -421,18 +409,19 @@ export const fetchCategoryBySlugService = async (categorySlug: string, focus?: s
           href: "/self-help/assessment",
         },
       },
-      pricing: curated?.pricing || {
-        startingPrice: 499,
-        currency: "INR",
-        text: "Private video sessions from ₹499",
-      },
-      stickyCtaText: curated?.stickyCtaText || "Sessions from ₹499 — Find your therapist",
-      crisisStrip: curated?.crisisStrip || {
-        heading: "Immediate Help & Support",
-        body: "If you or someone you know is in crisis, please reach out immediately.",
-        teleManasLine: "If you're in crisis, call Tele-MANAS 14416 (free, 24×7, Govt. of India).",
-        phoneNumber: "14416",
-      },
+      pricing: curated
+        ? curated.pricing
+        : {
+            startingPrice: 499,
+            currency: "INR",
+            text: "Private video sessions from ₹499",
+          },
+      stickyCtaText: curated
+        ? (curated.stickyCtaText ?? "")
+        : "Sessions from ₹499 — Find your therapist",
+      contentNote: curated?.contentNote || null,
+      isSafetyPage: curated?.isSafetyPage || false,
+      whenReady: curated?.whenReady || null,
       therapists: therapistCards,
       focus: focus || null,
     };

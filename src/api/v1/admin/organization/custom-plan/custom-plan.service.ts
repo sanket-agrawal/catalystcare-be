@@ -206,7 +206,7 @@ const CustomPlanService = {
     const setupToken = randomUUID();
 
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Create OrgSubscription — snapshot everything from plan
+      // 1. Create OrgSubscription - snapshot everything from plan
       const subscription = await tx.orgSubscription.create({
         data: {
           orgId,

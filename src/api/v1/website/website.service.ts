@@ -16,29 +16,158 @@ import {
   slotNotificationTherapistTemplate,
   slotNotificationUserTemplate,
 } from "../../../shared/email-templates/website";
+import {
+  CATEGORY_PAGES_CONTENT,
+  getCuratedCategoryContent,
+  sanitizeClinicalCopy,
+} from "./data/categoryContent";
 
 export const getAllCategories = async () => {
   try {
-    return await prisma.category.findMany({
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        description: true,
-        iconUrl: true,
-        websiteDesc: true,
-        subCategories: {
-          select: {
-            id: true,
-            slug: true,
-            name: true,
-            description: true,
-            iconUrl: true,
-            tagline: true,
-            websiteDesc: true,
+    const dbCategories = await prisma.category
+      .findMany({
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          description: true,
+          iconUrl: true,
+          websiteDesc: true,
+          tagline: true,
+          subCategories: {
+            select: {
+              id: true,
+              slug: true,
+              name: true,
+              description: true,
+              iconUrl: true,
+              tagline: true,
+              websiteDesc: true,
+            },
+          },
+          // Top 4 approved therapists per category
+          therapists: {
+            where: { status: "APPROVED" },
+            select: {
+              id: true,
+              slug: true,
+              professionalTitle: true,
+              highestQualification: true,
+              yearOfExperience: true,
+              sessionFee: true,
+              currency: true,
+              languageSpoken: true,
+              about: true,
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  profilePhoto: true,
+                },
+              },
+              subCategories: {
+                select: { id: true, slug: true, name: true },
+              },
+            },
+            orderBy: { updatedAt: "desc" },
+            take: 4,
           },
         },
-      },
+      })
+      .catch((err) => {
+        console.warn(
+          "Could not query categories from DB, falling back to curated content:",
+          err?.message
+        );
+        return [];
+      });
+
+    // Map all curated condition pages, merging DB records (and approved therapists) when available
+    const curatedPages = Object.values(CATEGORY_PAGES_CONTENT);
+
+    return curatedPages.map((page) => {
+      // Find matching DB category by slug, alias, or name
+      const dbCat = (dbCategories || []).find((c) => {
+        const cSlug = c.slug?.toLowerCase().trim();
+        const cName = c.name?.toLowerCase().trim();
+        return (
+          cSlug === page.slug ||
+          page.aliases.includes(cSlug || "") ||
+          cName === page.name.toLowerCase() ||
+          page.aliases.includes(cName || "")
+        );
+      });
+
+      // Sub-categories: prefer curated, fallback to DB
+      const subCategories =
+        page.subCategories && page.subCategories.length > 0
+          ? page.subCategories
+          : (dbCat?.subCategories || []).map((sub) => ({
+              id: sub.slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+              anchor: `#${sub.slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+              slug: sub.slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+              name: sub.name,
+              description: sanitizeClinicalCopy(sub.description || sub.tagline || sub.websiteDesc),
+            }));
+
+      // Therapists: from DB category if available, otherwise empty array
+      const therapists = (dbCat?.therapists || []).map((t) => ({
+        id: t.id,
+        slug: t.slug,
+        name: `${t.user.firstName} ${t.user.lastName}`.trim(),
+        profilePhoto: t.user.profilePhoto,
+        professionalTitle: t.professionalTitle,
+        highestQualification: t.highestQualification,
+        yearOfExperience: t.yearOfExperience,
+        sessionFee: t.sessionFee,
+        currency: t.currency,
+        languageSpoken: t.languageSpoken,
+        about: t.about,
+        specializations: t.subCategories.map((sc) => sc.name),
+      }));
+
+      return {
+        id: dbCat?.id || page.slug,
+        slug: dbCat?.slug || page.slug,
+        name: dbCat?.name || page.name,
+        h1: page.h1,
+        subhead: page.subhead || sanitizeClinicalCopy(dbCat?.tagline || dbCat?.description),
+        tagline: page.tagline || sanitizeClinicalCopy(dbCat?.tagline),
+        description: sanitizeClinicalCopy(dbCat?.description || page.subhead),
+        websiteDesc: sanitizeClinicalCopy(dbCat?.websiteDesc || page.subhead),
+        iconUrl: dbCat?.iconUrl || null,
+        heroCta: page.heroCta || "Find your therapist",
+        secondaryCta: page.secondaryCta || {
+          text: "Not sure? Take the free 1-minute check",
+          href: "/self-help/assessment",
+        },
+        trustStrip: page.trustStrip || [],
+        isThisYou: page.isThisYou || [],
+        howItWorks: page.howItWorks || [],
+        pricing: page.pricing || {
+          startingPrice: 499,
+          currency: "INR",
+          text: "Private video sessions from ₹499",
+        },
+        pricingBlock: page.pricingBlock ?? null,
+        subCategories,
+        testimonials: page.testimonials || [],
+        faq: page.faq || [],
+        faqJsonLd: page.faqJsonLd || null,
+        finalCta: page.finalCta || {
+          h2: "Start feeling like yourself again.",
+          buttonText: "Find your therapist",
+          secondaryCta: {
+            text: "Not sure? Take the free 1-minute check",
+            href: "/self-help/assessment",
+          },
+        },
+        stickyCtaText: page.stickyCtaText ?? "Sessions from ₹499 — Find your therapist",
+        contentNote: page.contentNote || null,
+        isSafetyPage: page.isSafetyPage || false,
+        whenReady: page.whenReady || null,
+        therapists,
+      };
     });
   } catch (error) {
     throw new ApiError(500, "Something went wrong while fetching categories");
@@ -91,46 +220,214 @@ export const fetchTherapistProfileService = async (categoryId: string, subCatego
   }
 };
 
-export const fetchCategoryBySlugService = async (categorySlug: string) => {
+export const fetchCategoryBySlugService = async (categorySlug: string, focus?: string) => {
   try {
-    return await prisma.category.findFirst({
-      where: {
-        slug: categorySlug,
-      },
-      select: {
-        slug: true,
-        name: true,
-        description: true,
-        iconUrl: true,
-        tagline: true,
-        subCategories: {
-          select: {
-            slug: true,
-            name: true,
-            description: true,
-            iconUrl: true,
-            tagline: true,
-          },
+    const curated = getCuratedCategoryContent(categorySlug);
+
+    // Build query conditions for DB lookup
+    const searchSlugs: string[] = [categorySlug];
+    if (curated) {
+      searchSlugs.push(curated.slug);
+      searchSlugs.push(...curated.aliases);
+    }
+
+    const category = await prisma.category
+      .findFirst({
+        where: {
+          OR: searchSlugs.map((s) => ({ slug: s })),
         },
-        therapists: {
-          where: {
-            status: "APPROVED",
-          },
-          select: {
-            slug: true,
-            user: {
-              select: {
-                firstName: true,
-                lastName: true,
-                profilePhoto: true,
+        include: {
+          subCategories: true,
+          therapists: {
+            where: {
+              status: "APPROVED",
+            },
+            select: {
+              id: true,
+              slug: true,
+              professionalTitle: true,
+              highestQualification: true,
+              yearOfExperience: true,
+              sessionFee: true,
+              currency: true,
+              languageSpoken: true,
+              about: true,
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  profilePhoto: true,
+                },
               },
+              categories: {
+                select: {
+                  id: true,
+                  slug: true,
+                  name: true,
+                },
+              },
+              subCategories: {
+                select: {
+                  id: true,
+                  slug: true,
+                  name: true,
+                },
+              },
+            },
+            orderBy: {
+              updatedAt: "desc",
             },
           },
         },
+      })
+      .catch((err) => {
+        console.warn(
+          "Could not query category by slug from DB, falling back to curated content:",
+          err?.message
+        );
+        return null;
+      });
+
+    // If neither DB record nor curated content exists, return null (404)
+    if (!category && !curated) {
+      return null;
+    }
+
+    // Process and sort therapist cards
+    const rawTherapists = category?.therapists || [];
+    let orderedTherapists = [...rawTherapists];
+
+    // Nice-to-have: if focus parameter provided, re-order therapists with that sub-condition first
+    if (focus && orderedTherapists.length > 0) {
+      const normalizedFocus = focus.toLowerCase().trim().replace(/^#/, "");
+      const specialists: typeof rawTherapists = [];
+      const others: typeof rawTherapists = [];
+
+      for (const t of orderedTherapists) {
+        const matchesFocus = t.subCategories.some(
+          (sc) =>
+            sc.slug?.toLowerCase() === normalizedFocus ||
+            sc.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") === normalizedFocus ||
+            sc.name?.toLowerCase().includes(normalizedFocus)
+        );
+        if (matchesFocus) {
+          specialists.push(t);
+        } else {
+          others.push(t);
+        }
+      }
+      orderedTherapists = [...specialists, ...others];
+    }
+
+    // Apply limit of 6 therapist cards (ordered by default ranking / focus)
+    const therapistCards = orderedTherapists.slice(0, 6);
+
+    // Process sub-conditions with anchor sections
+    let subCategories = curated?.subCategories;
+    if (!subCategories || subCategories.length === 0) {
+      subCategories = (category?.subCategories || []).map((sc) => {
+        const subSlug = sc.slug || sc.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        return {
+          id: subSlug,
+          anchor: `#${subSlug}`,
+          slug: subSlug,
+          name: sc.name,
+          description: sanitizeClinicalCopy(sc.description || sc.tagline || sc.websiteDesc),
+        };
+      });
+    }
+
+    return {
+      id: category?.id || curated?.slug,
+      slug: category?.slug || curated?.slug || categorySlug,
+      name: category?.name || curated?.name,
+      h1: curated?.h1 || category?.name,
+      subhead: curated?.subhead || sanitizeClinicalCopy(category?.tagline || category?.description),
+      tagline: curated?.tagline || sanitizeClinicalCopy(category?.tagline),
+      description: sanitizeClinicalCopy(category?.description || curated?.subhead),
+      websiteDesc: sanitizeClinicalCopy(category?.websiteDesc || curated?.subhead),
+      iconUrl: category?.iconUrl || null,
+      heroCta: curated?.heroCta || "Find your therapist",
+      secondaryCta: curated?.secondaryCta || {
+        text: "Not sure? Take the free 1-minute check",
+        href: "/self-help/assessment",
       },
-    });
+      trustStrip: curated
+        ? curated.trustStrip
+        : [
+            { icon: "✓", label: "Verified therapists" },
+            { icon: "🔒", label: "100% private" },
+            { icon: "₹", label: "Sessions from ₹499" },
+            { icon: "📅", label: "Same-week slots" },
+          ],
+      isThisYou: curated?.isThisYou || [],
+      howItWorks:
+        curated?.howItWorks ||
+        (curated?.isSafetyPage
+          ? []
+          : [
+              {
+                step: 1,
+                title: "Tell us",
+                description: "Share what you're going through — takes 2 minutes.",
+              },
+              {
+                step: 2,
+                title: "Get matched",
+                description: "We suggest verified psychologists suited to your needs and budget.",
+              },
+              {
+                step: 3,
+                title: "Begin sessions",
+                description:
+                  "Book directly into your therapist's calendar. Private video call, no travel.",
+              },
+              {
+                step: 4,
+                title: "Track progress",
+                description: "Review goals and insights after each session at your own pace.",
+              },
+            ]),
+      subCategories,
+      testimonials: curated?.testimonials || [],
+      pricingBlock: curated
+        ? (curated.pricingBlock ?? null)
+        : {
+            h2: "What it costs",
+            body: "Sessions start at ₹499. Every therapist sets their own fee — you see it before you book. No packages required, no hidden charges. Pay per session.",
+            startingPrice: 499,
+            currency: "INR",
+            disclaimer: "Each therapist's fee is shown on their profile before you book.",
+          },
+      faq: curated?.faq || [],
+      faqJsonLd: curated?.faqJsonLd || null,
+      finalCta: curated?.finalCta || {
+        h2: "Start feeling like yourself again.",
+        buttonText: "Find your therapist",
+        secondaryCta: {
+          text: "Not sure? Take the free 1-minute check",
+          href: "/self-help/assessment",
+        },
+      },
+      pricing: curated
+        ? curated.pricing
+        : {
+            startingPrice: 499,
+            currency: "INR",
+            text: "Private video sessions from ₹499",
+          },
+      stickyCtaText: curated
+        ? (curated.stickyCtaText ?? "")
+        : "Sessions from ₹499 — Find your therapist",
+      contentNote: curated?.contentNote || null,
+      isSafetyPage: curated?.isSafetyPage || false,
+      whenReady: curated?.whenReady || null,
+      therapists: therapistCards,
+      focus: focus || null,
+    };
   } catch (error) {
-    throw new ApiError(500, "Something went wrong while fetching categories");
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(500, "Something went wrong while fetching category details");
   }
 };
 

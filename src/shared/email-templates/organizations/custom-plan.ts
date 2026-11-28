@@ -93,7 +93,7 @@ export const customPlanPaymentLinkTemplate = ({
                   </div>
 
                   <p style="color: #777; font-size: 13px; margin-top: 20px; text-align:center;">
-                    Need help? Just reply to this email—we’re happy to assist.
+                    Need help? Just reply to this email-we’re happy to assist.
                   </p>
                 </td>
               </tr>
@@ -150,7 +150,7 @@ export const orgActivationTemplate = ({
   pricePaise,
   billingCycle,
   currency = "INR",
-  setupToken
+  setupToken,
 }: {
   firstName: string;
   orgName: string;
@@ -163,7 +163,7 @@ export const orgActivationTemplate = ({
   pricePaise: number;
   billingCycle: string;
   currency?: string;
-  setupToken : string;
+  setupToken: string;
 }) => {
   const price = (pricePaise / 100).toLocaleString("en-IN");
   const formatDate = (d: Date) =>
@@ -269,7 +269,7 @@ export const orgActivationTemplate = ({
                       </td>
                     </tr>
 
-                    <!-- Validity — highlighted -->
+                    <!-- Validity - highlighted -->
                     <tr style="background-color: #f0fdf4;">
                       <td style="padding: 10px 14px; font-size: 13px; color: #15803d; border-top: 1px solid #f3f4f6;">
                         VALID FROM
@@ -320,7 +320,7 @@ export const orgActivationTemplate = ({
   </tr>
 </table>
                   <p style="color: #777; font-size: 13px; margin-top: 24px; text-align: center;">
-                    Need help? Just reply to this email — we're happy to assist.
+                    Need help? Just reply to this email - we're happy to assist.
                   </p>
                 </td>
               </tr>

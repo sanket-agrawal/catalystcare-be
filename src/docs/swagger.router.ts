@@ -14,7 +14,7 @@ router.use(...swaggerUi.serve);
 router.get(
   "/",
   swaggerUi.setup(spec, {
-    customSiteTitle: "CatalystCare API — Docs",
+    customSiteTitle: "CatalystCare API - Docs",
     customCss: ".swagger-ui .topbar { display: none }",
   })
 );

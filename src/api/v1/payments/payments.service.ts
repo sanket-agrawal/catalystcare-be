@@ -304,7 +304,7 @@ export const paymentService = {
 
       // 2️⃣ Compare signatures
       if (generatedSignature !== razorpay_signature) {
-        throw new ApiError(400, "Invalid payment signature — possible tampering detected");
+        throw new ApiError(400, "Invalid payment signature - possible tampering detected");
       }
 
       // 3️⃣ Find payment linked to this order

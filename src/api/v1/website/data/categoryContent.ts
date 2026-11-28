@@ -454,10 +454,11 @@ export const CATEGORY_PAGES_CONTENT: Record<string, CategoryPageContent> = {
     stickyCtaText: "Sessions from ₹499 — Find your therapist",
   },
 
-  // Page C: /our-services/relations-personal
-  "relations-personal": {
-    slug: "relations-personal",
+  // Page C: /our-services/couples-therapy-marriage-counselling-online
+  "couples-therapy-marriage-counselling-online": {
+    slug: "couples-therapy-marriage-counselling-online",
     aliases: [
+      "relations-personal",
       "relationships",
       "relationship-issues",
       "personality-relationship-issues",
@@ -1111,7 +1112,7 @@ export function getCuratedCategoryContent(slugOrName: string): CategoryPageConte
     normalized.includes("couples") ||
     normalized.includes("marriage")
   ) {
-    return CATEGORY_PAGES_CONTENT["relations-personal"];
+    return CATEGORY_PAGES_CONTENT["couples-therapy-marriage-counselling-online"];
   }
   if (
     normalized.includes("self-identity") ||

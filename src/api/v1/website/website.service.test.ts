@@ -43,7 +43,9 @@ describe("Website Service - Categories & Condition Pages", () => {
       expect(mood).toBeDefined();
       expect(mood?.h1).toBe("Support for Depression & Low Mood, From Verified Psychologists");
 
-      const relations = result.find((c) => c.slug === "relations-personal");
+      const relations = result.find(
+        (c) => c.slug === "couples-therapy-marriage-counselling-online"
+      );
       expect(relations).toBeDefined();
       expect(relations?.h1).toBe("Couples Therapy & Marriage Counselling, Online");
 
@@ -307,13 +309,24 @@ describe("Website Service - Categories & Condition Pages", () => {
       );
     });
 
-    it("should return complete Page C (relations-personal) content", async () => {
+    it("should keep relations-personal as a legacy category alias", async () => {
       (prisma.category.findFirst as any).mockResolvedValue(null);
 
       const result = await fetchCategoryBySlugService("relations-personal");
 
       expect(result).toBeDefined();
-      expect(result?.slug).toBe("relations-personal");
+      expect(result?.slug).toBe("couples-therapy-marriage-counselling-online");
+    });
+
+    it("should return complete Page C (couples-therapy-marriage-counselling-online) content", async () => {
+      (prisma.category.findFirst as any).mockResolvedValue(null);
+
+      const result = await fetchCategoryBySlugService(
+        "couples-therapy-marriage-counselling-online"
+      );
+
+      expect(result).toBeDefined();
+      expect(result?.slug).toBe("couples-therapy-marriage-counselling-online");
       expect(result?.h1).toBe("Couples Therapy & Marriage Counselling, Online");
       expect(result?.subhead).toContain(
         "Whether you're fighting too often, drifting apart, or preparing for marriage"
